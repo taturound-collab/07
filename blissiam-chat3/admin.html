@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบจัดการ | Blissiam</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="config.js"></script>
+    <link id="blissiam-font-link" href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['var(--font-body)', 'Kanit', 'sans-serif'] },
+                    colors: {
+                        paper: { 50: '#fdfcfa', 100: '#f6f3ee', 200: '#ece7de', 300: '#ddd6c9' },
+                        ink: { 900: '#1a1a1a', 700: '#3a3a3a', 500: '#6b6b6b', 300: '#9c9c9c', 200: '#c2c2c2' },
+                        primary: {
+                            50: 'var(--color-primary-50)', 100: 'var(--color-primary-100)', 200: 'var(--color-primary-200)',
+                            300: 'var(--color-primary-300)', 400: 'var(--color-primary-400)', 500: 'var(--color-primary-500)',
+                            600: 'var(--color-primary-600)', 700: 'var(--color-primary-700)'
+                        },
+                        secondary: {
+                            50: 'var(--color-secondary-50)', 100: 'var(--color-secondary-100)', 200: 'var(--color-secondary-200)',
+                            300: 'var(--color-secondary-300)', 400: 'var(--color-secondary-400)', 500: 'var(--color-secondary-500)',
+                            600: 'var(--color-secondary-600)'
+                        },
+                        line: '#e8e3d9'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --color-primary-50: #f3f7f1; --color-primary-100: #e3ece0; --color-primary-200: #c5dcc0;
+            --color-primary-300: #9dc295; --color-primary-400: #739e6b; --color-primary-500: #4D7355;
+            --color-primary-600: #3d5d44; --color-primary-700: #314936;
+            --color-secondary-50: #fbf3ea; --color-secondary-100: #f3e0c8; --color-secondary-200: #e6bf8e;
+            --color-secondary-300: #cc9655; --color-secondary-400: #A8662A; --color-secondary-500: #925621; --color-secondary-600: #74441a;
+            --font-body: 'Kanit', sans-serif;
+        }
+        body { font-family: 'Kanit', sans-serif; background-color: #fdfcfa; background-image: radial-gradient(circle at 15% 10%, var(--color-primary-50) 0%, transparent 45%), radial-gradient(circle at 85% 90%, var(--color-secondary-50) 0%, transparent 45%); background-attachment: fixed; }
+        .sidebar-item { transition: all 0.2s; }
+        .sidebar-item:hover, .sidebar-item.active { background: var(--color-primary-50); color: var(--color-primary-600); }
+        .fade-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .dot-pulse circle { animation: dotPulse 1.4s ease-in-out infinite; }
+        .dot-pulse circle:nth-child(1) { animation-delay: 0s; }
+        .dot-pulse circle:nth-child(2) { animation-delay: 0.1s; }
+        .dot-pulse circle:nth-child(3) { animation-delay: 0.2s; }
+        @keyframes dotPulse { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
+    </style>
+    <script src="theme.js"></script>
+</head>
+<body class="h-screen text-ink-900 overflow-hidden">
+    <div id="root" class="h-full"></div>
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const supabase = window.supabaseClient;
+
+        function DotLogo({ size = 28, animated = false }) {
+            return (
+                <svg width={size} height={size} viewBox="0 0 28 28" fill="none" class={animated ? 'dot-pulse' : ''}>
+                    <circle cx="4" cy="4" r="3" fill="#1a1a1a"/><circle cx="14" cy="4" r="3" fill="#1a1a1a"/><circle cx="24" cy="4" r="3" fill="#1a1a1a"/>
+                    <circle cx="4" cy="14" r="3" fill="#1a1a1a"/><circle cx="14" cy="14" r="3" fill="var(--color-primary-500)"/><circle cx="24" cy="14" r="3" fill="#1a1a1a"/>
+                    <circle cx="4" cy="24" r="3" fill="#1a1a1a"/><circle cx="14" cy="24" r="3" fill="#1a1a1a"/><circle cx="24" cy="24" r="3" fill="#1a1a1a"/>
+                </svg>
+            );
+        }
+
+        const getTopicLabel = (id) => {
+            const t = { general:'ทั่วไป 💬', study:'การเรียน 📚', love:'ความรัก ❤️', work:'การทำงาน 💼', family:'ครอบครัว 🏠', health:'สุขภาพจิต 🧠' };
+            return t[id] || id;
+        };
+
+        function App() {
+            const [user, setUser] = useState(null);
+            const [isAdmin, setIsAdmin] = useState(false);
+            const [activeTab, setActiveTab] = useState('dashboard');
+            const [stats, setStats] = useState({ totalUsers: 0, activeRooms: 0, waitingQueue: 0, totalReports: 0 });
+            const [queue, setQueue] = useState([]);
+            const [rooms, setRooms] = useState([]);
+            const [reports, setReports] = useState([]);
+            const [users, setUsers] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const [selectedThemeKey, setSelectedThemeKey] = useState('sage');
+            const [selectedFontKey, setSelectedFontKey] = useState('kanit');
+            const [savingTheme, setSavingTheme] = useState(false);
+            const [themeSaved, setThemeSaved] = useState(false);
+
+            useEffect(() => {
+                window.BlissiamTheme?.loadAndApplyTheme();
+                checkAdmin();
+            }, []);
+
+            useEffect(() => {
+                if (isAdmin) {
+                    loadData();
+                    const interval = setInterval(loadData, 5000);
+                    return () => clearInterval(interval);
+                }
+            }, [isAdmin]);
+
+            async function checkAdmin() {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session) {
+                    window.location.href = 'admin-login.html';
+                    return;
+                }
+                setUser(session.user);
+
+                const { data: profile } = await supabase.from('profiles').select('status').eq('id', session.user.id).single();
+                if (profile?.status !== 'admin') {
+                    await supabase.auth.signOut();
+                    window.location.href = 'admin-login.html';
+                    return;
+                }
+                setIsAdmin(true);
+                setLoading(false);
+
+                const { data: settings } = await supabase.from('site_settings').select('theme_key, font_key').eq('id', 1).single();
+                if (settings) {
+                    setSelectedThemeKey(settings.theme_key);
+                    setSelectedFontKey(settings.font_key);
+                }
+            }
+
+            async function loadData() {
+                const { count: userCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
+                const { count: roomCount } = await supabase.from('rooms').select('*', { count: 'exact', head: true }).eq('status', 'active');
+                const { count: queueCount } = await supabase.from('queue').select('*', { count: 'exact', head: true }).eq('status', 'waiting');
+                const { count: reportCount } = await supabase.from('reports').select('*', { count: 'exact', head: true }).eq('status', 'pending');
+
+                setStats({ totalUsers: userCount || 0, activeRooms: roomCount || 0, waitingQueue: queueCount || 0, totalReports: reportCount || 0 });
+
+                const { data: queueData } = await supabase.from('queue').select('*, profiles:user_id(display_name, status)').eq('status', 'waiting').order('created_at', { ascending: true });
+                setQueue(queueData || []);
+
+                const { data: roomsData } = await supabase.from('rooms').select('*, venter:venter_id(display_name), listener:listener_id(display_name)').eq('status', 'active').order('created_at', { ascending: false });
+                setRooms(roomsData || []);
+
+                const { data: reportsData } = await supabase.from('reports').select('*, reporter:reporter_id(display_name), reported:reported_user_id(display_name)').eq('status', 'pending').order('created_at', { ascending: false });
+                setReports(reportsData || []);
+
+                const { data: usersData } = await supabase.from('profiles').select('*').order('last_seen', { ascending: false }).limit(50);
+                setUsers(usersData || []);
+            }
+
+            // ระบบแบน/ปลดแบนผู้ใช้
+            async function toggleBanUser(userId, currentBanStatus) {
+                const actionText = currentBanStatus ? 'ปลดแบน' : 'ระงับบัญชี (แบน)';
+                if (!confirm(`คุณแน่ใจหรือไม่ที่จะ ${actionText} ผู้ใช้นี้?`)) return;
+
+                try {
+                    await supabase.from('profiles').update({ 
+                        is_banned: !currentBanStatus,
+                        status: !currentBanStatus ? 'offline' : 'offline' // เตะออกจากระบบ
+                    }).eq('id', userId);
+
+                    // ถ้าแบน ให้เตะออกจากคิวและห้องที่ใช้อยู่ด้วย
+                    if (!currentBanStatus) {
+                        await supabase.from('queue').update({ status: 'cancelled' }).eq('user_id', userId).eq('status', 'waiting');
+                        await supabase.from('rooms').update({ status: 'closed', ended_by: user.id }).or(`venter_id.eq.${userId},listener_id.eq.${userId}`).eq('status', 'active');
+                    }
+
+                    loadData();
+                } catch (err) {
+                    alert('Error: ' + err.message);
+                }
+            }
+
+            async function resolveReport(reportId) {
+                await supabase.from('reports').update({ status: 'resolved', resolved_at: new Date().toISOString(), resolved_by: user.id }).eq('id', reportId);
+                loadData();
+            }
+
+            async function dismissReport(reportId) {
+                await supabase.from('reports').update({ status: 'dismissed', resolved_at: new Date().toISOString(), resolved_by: user.id }).eq('id', reportId);
+                loadData();
+            }
+
+            async function closeRoom(roomId) {
+                if (!confirm('ต้องการปิดห้องนี้?')) return;
+                await supabase.from('rooms').update({ status: 'closed', ended_at: new Date().toISOString(), ended_by: user.id }).eq('id', roomId);
+                loadData();
+            }
+
+            async function saveTheme() {
+                setSavingTheme(true);
+                setThemeSaved(false);
+                try {
+                    const { error } = await supabase.from('site_settings').update({
+                        theme_key: selectedThemeKey, font_key: selectedFontKey, updated_at: new Date().toISOString(), updated_by: user.id
+                    }).eq('id', 1);
+                    if (error) throw error;
+                    window.BlissiamTheme?.applyTheme(selectedThemeKey, selectedFontKey);
+                    setThemeSaved(true);
+                    setTimeout(() => setThemeSaved(false), 3000);
+                } catch (err) {
+                    alert('บันทึกธีมไม่สำเร็จ: ' + err.message);
+                } finally {
+                    setSavingTheme(false);
+                }
+            }
+
+            async function logout() {
+                await supabase.auth.signOut();
+                window.location.href = 'admin-login.html';
+            }
+
+            if (loading) return (
+                <div class="h-full flex items-center justify-center bg-paper-50">
+                    <DotLogo size={40} animated={true} />
+                </div>
+            );
+
+            const tabs = [
+                { id: 'dashboard', label: 'ภาพรวม', icon: 'M3 13.5h6v6.75H3v-6.75zM9 3h6v17.25H9V3zM15 8.25h6v12H15v-12z' },
+                { id: 'queue', label: 'คิวรอ', icon: 'M12 6v6l4 2M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+                { id: 'rooms', label: 'ห้องแชท', icon: 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-6l-4 4v-4z' },
+                { id: 'reports', label: 'รายงาน', icon: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z' },
+                { id: 'users', label: 'การจัดการผู้ใช้', icon: 'M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z' },
+                { id: 'theme', label: 'ธีมเว็บไซต์', icon: 'M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.043-.025a15.994 15.994 0 011.622-3.395m3.42 3.42a15.995 15.995 0 004.764-4.648l3.876-5.814a1.151 1.151 0 00-1.597-1.597L14.146 6.32a15.996 15.996 0 00-4.649 4.763m3.42 3.42a6.776 6.776 0 00-3.42-3.42' },
+            ];
+
+            return (
+                <div class="h-full flex">
+                    {/* Sidebar */}
+                    <aside class="w-64 bg-white border-r border-line flex flex-col">
+                        <div class="p-6 border-b border-line flex items-center gap-3">
+                            <DotLogo size={26} />
+                            <div>
+                                <div class="text-lg font-bold">Blissiam</div>
+                                <div class="text-xs text-ink-500">ระบบจัดการ</div>
+                            </div>
+                        </div>
+                        <nav class="flex-1 p-4 space-y-1">
+                            {tabs.map(tab => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    class={`sidebar-item w-full text-left px-4 py-3 rounded-xl flex items-center gap-3 ${activeTab === tab.id ? 'active font-semibold' : 'text-ink-700'}`}
+                                >
+                                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d={tab.icon}/></svg>
+                                    <span>{tab.label}</span>
+                                    {tab.id === 'queue' && stats.waitingQueue > 0 && <span class="ml-auto bg-primary-500 text-white text-xs px-2 py-0.5 rounded-full">{stats.waitingQueue}</span>}
+                                    {tab.id === 'reports' && stats.totalReports > 0 && <span class="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{stats.totalReports}</span>}
+                                </button>
+                            ))}
+                        </nav>
+                        <div class="p-4 border-t border-line">
+                            <div class="flex items-center gap-3 mb-3">
+                                <div class="w-8 h-8 bg-ink-900 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                                    {user?.email?.charAt(0).toUpperCase()}
+                                </div>
+                                <div class="text-sm">
+                                    <div class="font-medium text-ink-900">{user?.email}</div>
+                                    <div class="text-xs text-ink-500">ผู้ดูแลระบบ</div>
+                                </div>
+                            </div>
+                            <button onClick={logout} class="w-full text-left px-4 py-2 text-red-500 hover:bg-red-50 rounded-xl transition text-sm">
+                                ออกจากระบบ
+                            </button>
+                        </div>
+                    </aside>
+
+                    {/* Main Content */}
+                    <main class="flex-1 overflow-y-auto p-8 bg-paper-50">
+                        {activeTab === 'dashboard' && (
+                            <div class="fade-in">
+                                <h1 class="text-2xl font-bold text-ink-900 mb-6">ภาพรวมระบบ</h1>
+                                <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                                    {[
+                                        { label: 'ผู้ใช้ทั้งหมด', value: stats.totalUsers, bar: 'bg-primary-500' },
+                                        { label: 'ห้องแชทกำลังใช้งาน', value: stats.activeRooms, bar: 'bg-primary-500' },
+                                        { label: 'รอจับคู่', value: stats.waitingQueue, bar: 'bg-secondary-500' },
+                                        { label: 'รายงานรอดำเนินการ', value: stats.totalReports, bar: 'bg-red-500' },
+                                    ].map((stat, i) => (
+                                        <div key={i} class="bg-white rounded-2xl border border-line overflow-hidden">
+                                            <div class={`h-1.5 ${stat.bar}`}></div>
+                                            <div class="p-6">
+                                                <div class="text-3xl font-bold text-ink-900">{stat.value}</div>
+                                                <div class="text-sm text-ink-500 mt-1">{stat.label}</div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'queue' && (
+                            <div class="fade-in">
+                                <h1 class="text-2xl font-bold text-ink-900 mb-6">คิวรอจับคู่</h1>
+                                {queue.length === 0 ? (
+                                    <div class="bg-white rounded-2xl p-12 text-center border border-line">
+                                        <p class="text-ink-500">ไม่มีคิวรอในขณะนี้</p>
+                                    </div>
+                                ) : (
+                                    <div class="bg-white rounded-2xl border border-line overflow-hidden">
+                                        <table class="w-full">
+                                            <thead class="bg-paper-50">
+                                                <tr>
+                                                    <th class="px-6 py-4 text-left text-sm font-semibold text-ink-500">ผู้ใช้</th>
+                                                    <th class="px-6 py-4 text-left text-sm font-semibold text-ink-500">หัวข้อสนทนา</th>
+                                                    <th class="px-6 py-4 text-left text-sm font-semibold text-ink-500">บทบาท</th>
+                                                    <th class="px-6 py-4 text-left text-sm font-semibold text-ink-500">โหมด</th>
+                                                    <th class="px-6 py-4 text-left text-sm font-semibold text-ink-500">เวลารอ</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="divide-y divide-line">
+                                                {queue.map(q => (
+                                                    <tr key={q.id} class="hover:bg-paper-50 transition">
+                                                        <td class="px-6 py-4">
+                                                            <div class="font-medium text-ink-900">{q.profiles?.display_name}</div>
+                                                            <div class="text-xs text-ink-300">{q.user_id}</div>
+                                                        </td>
+                                                        <td class="px-6 py-4 text-sm font-medium text-primary-600">
+                                                            {getTopicLabel(q.topic)}
+                                                        </td>
+                                                        <td class="px-6 py-4">
+                                                            <span class={`px-3 py-1 rounded-full text-xs font-medium ${q.role === 'venter' ? 'bg-orange-50 text-primary-600' : 'bg-yellow-50 text-secondary-600'}`}>
+                                                                {q.role === 'venter' ? 'อยากระบาย' : 'อยากรับฟัง'}
+                                                            </span>
+                                                        </td>
+                                                        <td class="px-6 py-4">
+                                                            <span class={`px-3 py-1 rounded-full text-xs font-medium ${q.identity_mode === 'revealed' ? 'bg-ink-900 text-white' : 'bg-paper-200 text-ink-700'}`}>
+                                                                {q.identity_mode === 'revealed' ? 'ระบุตัวตน' : 'ไม่ระบุตัวตน'}
+                                                            </span>
+                                                        </td>
+                                                        <td class="px-6 py-4 text-ink-500 text-sm">
+                                                            {Math.floor((new Date() - new Date(q.created_at)) / 60000)} นาที
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {activeTab === 'rooms' && (
+                            <div class="fade-in">
+                                <h1 class="text-2xl font-bold text-ink-900 mb-6">ห้องแชทที่กำลังใช้งาน</h1>
+                                {rooms.length === 0 ? (
+                                    <div class="bg-white rounded-2xl p-12 text-center border border-line">
+                                        <p class="text-ink-500">ไม่มีห้องแชทที่กำลังใช้งาน</p>
+                                    </div>
+                                ) : (
+                                    <div class="grid gap-4">
+                                        {rooms.map(room => (
+                                            <div key={room.id} class="bg-white rounded-2xl p-6 border border-line">
+                                                <div class="flex items-center justify-between">
+                                                    <div class="flex items-center gap-4">
+                                                        <div class="flex -space-x-2">
+                                                            <div class="w-10 h-10 bg-paper-100 border-2 border-white rounded-full flex items-center justify-center text-sm text-ink-900">
+                                                                {room.venter?.display_name?.charAt(0) || 'V'}
+                                                            </div>
+                                                            <div class="w-10 h-10 bg-paper-100 border-2 border-white rounded-full flex items-center justify-center text-sm text-ink-900">
+                                                                {room.listener?.display_name?.charAt(0) || 'L'}
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            <div class="font-medium text-ink-900 flex items-center gap-2">
+                                                                {room.venter?.display_name} ↔ {room.listener?.display_name}
+                                                                <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-primary-50 text-primary-600 border border-primary-200">
+                                                                    {getTopicLabel(room.topic)}
+                                                                </span>
+                                                                <span class={`px-2 py-0.5 rounded-full text-xs font-medium ${room.identity_mode === 'revealed' ? 'bg-ink-900 text-white' : 'bg-paper-200 text-ink-700'}`}>
+                                                                    {room.identity_mode === 'revealed' ? 'ระบุตัวตน' : 'ไม่ระบุตัวตน'}
+                                                                </span>
+                                                            </div>
+                                                            <div class="text-sm text-ink-500">เริ่ม: {new Date(room.created_at).toLocaleString('th-TH')}</div>
+                                                        </div>
+                                                    </div>
+                                                    <button onClick={() => closeRoom(room.id)} class="px-4 py-2 bg-red-50 text-red-500 border border-red-100 rounded-xl text-sm hover:bg-red-100 transition">
+                                                        ปิดห้อง
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {activeTab === 'reports' && (
+                            <div class="fade-in">
+                                <h1 class="text-2xl font-bold text-ink-900 mb-6">รายงานปัญหา</h1>
+                                {reports.length === 0 ? (
+                                    <div class="bg-white rounded-2xl p-12 text-center border border-line">
+                                        <p class="text-ink-500">ไม่มีรายงานรอดำเนินการ</p>
+                                    </div>
+                                ) : (
+                                    <div class="grid gap-4">
+                                        {reports.map(r => (
+                                            <div key={r.id} class="bg-white rounded-2xl p-6 border border-line">
+                                                <div class="flex items-start justify-between mb-4">
+                                                    <div>
+                                                        <div class="font-bold text-ink-900 text-lg">{r.reason}</div>
+                                                        <div class="text-sm text-ink-500 mt-1">รายงานโดย: {r.reporter?.display_name} → {r.reported?.display_name}</div>
+                                                        <div class="text-xs text-ink-300 mt-1">{new Date(r.created_at).toLocaleString('th-TH')}</div>
+                                                    </div>
+                                                    <span class="px-3 py-1 rounded-full text-xs font-medium bg-red-50 text-red-500">รอดำเนินการ</span>
+                                                </div>
+                                                <div class="flex gap-2">
+                                                    <button onClick={() => resolveReport(r.id)} class="px-4 py-2 bg-primary-500 text-white rounded-xl text-sm hover:bg-primary-600 transition">รับทราบแล้ว</button>
+                                                    <button onClick={() => dismissReport(r.id)} class="px-4 py-2 border border-line text-ink-700 rounded-xl text-sm hover:bg-paper-100 transition">ยกเลิกรายงาน</button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {activeTab === 'users' && (
+                            <div class="fade-in">
+                                <h1 class="text-2xl font-bold text-ink-900 mb-6">ระบบจัดการผู้ใช้</h1>
+                                <div class="bg-white rounded-2xl border border-line overflow-hidden">
+                                    <table class="w-full">
+                                        <thead class="bg-paper-50">
+                                            <tr>
+                                                <th class="px-6 py-4 text-left text-sm font-semibold text-ink-500">ชื่อแสดง / สถานะ</th>
+                                                <th class="px-6 py-4 text-left text-sm font-semibold text-ink-500">แต้มใจดี (Kudos)</th>
+                                                <th class="px-6 py-4 text-left text-sm font-semibold text-ink-500">เข้าใช้งานล่าสุด</th>
+                                                <th class="px-6 py-4 text-center text-sm font-semibold text-ink-500">จัดการ (Moderation)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-line">
+                                            {users.map(u => (
+                                                <tr key={u.id} class={`hover:bg-paper-50 transition ${u.is_banned ? 'bg-red-50/30' : ''}`}>
+                                                    <td class="px-6 py-4">
+                                                        <div class="flex items-center gap-3">
+                                                            <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium bg-primary-500">
+                                                                {u.display_name?.charAt(0)}
+                                                            </div>
+                                                            <div>
+                                                                <div class={`font-medium ${u.is_banned ? 'text-red-500 line-through' : 'text-ink-900'}`}>{u.display_name}</div>
+                                                                <div class="text-xs text-ink-300">
+                                                                    {u.is_banned ? <span class="text-red-500">ถูกระงับบัญชี</span> : 
+                                                                     (u.status === 'online' ? 'ออนไลน์' :
+                                                                      u.status === 'in_chat' ? 'กำลังแชท' :
+                                                                      u.status === 'waiting' ? 'รอคิว' : 'ออฟไลน์')}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td class="px-6 py-4">
+                                                        <span class="inline-flex items-center gap-1 px-3 py-1 bg-yellow-50 text-secondary-600 rounded-full text-xs font-bold border border-yellow-100">
+                                                            🌟 {u.kudos_count || 0}
+                                                        </span>
+                                                    </td>
+                                                    <td class="px-6 py-4 text-sm text-ink-500">
+                                                        {new Date(u.last_seen).toLocaleString('th-TH')}
+                                                    </td>
+                                                    <td class="px-6 py-4 text-center">
+                                                        {u.status !== 'admin' && (
+                                                            <button 
+                                                                onClick={() => toggleBanUser(u.id, u.is_banned)}
+                                                                class={`px-4 py-1.5 rounded-xl text-xs font-medium transition ${
+                                                                    u.is_banned 
+                                                                    ? 'bg-green-50 text-green-600 border border-green-200 hover:bg-green-100' 
+                                                                    : 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100'
+                                                                }`}
+                                                            >
+                                                                {u.is_banned ? 'ปลดแบน' : 'แบนผู้ใช้'}
+                                                            </button>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'theme' && (
+                            <div class="fade-in max-w-3xl">
+                                <h1 class="text-2xl font-bold text-ink-900 mb-2">ธีมเว็บไซต์</h1>
+                                <p class="text-ink-500 mb-8">เลือกสีและฟอนต์สำหรับทั้งเว็บไซต์ การเปลี่ยนแปลงจะมีผลทันทีกับทุกหน้าหลังบันทึก</p>
+
+                                <div class="bg-white rounded-2xl border border-line p-6 mb-6">
+                                    <h3 class="font-bold text-ink-900 mb-4">ชุดสี</h3>
+                                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                        {Object.entries(window.BlissiamTheme?.THEME_PRESETS || {}).map(([key, preset]) => (
+                                            <button
+                                                key={key}
+                                                onClick={() => setSelectedThemeKey(key)}
+                                                class={`text-left p-4 rounded-xl border-2 transition ${selectedThemeKey === key ? 'border-ink-900' : 'border-line hover:border-ink-300'}`}
+                                            >
+                                                <div class="flex gap-1.5 mb-3">
+                                                    <span class="w-7 h-7 rounded-full block" style={{backgroundColor: preset.primary[500]}}></span>
+                                                    <span class="w-7 h-7 rounded-full block" style={{backgroundColor: preset.secondary[500]}}></span>
+                                                </div>
+                                                <div class="text-sm font-medium text-ink-900">{preset.label}</div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div class="bg-white rounded-2xl border border-line p-6 mb-6">
+                                    <h3 class="font-bold text-ink-900 mb-4">ฟอนต์</h3>
+                                    <div class="grid grid-cols-2 gap-3">
+                                        {Object.entries(window.BlissiamTheme?.FONT_SETS || {}).map(([key, font]) => (
+                                            <button
+                                                key={key}
+                                                onClick={() => setSelectedFontKey(key)}
+                                                class={`text-left p-4 rounded-xl border-2 transition ${selectedFontKey === key ? 'border-ink-900' : 'border-line hover:border-ink-300'}`}
+                                                style={{fontFamily: font.family}}
+                                            >
+                                                <div class="text-lg font-medium text-ink-900 mb-1">พื้นที่แบ่งปันน้ำใจ</div>
+                                                <div class="text-xs text-ink-500" style={{fontFamily: 'Kanit, sans-serif'}}>{font.label}</div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center gap-3">
+                                    <button onClick={saveTheme} disabled={savingTheme} class="px-6 py-3 bg-ink-900 text-white rounded-full font-medium hover:bg-primary-600 transition disabled:opacity-50">
+                                        {savingTheme ? 'กำลังบันทึก...' : 'บันทึกธีม'}
+                                    </button>
+                                    {themeSaved && <span class="text-primary-600 text-sm font-medium">บันทึกเรียบร้อยแล้ว ✓</span>}
+                                </div>
+                            </div>
+                        )}
+                    </main>
+                </div>
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>

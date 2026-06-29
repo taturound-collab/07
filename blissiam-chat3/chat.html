@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ห้องสนทนา | Blissiam</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="config.js"></script>
+    <link id="blissiam-font-link" href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['var(--font-body)', 'Kanit', 'sans-serif'] },
+                    colors: {
+                        paper: { 50: '#fdfcfa', 100: '#f6f3ee', 200: '#ece7de', 300: '#ddd6c9' },
+                        ink: { 900: '#1a1a1a', 700: '#3a3a3a', 500: '#6b6b6b', 300: '#9c9c9c', 200: '#c2c2c2' },
+                        primary: { 500: 'var(--color-primary-500)', 600: 'var(--color-primary-600)' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root { --color-primary-500: #4D7355; --color-primary-600: #3d5d44; --font-body: 'Kanit', sans-serif; }
+        body { font-family: 'Kanit', sans-serif; background-color: #fdfcfa; overflow: hidden; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+    <script src="theme.js"></script>
+</head>
+<body class="h-screen text-ink-900">
+    <div id="root" class="h-full"></div>
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+        const supabase = window.supabaseClient;
+
+        const GIPHY_API_KEY = 'GlVGYHqc3SyCE33918nYjgCqQf1aSN9S';
+        const EMOJIS = ['😀','😂','🥺','❤️','👍','🙏','✨','😭','🥰','😅','🔥','👀','💪','🫂','🎉'];
+
+        function App() {
+            const [user, setUser] = useState(null);
+            const [profile, setProfile] = useState(null);
+            const [room, setRoom] = useState(null);
+            const [messages, setMessages] = useState([]);
+            const [input, setInput] = useState('');
+            const [partner, setPartner] = useState(null);
+            const [partnerIdentity, setPartnerIdentity] = useState(null);
+            const [partnerTyping, setPartnerTyping] = useState(false);
+            
+            // UI States
+            const [showEndConfirm, setShowEndConfirm] = useState(false);
+            const [showProfileModal, setShowProfileModal] = useState(false);
+            const [showMediaMenu, setShowMediaMenu] = useState(false);
+            const [mediaTab, setMediaTab] = useState('emoji'); 
+            const [giphyMemes, setGiphyMemes] = useState([]);
+            const [memeSearch, setMemeSearch] = useState('');
+            const [isVoiceActive, setIsVoiceActive] = useState(false);
+            
+            const messagesEndRef = useRef(null);
+            const urlParams = new URLSearchParams(window.location.search);
+            const roomId = urlParams.get('room');
+
+            useEffect(() => {
+                window.BlissiamTheme?.loadAndApplyTheme();
+                if (!roomId) { window.location.href = 'index.html'; return; }
+                init();
+            }, []);
+
+            useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, partnerTyping]);
+            
+            useEffect(() => {
+                if (showMediaMenu && mediaTab === 'meme' && giphyMemes.length === 0) fetchGiphy();
+            }, [showMediaMenu, mediaTab]);
+
+            async function fetchGiphy(query = '') {
+                const endpoint = query ? `https://api.giphy.com/v1/gifs/search?api_key=${GIPHY_API_KEY}&q=${encodeURIComponent(query)}&limit=16&rating=g`
+                                       : `https://api.giphy.com/v1/gifs/trending?api_key=${GIPHY_API_KEY}&limit=16&rating=g`;
+                try {
+                    const res = await fetch(endpoint);
+                    const json = await res.json();
+                    if(json.data) setGiphyMemes(json.data.map(gif => gif.images.fixed_height.url));
+                } catch (e) { console.error(e); }
+            }
+
+            async function init() {
+                try {
+                    const { data: { session } } = await supabase.auth.getSession();
+                    if (!session) { window.location.href = 'login.html'; return; }
+                    setUser(session.user);
+
+                    const { data: profileData } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+                    setProfile(profileData);
+
+                    const { data: roomData } = await supabase.from('rooms').select('*').eq('id', roomId).single();
+                    if (!roomData || roomData.status === 'closed') { window.location.href = 'index.html'; return; }
+                    setRoom(roomData);
+
+                    const partnerId = roomData.venter_id === session.user.id ? roomData.listener_id : roomData.venter_id;
+                    const { data: partnerData } = await supabase.from('public_profiles').select('*').eq('id', partnerId).single();
+                    setPartner(partnerData);
+
+                    if (roomData.identity_mode === 'revealed') {
+                        const { data: identityRows } = await supabase.rpc('get_partner_identity', { room_id: roomId, partner_id: partnerId });
+                        if (identityRows && identityRows.length > 0) setPartnerIdentity(identityRows[0]);
+                    }
+
+                    const { data: msgData } = await supabase.from('messages').select('*').eq('room_id', roomId).order('created_at', { ascending: true });
+                    setMessages(msgData || []);
+
+                    // Realtime
+                    supabase.channel('messages-' + roomId)
+                        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: 'room_id=eq.' + roomId }, (payload) => {
+                            setMessages(prev => [...prev, payload.new]);
+                            if (payload.new.sender_id !== session.user.id) setPartnerTyping(false);
+                        }).subscribe();
+                        
+                    supabase.channel('typing-' + roomId).on('broadcast', { event: 'typing' }, (payload) => {
+                        if (payload.payload.senderId !== session.user.id) {
+                            setPartnerTyping(true); setTimeout(() => setPartnerTyping(false), 3000);
+                        }
+                    }).subscribe();
+
+                } catch (err) { alert(err.message); }
+            }
+
+            async function sendMessage(content, type = 'text') {
+                if (!content.trim() || !user) return;
+                if (type === 'text') setInput('');
+                setShowMediaMenu(false);
+                await supabase.from('messages').insert({ room_id: roomId, sender_id: user.id, content: content, message_type: type });
+            }
+
+            async function triggerEndChat() {
+                await supabase.from('rooms').update({ status: 'closed', ended_at: new Date().toISOString(), ended_by: user.id }).eq('id', roomId);
+                await supabase.from('profiles').update({ status: 'offline' }).eq('id', user.id);
+                window.location.href = 'index.html';
+            }
+
+            if (!room || !profile) return <div class="h-full flex items-center justify-center">กำลังโหลด...</div>;
+
+            return (
+                <div class="h-full flex flex-col bg-paper-50 relative">
+                    
+                    {/* Header */}
+                    <header class="bg-white border-b border-line px-4 py-3 flex items-center justify-between z-10 shadow-sm">
+                        <div class="flex items-center gap-3 cursor-pointer hover:opacity-80 transition" onClick={() => setShowProfileModal(true)}>
+                            {/* รูปโปรไฟล์หัวแชท */}
+                            <div 
+                                class="w-10 h-10 rounded-full flex items-center justify-center bg-paper-100 font-bold border border-line bg-cover bg-center"
+                                style={partner?.avatar_url ? {backgroundImage: `url(${partner.avatar_url})`} : {}}
+                            >
+                                {!partner?.avatar_url && (partnerIdentity ? partnerIdentity.real_name.charAt(0) : partner?.display_name.charAt(0))}
+                            </div>
+                            <div>
+                                <div class="font-semibold">{partnerIdentity ? partnerIdentity.real_name : partner?.display_name}</div>
+                                <div class="text-xs text-primary-600 flex items-center gap-1">
+                                    <div class="w-1.5 h-1.5 bg-primary-500 rounded-full"></div> 
+                                    {partnerIdentity ? partnerIdentity.school : 'กำลังแชท'}
+                                </div>
+                            </div>
+                        </div>
+                        <button onClick={() => setShowEndConfirm(true)} class="px-4 py-2 bg-red-50 text-red-500 rounded-full text-sm font-medium">จบการสนทนา</button>
+                    </header>
+
+                    {/* Messages Body */}
+                    <div class="flex-1 overflow-y-auto p-4 scrollbar-hide" onClick={() => setShowMediaMenu(false)}>
+                        {messages.map((msg) => {
+                            if (msg.is_system) return <div key={msg.id} class="text-center text-xs text-ink-400 my-4">{msg.content}</div>;
+
+                            const isMine = msg.sender_id === user.id;
+                            const avatar = isMine ? profile?.avatar_url : partner?.avatar_url;
+                            const initial = isMine ? profile?.display_name.charAt(0) : partner?.display_name.charAt(0);
+
+                            return (
+                                <div key={msg.id} class={`flex gap-2 my-4 ${isMine ? 'justify-end' : 'justify-start'}`}>
+                                    {/* รูปโปรไฟล์คนอื่น (ซ้าย) */}
+                                    {!isMine && (
+                                        <div class="w-8 h-8 rounded-full shrink-0 bg-paper-100 border border-line bg-cover bg-center mt-auto mb-1 flex items-center justify-center text-xs" style={avatar ? {backgroundImage: `url(${avatar})`} : {}}>
+                                            {!avatar && initial}
+                                        </div>
+                                    )}
+                                    
+                                    <div class={`max-w-[75%] ${isMine ? 'items-end' : 'items-start'} flex flex-col`}>
+                                        {msg.message_type === 'meme' ? (
+                                            <img src={msg.content} class="rounded-2xl max-w-[200px] shadow-sm border border-line" loading="lazy" />
+                                        ) : (
+                                            <div class={`px-4 py-2.5 rounded-2xl shadow-sm ${isMine ? 'bg-primary-500 text-white rounded-br-none' : 'bg-white text-ink-900 rounded-bl-none border border-line'}`}>
+                                                <div class="text-sm whitespace-pre-wrap">{msg.content}</div>
+                                            </div>
+                                        )}
+                                    </div>
+                                    
+                                    {/* รูปโปรไฟล์เราเอง (ขวา) */}
+                                    {isMine && (
+                                        <div class="w-8 h-8 rounded-full shrink-0 bg-primary-100 text-primary-700 border border-line bg-cover bg-center mt-auto mb-1 flex items-center justify-center text-xs" style={avatar ? {backgroundImage: `url(${avatar})`} : {}}>
+                                            {!avatar && initial}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                        <div ref={messagesEndRef} />
+                    </div>
+
+                    {/* Emoji/Giphy Modal */}
+                    {showMediaMenu && (
+                        <div class="absolute bottom-[80px] left-4 bg-white rounded-3xl shadow-xl p-4 w-80 z-20 max-h-[400px] flex flex-col border border-line">
+                            <div class="flex gap-4 mb-3 border-b border-line pb-2">
+                                <button onClick={() => setMediaTab('emoji')} class={`text-sm font-bold pb-1 ${mediaTab === 'emoji' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-ink-400'}`}>😀 Emojis</button>
+                                <button onClick={() => setMediaTab('meme')} class={`text-sm font-bold pb-1 ${mediaTab === 'meme' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-ink-400'}`}>🎨 Giphy Memes</button>
+                            </div>
+                            <div class="overflow-y-auto scrollbar-hide flex-1">
+                                {mediaTab === 'emoji' && (
+                                    <div class="flex flex-wrap gap-3">
+                                        {EMOJIS.map(e => <button key={e} onClick={() => setInput(prev => prev + e)} class="text-2xl hover:scale-125">{e}</button>)}
+                                    </div>
+                                )}
+                                {mediaTab === 'meme' && (
+                                    <div class="flex flex-col gap-3">
+                                        <form onSubmit={(e) => { e.preventDefault(); fetchGiphy(memeSearch); }} class="flex gap-2">
+                                            <input type="text" value={memeSearch} onChange={e => setMemeSearch(e.target.value)} placeholder="ค้นหามีม..." class="text-sm w-full bg-paper-50 rounded-xl px-3 py-2" />
+                                            <button type="submit" class="bg-primary-500 text-white px-3 rounded-xl">ค้นหา</button>
+                                        </form>
+                                        <div class="grid grid-cols-2 gap-2">
+                                            {giphyMemes.map((url, idx) => <img key={idx} src={url} onClick={() => sendMessage(url, 'meme')} class="w-full h-24 object-cover rounded-xl cursor-pointer hover:opacity-80" loading="lazy" />)}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Input */}
+                    <form onSubmit={(e) => { e.preventDefault(); sendMessage(input, 'text'); }} class="bg-white border-t border-line p-4 z-10">
+                        <div class="flex gap-2">
+                            <button type="button" onClick={() => setShowMediaMenu(!showMediaMenu)} class="w-12 h-12 bg-paper-100 rounded-full flex items-center justify-center text-xl shrink-0">☺️</button>
+                            <input type="text" value={input} onChange={(e) => { setInput(e.target.value); supabase.channel('typing-' + roomId).send({ type: 'broadcast', event: 'typing', payload: { senderId: user.id } }); }} placeholder="พิมพ์ข้อความ..." class="flex-1 bg-paper-50 rounded-full px-5 focus:outline-none" />
+                            <button type="submit" disabled={!input.trim()} class="w-12 h-12 bg-primary-500 text-white rounded-full flex items-center justify-center shrink-0 disabled:opacity-50">🚀</button>
+                        </div>
+                    </form>
+
+                    {/* Profile Modal + Instagram Link */}
+                    {showProfileModal && partner && (
+                        <div class="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
+                            <div class="bg-white rounded-3xl p-8 max-w-sm w-full text-center relative border border-line">
+                                <button onClick={() => setShowProfileModal(false)} class="absolute top-4 right-4 text-ink-300">✕</button>
+                                
+                                {/* รูปโปรไฟล์ใหญ่ */}
+                                <div class="w-24 h-24 mx-auto rounded-full bg-cover bg-center mb-4 flex items-center justify-center text-4xl font-bold bg-primary-100 text-primary-700 border-4 border-white shadow-sm"
+                                     style={partner.avatar_url ? {backgroundImage: `url(${partner.avatar_url})`} : {}}>
+                                    {!partner.avatar_url && (partnerIdentity ? partnerIdentity.real_name.charAt(0) : partner.display_name.charAt(0))}
+                                </div>
+                                
+                                <h3 class="text-xl font-bold mb-1">{partnerIdentity ? partnerIdentity.real_name : partner.display_name}</h3>
+                                
+                                {/* ลิงก์ IG (แสดงเฉพาะคนที่มี) */}
+                                {partner.ig_username ? (
+                                    <a href={`https://instagram.com/${partner.ig_username}`} target="_blank" class="flex items-center justify-center gap-1 text-pink-600 hover:text-pink-700 font-medium mt-1 mb-4 transition">
+                                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+                                        @{partner.ig_username}
+                                    </a>
+                                ) : (
+                                    <p class="text-sm text-ink-500 mb-4">{partnerIdentity ? partnerIdentity.school : 'โหมดไม่ระบุตัวตน (Anonymous)'}</p>
+                                )}
+                                
+                                <div class="bg-yellow-50 border border-yellow-100 rounded-2xl p-4 flex items-center justify-center gap-3">
+                                    <span class="text-2xl">🌟</span>
+                                    <div class="text-left">
+                                        <div class="text-sm font-bold text-yellow-800">แต้มความใจดี</div>
+                                        <div class="text-xs text-yellow-700">{partner.kudos_count || 0} ครั้งที่ช่วยเหลือผู้อื่น</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    
+                    {/* End Confirm */}
+                    {showEndConfirm && (
+                        <div class="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
+                            <div class="bg-white rounded-3xl p-6 text-center max-w-sm w-full">
+                                <h3 class="text-lg font-bold mb-4">จบการสนทนาตอนนี้เลยไหม?</h3>
+                                <div class="grid grid-cols-2 gap-2"><button onClick={() => setShowEndConfirm(false)} class="py-2.5 rounded-full border">ยกเลิก</button><button onClick={triggerEndChat} class="py-2.5 bg-red-500 text-white rounded-full">จบเลย</button></div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>

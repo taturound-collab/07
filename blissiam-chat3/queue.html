@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>กำลังจับคู่... | Blissiam</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="config.js"></script>
+    <link id="blissiam-font-link" href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['var(--font-body)', 'Kanit', 'sans-serif'] },
+                    colors: {
+                        paper: { 50: '#fdfcfa', 100: '#f6f3ee', 200: '#ece7de', 300: '#ddd6c9' },
+                        ink: { 900: '#1a1a1a', 700: '#3a3a3a', 500: '#6b6b6b', 300: '#9c9c9c', 200: '#c2c2c2' },
+                        primary: {
+                            50: 'var(--color-primary-50)', 100: 'var(--color-primary-100)', 200: 'var(--color-primary-200)',
+                            300: 'var(--color-primary-300)', 400: 'var(--color-primary-400)', 500: 'var(--color-primary-500)',
+                            600: 'var(--color-primary-600)', 700: 'var(--color-primary-700)'
+                        },
+                        secondary: {
+                            50: 'var(--color-secondary-50)', 100: 'var(--color-secondary-100)', 200: 'var(--color-secondary-200)',
+                            300: 'var(--color-secondary-300)', 400: 'var(--color-secondary-400)', 500: 'var(--color-secondary-500)',
+                            600: 'var(--color-secondary-600)'
+                        },
+                        line: '#e8e3d9'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --color-primary-50: #f3f7f1; --color-primary-100: #e3ece0; --color-primary-200: #c5dcc0;
+            --color-primary-300: #9dc295; --color-primary-400: #739e6b; --color-primary-500: #4D7355;
+            --color-primary-600: #3d5d44; --color-primary-700: #314936;
+            --color-secondary-50: #fbf3ea; --color-secondary-100: #f3e0c8; --color-secondary-200: #e6bf8e;
+            --color-secondary-300: #cc9655; --color-secondary-400: #A8662A; --color-secondary-500: #925621; --color-secondary-600: #74441a;
+            --font-body: 'Kanit', sans-serif;
+        }
+    </style>
+    <script src="theme.js"></script>
+    <style>
+        body { font-family: 'Kanit', sans-serif; background-color: #fdfcfa; background-image: radial-gradient(circle at 15% 10%, var(--color-primary-50) 0%, transparent 45%), radial-gradient(circle at 85% 90%, var(--color-secondary-50) 0%, transparent 45%); background-attachment: fixed; }
+        .dot-pulse circle { animation: dotPulse 1.4s ease-in-out infinite; }
+        .dot-pulse circle:nth-child(1) { animation-delay: 0s; }
+        .dot-pulse circle:nth-child(2) { animation-delay: 0.1s; }
+        .dot-pulse circle:nth-child(3) { animation-delay: 0.2s; }
+        @keyframes dotPulse { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
+        .fade-in { animation: fadeIn 0.5s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .watermark { font-size: 9rem; font-weight: 800; color: #1a1a1a; opacity: 0.04; letter-spacing: -0.02em; white-space: nowrap; user-select: none; }
+    </style>
+</head>
+<body class="min-h-screen text-ink-900">
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const supabase = window.supabaseClient;
+
+        // ระบบบีปส่งสัญญาณเสียงอัจฉริยะเมื่อจับคู่สำเร็จ
+        function playMatchSound() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                
+                // เสียงที่ 1 (เสียงต่ำล่วงหน้า)
+                const osc1 = audioCtx.createOscillator();
+                const gain1 = audioCtx.createGain();
+                osc1.type = 'sine';
+                osc1.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+                gain1.gain.setValueAtTime(0.12, audioCtx.currentTime);
+                gain1.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+                osc1.connect(gain1);
+                gain1.connect(audioCtx.destination);
+                osc1.start();
+                osc1.stop(audioCtx.currentTime + 0.15);
+
+                // เสียงที่ 2 (เสียงสูงตามมาเพื่อความสดใสแจ่มใส)
+                setTimeout(() => {
+                    const osc2 = audioCtx.createOscillator();
+                    const gain2 = audioCtx.createGain();
+                    osc2.type = 'sine';
+                    osc2.frequency.setValueAtTime(783.99, audioCtx.currentTime); // G5
+                    gain2.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                    gain2.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                    osc2.connect(gain2);
+                    gain2.connect(audioCtx.destination);
+                    osc2.start();
+                    osc2.stop(audioCtx.currentTime + 0.3);
+                }, 120);
+            } catch (e) {
+                console.warn('เบราว์เซอร์บล็อกเสียงเริ่มต้น:', e);
+            }
+        }
+
+        function App() {
+            const [user, setUser] = useState(null);
+            const [queueStatus, setQueueStatus] = useState('joining'); 
+            const [waitTime, setWaitTime] = useState(0);
+            const [error, setError] = useState(null);
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const selectedRole = urlParams.get('role') || 'venter';
+            const selectedIdentity = urlParams.get('identity') === 'revealed' ? 'revealed' : 'anonymous';
+            const selectedTopic = urlParams.get('topic') || 'general';
+
+            useEffect(() => {
+                window.BlissiamTheme?.loadAndApplyTheme();
+                // ขออนุญาตส่งแจ้งเตือนของบราวเซอร์ล่วงหน้าไว้
+                if (window.Notification && Notification.permission === 'default') {
+                    Notification.requestPermission();
+                }
+                init();
+            }, []);
+
+            useEffect(() => {
+                if (queueStatus === 'waiting') {
+                    const timer = setInterval(() => setWaitTime(t => t + 1), 1000);
+                    return () => clearInterval(timer);
+                }
+            }, [queueStatus]);
+
+            async function init() {
+                try {
+                    const { data: { session } } = await supabase.auth.getSession();
+                    if (!session) {
+                        window.location.href = 'login.html';
+                        return;
+                    }
+                    setUser(session.user);
+
+                    // ตรวจเผื่อว่ายังมีห้องค้างอยู่ไหม
+                    const { data: activeRooms } = await supabase
+                        .from('rooms')
+                        .select('*')
+                        .or(`venter_id.eq.${session.user.id},listener_id.eq.${session.user.id}`)
+                        .eq('status', 'active')
+                        .maybeSingle();
+
+                    if (activeRooms) {
+                        window.location.href = 'chat.html?room=' + activeRooms.id;
+                        return;
+                    }
+
+                    // อัปเดตสถานะผู้ใช้
+                    await supabase.from('profiles').update({ 
+                        status: 'waiting', 
+                        role_preference: selectedRole,
+                        last_seen: new Date().toISOString()
+                    }).eq('id', session.user.id);
+
+                    // ยัดลงคิวจับคู่
+                    const { data: queueData, error: queueError } = await supabase
+                        .from('queue')
+                        .insert({
+                            user_id: session.user.id,
+                            role: selectedRole,
+                            identity_mode: selectedIdentity,
+                            topic: selectedTopic,
+                            status: 'waiting'
+                        })
+                        .select()
+                        .single();
+
+                    if (queueError) throw queueError;
+                    setQueueStatus('waiting');
+
+                    // ฟังเสียงเรียลไทม์การเปลี่ยนแปลงสถานะคิว
+                    const channel = supabase.channel('queue-' + session.user.id)
+                        .on('postgres_changes', {
+                            event: 'UPDATE',
+                            schema: 'public',
+                            table: 'queue',
+                            filter: 'user_id=eq.' + session.user.id
+                        }, (payload) => {
+                            if (payload.new.status === 'matched' && payload.new.matched_room_id) {
+                                setQueueStatus('matched');
+                                
+                                // แจ้งเตือนผู้ใช้ด้วยเสียงและระบบแอปพุช
+                                playMatchSound();
+                                if (window.Notification && Notification.permission === 'granted') {
+                                    new Notification('Blissiam Chat 🌟', {
+                                        body: 'เราพบคู่สนทนาของคุณแล้ว! เข้ามาคุยกันเลย',
+                                        icon: 'favicon.ico'
+                                    });
+                                }
+
+                                setTimeout(() => {
+                                    window.location.href = 'chat.html?room=' + payload.new.matched_room_id;
+                                }, 1500);
+                            }
+                        })
+                        .subscribe();
+
+                } catch (err) {
+                    setError('ไม่สามารถเข้าคิวได้: ' + err.message);
+                }
+            }
+
+            async function cancelQueue() {
+                if (!user) return;
+                await supabase.from('queue').update({ status: 'cancelled' }).eq('user_id', user.id);
+                await supabase.from('profiles').update({ status: 'offline' }).eq('id', user.id);
+                window.location.href = 'index.html';
+            }
+
+            const formatTime = (seconds) => {
+                const mins = Math.floor(seconds / 60);
+                const secs = seconds % 60;
+                return `${mins}:${secs.toString().padStart(2, '0')}`;
+            };
+
+            const getTopicLabel = (id) => {
+                const t = { general:'เรื่องทั่วไป 💬', study:'การเรียน/มหาลัย 📚', love:'ความรัก ❤️', work:'การทำงาน 💼', family:'ครอบครัว 🏠', health:'สุขภาพจิต 🧠' };
+                return t[id] || id;
+            };
+
+            if (error) return (
+                <div class="min-h-screen flex items-center justify-center p-6">
+                    <div class="bg-white border border-line p-8 rounded-3xl max-w-md text-center">
+                        <h2 class="text-xl font-bold text-red-500 mb-2">เกิดข้อผิดพลาด</h2>
+                        <p class="text-ink-500 mb-6">{error}</p>
+                        <a href="index.html" class="bg-primary-500 text-white px-6 py-3 rounded-full inline-block">กลับหน้าแรก</a>
+                    </div>
+                </div>
+            );
+
+            return (
+                <div class="min-h-screen flex items-center justify-center p-6 relative overflow-hidden">
+                    <div class="absolute top-10 left-1/2 -translate-x-1/2 pointer-events-none select-none">
+                        <span class="watermark">BLISSIAM</span>
+                    </div>
+
+                    <div class="relative z-10 max-w-md w-full">
+                        <div class="bg-white rounded-3xl p-10 text-center border border-line shadow-sm">
+                            {queueStatus === 'joining' && (
+                                <div>
+                                    <div class="flex justify-center mb-6">
+                                        <DotLogo size={36} animated={true} />
+                                    </div>
+                                    <h2 class="text-xl font-bold text-ink-900">กำลังเตรียมพื้นที่แชท...</h2>
+                                </div>
+                            )}
+
+                            {queueStatus === 'waiting' && (
+                                <div class="fade-in">
+                                    <div class="flex justify-center mb-6">
+                                        <DotLogo size={48} animated={true} />
+                                    </div>
+
+                                    <h2 class="text-2xl font-bold text-ink-900 mb-2">
+                                        {selectedRole === 'venter' ? 'กำลังหาคนพร้อมรับฟัง...' : 'กำลังหาคนอยากระบาย...'}
+                                    </h2>
+                                    <p class="text-ink-500 text-sm mb-4">ในหัวข้อ: <strong class="text-primary-600">{getTopicLabel(selectedTopic)}</strong></p>
+
+                                    <div class="inline-flex items-center gap-1.5 text-xs font-medium text-ink-500 bg-paper-100 border border-line rounded-full px-3 py-1 mb-6">
+                                        <span class={`w-1.5 h-1.5 rounded-full ${selectedIdentity === 'revealed' ? 'bg-primary-500' : 'bg-ink-900'}`}></span>
+                                        โหมด{selectedIdentity === 'revealed' ? 'ระบุตัวตน' : 'ไม่ระบุตัวตน'}
+                                    </div>
+
+                                    <div class="bg-paper-100 border border-line rounded-2xl p-4 mb-6">
+                                        <div class="text-3xl font-mono font-bold text-primary-600">{formatTime(waitTime)}</div>
+                                        <div class="text-xs text-ink-400 mt-1">เวลารอสายคิว</div>
+                                    </div>
+
+                                    <button onClick={cancelQueue} class="text-ink-400 hover:text-red-500 transition text-sm underline">
+                                        ยกเลิกการรอคิว
+                                    </button>
+                                </div>
+                            )}
+
+                            {queueStatus === 'matched' && (
+                                <div class="fade-in">
+                                    <div class="flex justify-center mb-6">
+                                        <DotLogo size={40} />
+                                    </div>
+                                    <h2 class="text-2xl font-bold text-primary-600 mb-2">จับคู่สำเร็จแล้ว! 🎉</h2>
+                                    <p class="text-ink-500 text-sm">ระบบกำลังพาคุณเข้าสู่พื้นที่ห้องสนทนาปลอดภัย...</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>

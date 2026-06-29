@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>โปรไฟล์ของฉัน | Blissiam</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="config.js"></script>
+    <link id="blissiam-font-link" href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['var(--font-body)', 'Kanit', 'sans-serif'] },
+                    colors: {
+                        paper: { 50: '#fdfcfa', 100: '#f6f3ee', 200: '#ece7de', 300: '#ddd6c9' },
+                        ink: { 900: '#1a1a1a', 700: '#3a3a3a', 500: '#6b6b6b', 300: '#9c9c9c', 200: '#c2c2c2' },
+                        primary: { 500: 'var(--color-primary-500)', 600: 'var(--color-primary-600)' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root { --color-primary-500: #4D7355; --color-primary-600: #3d5d44; --font-body: 'Kanit', sans-serif; }
+        body { font-family: 'Kanit', sans-serif; background-color: #fdfcfa; }
+    </style>
+    <script src="theme.js"></script>
+</head>
+<body class="min-h-screen text-ink-900">
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+        const supabase = window.supabaseClient;
+
+        function App() {
+            const [user, setUser] = useState(null);
+            const [loading, setLoading] = useState(true);
+            const [saving, setSaving] = useState(false);
+            const [uploadingAvatar, setUploadingAvatar] = useState(false);
+            const [error, setError] = useState(null);
+            const [success, setSuccess] = useState(null);
+
+            const [displayName, setDisplayName] = useState('');
+            const [realName, setRealName] = useState('');
+            const [school, setSchool] = useState('');
+            const [email, setEmail] = useState('');
+            const [igUsername, setIgUsername] = useState('');
+            const [avatarUrl, setAvatarUrl] = useState('');
+            
+            const fileInputRef = useRef(null);
+
+            useEffect(() => {
+                window.BlissiamTheme?.loadAndApplyTheme();
+                init();
+            }, []);
+
+            async function init() {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session) { window.location.href = 'login.html?redirect=profile.html'; return; }
+                setUser(session.user);
+                setEmail(session.user.email || '');
+
+                const { data: profileData } = await supabase
+                    .from('profiles').select('*').eq('id', session.user.id).single();
+
+                if (profileData) {
+                    setDisplayName(profileData.display_name || '');
+                    setRealName(profileData.real_name || '');
+                    setSchool(profileData.school || '');
+                    setIgUsername(profileData.ig_username || '');
+                    setAvatarUrl(profileData.avatar_url || '');
+                }
+                setLoading(false);
+            }
+
+            async function handleAvatarUpload(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                setUploadingAvatar(true);
+                setError(null);
+                
+                try {
+                    const fileExt = file.name.split('.').pop();
+                    const fileName = `${user.id}-${Math.random()}.${fileExt}`;
+                    
+                    const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, file);
+                    if (uploadError) throw uploadError;
+                    
+                    const { data } = supabase.storage.from('avatars').getPublicUrl(fileName);
+                    setAvatarUrl(data.publicUrl);
+                } catch(err) {
+                    setError('อัปโหลดรูปไม่สำเร็จ: ' + err.message);
+                }
+                setUploadingAvatar(false);
+            }
+
+            async function handleSave(e) {
+                e.preventDefault();
+                setError(null); setSuccess(null);
+                setSaving(true);
+                
+                try {
+                    const cleanIg = igUsername.replace('@', '').trim(); // ลบ @ เผื่อผู้ใช้พิมพ์มา
+                    const { error: updateError } = await supabase.from('profiles').update({
+                        display_name: displayName.trim(),
+                        real_name: realName.trim(),
+                        school: school.trim(),
+                        ig_username: cleanIg,
+                        avatar_url: avatarUrl
+                    }).eq('id', user.id);
+
+                    if (updateError) throw updateError;
+                    setSuccess('บันทึกข้อมูลเรียบร้อยแล้ว');
+                } catch (err) {
+                    setError(err.message);
+                } finally {
+                    setSaving(false);
+                }
+            }
+
+            if (loading) return <div class="min-h-screen flex items-center justify-center bg-paper-50">กำลังโหลด...</div>;
+
+            return (
+                <div class="min-h-screen bg-paper-50">
+                    <nav class="sticky top-0 w-full z-50 bg-white border-b border-line px-6 py-4">
+                        <div class="max-w-2xl mx-auto flex justify-between items-center">
+                            <h1 class="text-xl font-bold tracking-tight">โปรไฟล์ของฉัน</h1>
+                            <a href="index.html" class="text-sm text-ink-700 hover:text-primary-600 font-medium">← กลับหน้าแรก</a>
+                        </div>
+                    </nav>
+
+                    <div class="max-w-2xl mx-auto px-6 py-10">
+                        {error && <div class="bg-red-50 text-red-600 px-4 py-3 rounded-xl mb-4 text-sm">{error}</div>}
+                        {success && <div class="bg-primary-50 text-primary-700 px-4 py-3 rounded-xl mb-4 text-sm">{success}</div>}
+
+                        <form onSubmit={handleSave} class="bg-white border border-line rounded-3xl p-8 space-y-6 shadow-sm">
+                            {/* ส่วนอัปโหลดรูป */}
+                            <div class="flex flex-col items-center pb-6 border-b border-line">
+                                <div 
+                                    class="w-28 h-28 rounded-full border-4 border-paper-100 bg-cover bg-center mb-3 flex items-center justify-center text-4xl font-bold text-ink-300 relative cursor-pointer group"
+                                    style={avatarUrl ? {backgroundImage: `url(${avatarUrl})`} : {backgroundColor: '#f6f3ee'}}
+                                    onClick={() => fileInputRef.current.click()}
+                                >
+                                    {!avatarUrl && displayName.charAt(0)}
+                                    <div class="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                                        <span class="text-white text-xs font-medium">เปลี่ยนรูป</span>
+                                    </div>
+                                </div>
+                                <input type="file" ref={fileInputRef} onChange={handleAvatarUpload} accept="image/*" class="hidden" />
+                                <div class="text-sm text-ink-500 font-medium">
+                                    {uploadingAvatar ? 'กำลังอัปโหลด...' : 'แตะที่รูปเพื่อเปลี่ยนรูปโปรไฟล์'}
+                                </div>
+                            </div>
+
+                            {/* โซเชียลมีเดีย */}
+                            <div class="space-y-4">
+                                <div class="text-xs font-semibold uppercase tracking-wide text-pink-600 flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+                                    Instagram
+                                </div>
+                                <div>
+                                    <input type="text" value={igUsername} onChange={e => setIgUsername(e.target.value)} placeholder="username (ไม่บังคับ)" class="w-full bg-paper-50 border border-line rounded-2xl px-4 py-3 focus:ring-2 focus:ring-pink-500 transition" />
+                                    <p class="text-xs text-ink-300 mt-1">คู่สนทนาจะเห็น IG ของคุณเมื่อกดดูโปรไฟล์ในแชท</p>
+                                </div>
+                            </div>
+
+                            <div class="border-t border-line pt-5 space-y-4">
+                                <div class="text-xs font-semibold uppercase tracking-wide text-ink-500">ข้อมูลพื้นฐาน</div>
+                                <div>
+                                    <label class="block text-sm text-ink-700 mb-1">ชื่อที่แสดงในแชท</label>
+                                    <input type="text" value={displayName} onChange={e => setDisplayName(e.target.value)} required class="w-full bg-paper-50 border border-line rounded-2xl px-4 py-3 focus:ring-2 focus:ring-primary-500 transition" />
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm text-ink-700 mb-1">ชื่อจริง</label>
+                                        <input type="text" value={realName} onChange={e => setRealName(e.target.value)} required class="w-full bg-paper-50 border border-line rounded-2xl px-4 py-3 focus:ring-2 focus:ring-primary-500 transition" />
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm text-ink-700 mb-1">โรงเรียน / มหาลัย</label>
+                                        <input type="text" value={school} onChange={e => setSchool(e.target.value)} required class="w-full bg-paper-50 border border-line rounded-2xl px-4 py-3 focus:ring-2 focus:ring-primary-500 transition" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="submit" disabled={saving || uploadingAvatar} class="w-full bg-primary-500 text-white py-3 rounded-full font-medium hover:bg-primary-600 transition disabled:opacity-50">
+                                {saving ? 'กำลังบันทึก...' : 'บันทึกการเปลี่ยนแปลง'}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>

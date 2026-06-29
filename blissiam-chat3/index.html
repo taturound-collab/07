@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blissiam - พื้นที่แบ่งปันน้ำใจ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="config.js"></script>
+    <link id="blissiam-font-link" href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['var(--font-body)', 'Kanit', 'sans-serif'] },
+                    colors: {
+                        paper: { 50: '#fdfcfa', 100: '#f6f3ee', 200: '#ece7de', 300: '#ddd6c9' },
+                        ink: { 900: '#1a1a1a', 700: '#3a3a3a', 500: '#6b6b6b', 300: '#9c9c9c', 200: '#c2c2c2' },
+                        primary: {
+                            50: 'var(--color-primary-50)', 100: 'var(--color-primary-100)', 200: 'var(--color-primary-200)',
+                            300: 'var(--color-primary-300)', 400: 'var(--color-primary-400)', 500: 'var(--color-primary-500)',
+                            600: 'var(--color-primary-600)', 700: 'var(--color-primary-700)'
+                        },
+                        secondary: {
+                            50: 'var(--color-secondary-50)', 100: 'var(--color-secondary-100)', 200: 'var(--color-secondary-200)',
+                            300: 'var(--color-secondary-300)', 400: 'var(--color-secondary-400)', 500: 'var(--color-secondary-500)',
+                            600: 'var(--color-secondary-600)'
+                        },
+                        line: '#e8e3d9'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --color-primary-50: #f3f7f1; --color-primary-100: #e3ece0; --color-primary-200: #c5dcc0;
+            --color-primary-300: #9dc295; --color-primary-400: #739e6b; --color-primary-500: #4D7355;
+            --color-primary-600: #3d5d44; --color-primary-700: #314936;
+            --color-secondary-50: #fbf3ea; --color-secondary-100: #f3e0c8; --color-secondary-200: #e6bf8e;
+            --color-secondary-300: #cc9655; --color-secondary-400: #A8662A; --color-secondary-500: #925621; --color-secondary-600: #74441a;
+            --font-body: 'Kanit', sans-serif;
+        }
+    </style>
+    <script src="theme.js"></script>
+    <style>
+        body { font-family: 'Kanit', sans-serif; background-color: #fdfcfa; background-image: radial-gradient(circle at 15% 10%, var(--color-primary-50) 0%, transparent 45%), radial-gradient(circle at 85% 90%, var(--color-secondary-50) 0%, transparent 45%); background-attachment: fixed; }
+        .watermark { font-size: 13rem; font-weight: 800; color: #1a1a1a; opacity: 0.045; letter-spacing: -0.02em; white-space: nowrap; user-select: none; }
+        @media (max-width: 768px) { .watermark { font-size: 6rem; } }
+        .fade-in { animation: fadeIn 0.7s ease-out forwards; opacity: 0; transform: translateY(16px); }
+        @keyframes fadeIn { to { opacity: 1; transform: translateY(0); } }
+        .role-card { transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1); }
+        .role-card:hover { transform: translateY(-6px); box-shadow: 0 20px 40px -10px rgba(0,0,0,0.12); }
+        .dot-pulse circle { animation: dotPulse 1.4s ease-in-out infinite; }
+        .dot-pulse circle:nth-child(1) { animation-delay: 0s; }
+        .dot-pulse circle:nth-child(2) { animation-delay: 0.1s; }
+        .dot-pulse circle:nth-child(3) { animation-delay: 0.2s; }
+        @keyframes dotPulse { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
+        .scroll-row { scrollbar-width: none; }
+        .scroll-row::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="min-h-screen text-ink-900">
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const supabase = window.supabaseClient;
+
+        const TOPICS = [
+            { id: 'general', label: 'เรื่องทั่วไป 💬', desc: 'คุยสบายๆ ได้ทุกเรื่องทั่วไป' },
+            { id: 'study', label: 'การเรียน/มหาลัย 📚', desc: 'เครียดเรียน ปรึกษาเรื่องเรียน' },
+            { id: 'love', label: 'ความรัก ❤️', desc: 'อกหัก แอบชอบ ความสัมพันธ์' },
+            { id: 'work', label: 'การทำงาน 💼', desc: 'ปัญหาที่ทำงาน หมดไฟ ท้อแท้' },
+            { id: 'family', label: 'ครอบครัว 🏠', desc: 'เรื่องไม่สบายใจในบ้าน' },
+            { id: 'health', label: 'สุขภาพจิต 🧠', desc: 'เหนื่อยล้า ต้องการกำลังใจเยียวยา' }
+        ];
+
+        function DotLogo({ size = 28, animated = false }) {
+            return (
+                <svg width={size} height={size} viewBox="0 0 28 28" fill="none" class={animated ? 'dot-pulse' : ''}>
+                    <circle cx="4" cy="4" r="3" fill="#1a1a1a"/><circle cx="14" cy="4" r="3" fill="#1a1a1a"/><circle cx="24" cy="4" r="3" fill="#1a1a1a"/>
+                    <circle cx="4" cy="14" r="3" fill="#1a1a1a"/><circle cx="14" cy="14" r="3" fill="var(--color-primary-500)"/><circle cx="24" cy="14" r="3" fill="#1a1a1a"/>
+                    <circle cx="4" cy="24" r="3" fill="#1a1a1a"/><circle cx="14" cy="24" r="3" fill="#1a1a1a"/><circle cx="24" cy="24" r="3" fill="#1a1a1a"/>
+                </svg>
+            );
+        }
+
+        function App() {
+            const [user, setUser] = useState(null);
+            const [profile, setProfile] = useState(null);
+            const [loading, setLoading] = useState(true);
+            const [starting, setStarting] = useState(false);
+            const [identityMode, setIdentityMode] = useState('anonymous');
+            const [selectedTopic, setSelectedTopic] = useState('general');
+
+            useEffect(() => {
+                checkUser();
+                window.BlissiamTheme?.loadAndApplyTheme();
+                const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+                    setUser(session?.user || null);
+                    if (session?.user) loadProfile(session.user.id);
+                    else setProfile(null);
+                });
+                return () => listener.subscription.unsubscribe();
+            }, []);
+
+            async function checkUser() {
+                const { data: { session } } = await supabase.auth.getSession();
+                setUser(session?.user || null);
+                if (session?.user) await loadProfile(session.user.id);
+                setLoading(false);
+            }
+
+            async function loadProfile(userId) {
+                const { data } = await supabase.from('profiles').select('display_name, status').eq('id', userId).single();
+                setProfile(data);
+            }
+
+            async function logout() {
+                await supabase.auth.signOut();
+            }
+
+            async function startWithRole(role) {
+                if (!user) {
+                    window.location.href = `login.html?redirect=queue.html&role=${role}&identity=${identityMode}&topic=${selectedTopic}`;
+                    return;
+                }
+                setStarting(true);
+                try {
+                    await supabase.from('profiles').update({
+                        role_preference: role,
+                        status: 'waiting',
+                        last_seen: new Date().toISOString()
+                    }).eq('id', user.id);
+                    window.location.href = `queue.html?role=${role}&identity=${identityMode}&topic=${selectedTopic}`;
+                } catch (err) {
+                    alert('เกิดข้อผิดพลาด: ' + err.message);
+                    setStarting(false);
+                }
+            }
+
+            if (loading) return (
+                <div class="min-h-screen flex items-center justify-center bg-paper-50">
+                    <DotLogo size={40} animated={true} />
+                </div>
+            );
+
+            const isAdmin = profile?.status === 'admin';
+
+            return (
+                <div class="relative min-h-screen">
+                    {/* Navbar */}
+                    <nav class="sticky top-0 w-full z-50 bg-paper-50 border-b border-line px-6 py-4">
+                        <div class="max-w-6xl mx-auto flex justify-between items-center">
+                            <a href="index.html" class="flex items-center gap-3">
+                                <DotLogo />
+                                <span class="text-xl font-bold tracking-tight">Blissiam</span>
+                            </a>
+                            <div class="flex items-center gap-5">
+                                {user && profile ? (
+                                    <>
+                                        <a href="profile.html" class="text-sm text-ink-700 hover:text-primary-600 transition font-medium hidden sm:inline">
+                                            สวัสดี, {profile.display_name}
+                                        </a>
+                                        <button onClick={logout} class="text-sm text-ink-700 hover:text-primary-600 transition font-medium">
+                                            ออกจากระบบ
+                                        </button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <a href="login.html" class="text-sm text-ink-700 hover:text-primary-600 transition font-medium">
+                                            เข้าสู่ระบบ
+                                        </a>
+                                        <a href="signup.html" class="text-sm bg-ink-900 text-white px-5 py-2.5 rounded-full hover:bg-primary-600 transition font-medium">
+                                            สร้างบัญชี
+                                        </a>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    </nav>
+
+                    {/* Hero */}
+                    <section class="relative pt-16 pb-8 px-6 overflow-hidden">
+                        <div class="absolute top-8 left-1/2 -translate-x-1/2 pointer-events-none select-none">
+                            <span class="watermark">BLISSIAM</span>
+                        </div>
+                        <div class="max-w-3xl mx-auto text-center relative z-10 fade-in">
+                            <div class="inline-flex items-center gap-2 text-primary-600 text-xs font-semibold uppercase tracking-widest mb-4">
+                                <span class="w-1.5 h-1.5 rounded-full bg-primary-500"></span>
+                                พื้นที่ปลอดภัย · ไม่ระบุตัวตน · ฟรี
+                            </div>
+                            <h1 class="text-5xl md:text-6xl font-bold leading-[1.1] mb-4">
+                                พื้นที่แบ่งปันน้ำใจ
+                            </h1>
+                            <p class="text-base text-ink-500 max-w-xl mx-auto leading-relaxed">
+                                ไม่ว่าจะเป็นใคร อยู่ที่ไหน ไม่ว่าจะกี่โมง มีคนพร้อมรับฟังคุณอยู่เสมอ
+                            </p>
+                        </div>
+                    </section>
+
+                    {/* Configuration & Selection Panel */}
+                    <section class="px-6 pb-20">
+                        <div class="max-w-6xl mx-auto">
+                            {!isAdmin && (
+                                <div class="mb-8 bg-white border border-line rounded-3xl p-6 sm:p-8 shadow-sm">
+                                    {/* 1. เลือกหัวข้อสนทนา */}
+                                    <div class="mb-6">
+                                        <div class="flex items-center justify-between mb-3">
+                                            <h3 class="font-bold text-base text-ink-900">1. เลือกเรื่องราวที่คุณสนใจหรืออยากพูดคุย</h3>
+                                            <span class="text-xs text-primary-600 font-medium">ระบบจะจับคู่ตามเรื่องที่เลือก</span>
+                                        </div>
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                            {TOPICS.map(t => (
+                                                <button
+                                                    key={t.id}
+                                                    onClick={() => setSelectedTopic(t.id)}
+                                                    class={`text-left p-4 rounded-2xl border-2 transition ${selectedTopic === t.id ? 'border-primary-500 bg-primary-50/30' : 'border-line hover:border-ink-200'}`}
+                                                >
+                                                    <div class="font-semibold text-sm text-ink-900 mb-0.5">{t.label}</div>
+                                                    <div class="text-xs text-ink-500">{t.desc}</div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* 2. เลือกโหมดระบุตัวตน */}
+                                    <div class="border-t border-line pt-6">
+                                        <div class="flex items-center justify-between mb-3">
+                                            <h3 class="font-bold text-base text-ink-900">2. เลือกโหมดการแสดงตัวตน</h3>
+                                        </div>
+                                        <div class="grid grid-cols-2 gap-4">
+                                            <button
+                                                onClick={() => setIdentityMode('anonymous')}
+                                                class={`text-left p-4 rounded-2xl border-2 transition ${identityMode === 'anonymous' ? 'border-ink-900 bg-paper-100' : 'border-line hover:border-ink-200'}`}
+                                            >
+                                                <div class="flex items-center gap-2 mb-1">
+                                                    <span class={`w-2 h-2 rounded-full ${identityMode === 'anonymous' ? 'bg-ink-900' : 'bg-ink-200'}`}></span>
+                                                    <span class="font-semibold text-sm">ไม่ระบุตัวตน</span>
+                                                </div>
+                                                <p class="text-xs text-ink-500">คู่สนทนาจะเห็นเพียงชื่อสมมติทั่วไป</p>
+                                            </button>
+                                            <button
+                                                onClick={() => setIdentityMode('revealed')}
+                                                class={`text-left p-4 rounded-2xl border-2 transition ${identityMode === 'revealed' ? 'border-primary-500 bg-primary-50/30' : 'border-line hover:border-ink-200'}`}
+                                            >
+                                                <div class="flex items-center gap-2 mb-1">
+                                                    <span class={`w-2 h-2 rounded-full ${identityMode === 'revealed' ? 'bg-primary-500' : 'bg-ink-200'}`}></span>
+                                                    <span class="font-semibold text-sm">ระบุตัวตน</span>
+                                                </div>
+                                                <p class="text-xs text-ink-500">คู่สนทนาเห็นชื่อจริงและชื่อสถานศึกษา</p>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Role Cards Area */}
+                            <div class="flex items-end justify-between mb-6">
+                                <h2 class="text-xl font-bold">
+                                    {isAdmin ? 'ระบบจัดการหลังบ้าน' : '3. เริ่มต้นจับคู่พูดคุยได้เลย'}
+                                </h2>
+                            </div>
+
+                            <div class="flex gap-5 overflow-x-auto scroll-row pb-4 -mx-6 px-6 sm:mx-0 sm:px-0">
+                                {isAdmin ? (
+                                    <a href="admin.html" class="role-card shrink-0 w-80 bg-white border border-line rounded-3xl overflow-hidden shadow-sm">
+                                        <div class="h-48 bg-ink-900 flex items-end p-5 relative overflow-hidden">
+                                            <h3 class="text-white text-2xl font-bold">ไปหน้าจัดการระบบ</h3>
+                                        </div>
+                                        <div class="p-5">
+                                            <p class="text-sm text-ink-500">ดูคิว ห้องแชท รายงานปัญหา และตั้งค่าธีม</p>
+                                        </div>
+                                    </a>
+                                ) : (
+                                    <>
+                                        <button onClick={() => startWithRole('venter')} disabled={starting}
+                                            class="role-card shrink-0 w-85 text-left bg-white border border-line rounded-3xl overflow-hidden shadow-sm disabled:opacity-50">
+                                            <div class="h-40 bg-primary-500 flex items-end p-5 relative">
+                                                <h3 class="text-white text-2xl font-bold">ฉันอยากระบาย 😔</h3>
+                                            </div>
+                                            <div class="p-5 flex items-center justify-between">
+                                                <p class="text-sm text-ink-500">อึดอัด มีเรื่องในใจ หาคนช่วยรับฟังทางนี้</p>
+                                                <svg class="w-5 h-5 text-ink-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+                                            </div>
+                                        </button>
+
+                                        <button onClick={() => startWithRole('listener')} disabled={starting}
+                                            class="role-card shrink-0 w-85 text-left bg-white border border-line rounded-3xl overflow-hidden shadow-sm disabled:opacity-50">
+                                            <div class="h-40 bg-secondary-500 flex items-end p-5 relative">
+                                                <h3 class="text-white text-2xl font-bold">ฉันอยากรับฟัง 😊</h3>
+                                            </div>
+                                            <div class="p-5 flex items-center justify-between">
+                                                <p class="text-sm text-ink-500">พร้อมเปิดใจ มอบพลังบวกและรับฟังคนอื่น</p>
+                                                <svg class="w-5 h-5 text-ink-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+                                            </div>
+                                        </button>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* Footer */}
+                    <footer class="bg-paper-50 border-t border-line py-8 px-6 text-center">
+                        <p class="text-sm text-ink-300">© 2026 BLISSIAM · พื้นที่แบ่งปันน้ำใจสร้างด้วยความห่วงใย</p>
+                    </footer>
+                </div>
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>
