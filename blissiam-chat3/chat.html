@@ -57,8 +57,22 @@
         const { useState, useEffect, useRef, useMemo } = React;
         const supabase = window.supabaseClient;
         const GIPHY_KEY = window.GIPHY_API_KEY || '';
-        const { isMemeMessage, getMemeUrl, wrapMemeContent, searchBuiltinMemes, BUILTIN_MEMES } = window.BlissiamMemes;
-        const { CHAT_BACKGROUNDS, getChatBackground, getSavedChatBackgroundId, saveChatBackgroundId, applyChatBackgroundStyle, getChatBackgroundThumbStyle } = window.BlissiamChatBg;
+
+        // Guard: ป้องกัน crash ถ้าสคริปต์โหลดไม่สำเร็จ
+        const _memes = window.BlissiamMemes || {};
+        const isMemeMessage = _memes.isMemeMessage || (() => false);
+        const getMemeUrl = _memes.getMemeUrl || (() => '');
+        const wrapMemeContent = _memes.wrapMemeContent || ((u) => u);
+        const searchBuiltinMemes = _memes.searchBuiltinMemes || (() => []);
+        const BUILTIN_MEMES = _memes.BUILTIN_MEMES || [];
+
+        const _chatBg = window.BlissiamChatBg || {};
+        const CHAT_BACKGROUNDS = _chatBg.CHAT_BACKGROUNDS || [];
+        const getChatBackground = _chatBg.getChatBackground || (() => null);
+        const getSavedChatBackgroundId = _chatBg.getSavedChatBackgroundId || (() => 'solid-cream');
+        const saveChatBackgroundId = _chatBg.saveChatBackgroundId || (() => {});
+        const applyChatBackgroundStyle = _chatBg.applyChatBackgroundStyle || (() => ({ backgroundColor: '#f8f6f1' }));
+        const getChatBackgroundThumbStyle = _chatBg.getChatBackgroundThumbStyle || (() => ({}));
 
         const EMOJIS = ['😀','😂','🥺','❤️','👍','🙏','✨','😭','🥰','😅','🔥','👀','💪','🫂','🎉','😊','🤗','💯','🌟','🎈'];
         const REPORT_REASONS = ['พูดจาไม่เหมาะสม', 'คุกคาม / ข่มขู่', 'สแปม / โฆษณา', 'อื่นๆ'];
