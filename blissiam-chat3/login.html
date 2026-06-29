@@ -87,6 +87,8 @@
             const params = new URLSearchParams(window.location.search);
             const redirect = params.get('redirect') || 'index.html';
             const role = params.get('role');
+            const identity = params.get('identity') === 'revealed' ? 'revealed' : 'anonymous';
+            const topic = params.get('topic') || 'general';
 
             useEffect(() => {
                 window.BlissiamTheme?.loadAndApplyTheme();
@@ -99,12 +101,20 @@
             async function redirectAfterLogin(userId) {
                 const { data: profile } = await supabase
                     .from('profiles')
-                    .select('status')
+                    .select('status, is_banned')
                     .eq('id', userId)
                     .single();
 
                 if (profile?.status === 'admin') {
                     window.location.href = 'admin.html';
+                    return;
+                }
+
+                if (profile?.is_banned) {
+                    await supabase.auth.signOut();
+                    setError('บัญชีนี้ถูกระงับ กรุณาติดต่อผู้ดูแลระบบ');
+                    setSubmitting(false);
+                    setLoading(false);
                     return;
                 }
 
@@ -114,7 +124,7 @@
                         status: 'waiting',
                         last_seen: new Date().toISOString()
                     }).eq('id', userId);
-                    window.location.href = `queue.html?role=${role}`;
+                    window.location.href = `queue.html?role=${role}&identity=${identity}&topic=${encodeURIComponent(topic)}`;
                     return;
                 }
 
@@ -194,7 +204,7 @@
 
                         <p class="text-center mt-6 text-sm text-ink-500">
                             ยังไม่มีบัญชี?{' '}
-                            <a href={`signup.html?redirect=${encodeURIComponent(redirect)}${role ? '&role=' + role : ''}`} class="text-primary-600 hover:text-primary-700 font-medium">
+                            <a href={`signup.html?redirect=${encodeURIComponent(redirect)}${role ? '&role=' + role + '&identity=' + identity + '&topic=' + encodeURIComponent(topic) : ''}`} class="text-primary-600 hover:text-primary-700 font-medium">
                                 สร้างบัญชี
                             </a>
                         </p>

@@ -82,7 +82,11 @@
             const [user, setUser] = useState(null);
             const [isAdmin, setIsAdmin] = useState(false);
             const [activeTab, setActiveTab] = useState('dashboard');
-            const [stats, setStats] = useState({ totalUsers: 0, activeRooms: 0, waitingQueue: 0, totalReports: 0 });
+            const [stats, setStats] = useState({
+                totalUsers: 0, activeRooms: 0, waitingQueue: 0, totalReports: 0,
+                messagesToday: 0, roomsClosedToday: 0, bannedUsers: 0, onlineUsers: 0, totalKudos: 0
+            });
+            const [topicBreakdown, setTopicBreakdown] = useState({});
             const [queue, setQueue] = useState([]);
             const [rooms, setRooms] = useState([]);
             const [reports, setReports] = useState([]);
@@ -131,15 +135,54 @@
             }
 
             async function loadData() {
-                const { count: userCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
-                const { count: roomCount } = await supabase.from('rooms').select('*', { count: 'exact', head: true }).eq('status', 'active');
-                const { count: queueCount } = await supabase.from('queue').select('*', { count: 'exact', head: true }).eq('status', 'waiting');
-                const { count: reportCount } = await supabase.from('reports').select('*', { count: 'exact', head: true }).eq('status', 'pending');
+                const todayStart = new Date();
+                todayStart.setHours(0, 0, 0, 0);
+                const todayIso = todayStart.toISOString();
 
-                setStats({ totalUsers: userCount || 0, activeRooms: roomCount || 0, waitingQueue: queueCount || 0, totalReports: reportCount || 0 });
+                const [
+                    { count: userCount },
+                    { count: roomCount },
+                    { count: queueCount },
+                    { count: reportCount },
+                    { count: messagesToday },
+                    { count: roomsClosedToday },
+                    { count: bannedUsers },
+                    { count: onlineUsers },
+                ] = await Promise.all([
+                    supabase.from('profiles').select('*', { count: 'exact', head: true }),
+                    supabase.from('rooms').select('*', { count: 'exact', head: true }).eq('status', 'active'),
+                    supabase.from('queue').select('*', { count: 'exact', head: true }).eq('status', 'waiting'),
+                    supabase.from('reports').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+                    supabase.from('messages').select('*', { count: 'exact', head: true }).gte('created_at', todayIso),
+                    supabase.from('rooms').select('*', { count: 'exact', head: true }).eq('status', 'closed').gte('ended_at', todayIso),
+                    supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('is_banned', true),
+                    supabase.from('profiles').select('*', { count: 'exact', head: true }).in('status', ['online', 'in_chat', 'waiting']),
+                ]);
+
+                const { data: kudosRows } = await supabase.from('profiles').select('kudos_count');
+                const totalKudos = (kudosRows || []).reduce((sum, p) => sum + (p.kudos_count || 0), 0);
+
+                setStats({
+                    totalUsers: userCount || 0,
+                    activeRooms: roomCount || 0,
+                    waitingQueue: queueCount || 0,
+                    totalReports: reportCount || 0,
+                    messagesToday: messagesToday || 0,
+                    roomsClosedToday: roomsClosedToday || 0,
+                    bannedUsers: bannedUsers || 0,
+                    onlineUsers: onlineUsers || 0,
+                    totalKudos
+                });
 
                 const { data: queueData } = await supabase.from('queue').select('*, profiles:user_id(display_name, status)').eq('status', 'waiting').order('created_at', { ascending: true });
                 setQueue(queueData || []);
+
+                const topics = {};
+                (queueData || []).forEach(q => {
+                    const t = q.topic || 'general';
+                    topics[t] = (topics[t] || 0) + 1;
+                });
+                setTopicBreakdown(topics);
 
                 const { data: roomsData } = await supabase.from('rooms').select('*, venter:venter_id(display_name), listener:listener_id(display_name)').eq('status', 'active').order('created_at', { ascending: false });
                 setRooms(roomsData || []);
@@ -273,22 +316,83 @@
                     <main class="flex-1 overflow-y-auto p-8 bg-paper-50">
                         {activeTab === 'dashboard' && (
                             <div class="fade-in">
-                                <h1 class="text-2xl font-bold text-ink-900 mb-6">ภาพรวมระบบ</h1>
-                                <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                                <h1 class="text-2xl font-bold text-ink-900 mb-2">ภาพรวมระบบ</h1>
+                                <p class="text-sm text-ink-500 mb-6">อัปเดตอัตโนมัติทุก 5 วินาที</p>
+                                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                                     {[
                                         { label: 'ผู้ใช้ทั้งหมด', value: stats.totalUsers, bar: 'bg-primary-500' },
+                                        { label: 'ออนไลน์ / ใช้งาน', value: stats.onlineUsers, bar: 'bg-primary-400' },
                                         { label: 'ห้องแชทกำลังใช้งาน', value: stats.activeRooms, bar: 'bg-primary-500' },
                                         { label: 'รอจับคู่', value: stats.waitingQueue, bar: 'bg-secondary-500' },
-                                        { label: 'รายงานรอดำเนินการ', value: stats.totalReports, bar: 'bg-red-500' },
                                     ].map((stat, i) => (
                                         <div key={i} class="bg-white rounded-2xl border border-line overflow-hidden">
                                             <div class={`h-1.5 ${stat.bar}`}></div>
-                                            <div class="p-6">
+                                            <div class="p-5">
                                                 <div class="text-3xl font-bold text-ink-900">{stat.value}</div>
                                                 <div class="text-sm text-ink-500 mt-1">{stat.label}</div>
                                             </div>
                                         </div>
                                     ))}
+                                </div>
+                                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                                    {[
+                                        { label: 'ข้อความวันนี้', value: stats.messagesToday, bar: 'bg-ink-900' },
+                                        { label: 'ห้องจบวันนี้', value: stats.roomsClosedToday, bar: 'bg-ink-700' },
+                                        { label: 'รายงานรอดำเนินการ', value: stats.totalReports, bar: 'bg-red-500' },
+                                        { label: 'แต้มใจดีรวม', value: stats.totalKudos, bar: 'bg-secondary-400' },
+                                    ].map((stat, i) => (
+                                        <div key={i} class="bg-white rounded-2xl border border-line overflow-hidden">
+                                            <div class={`h-1.5 ${stat.bar}`}></div>
+                                            <div class="p-5">
+                                                <div class="text-3xl font-bold text-ink-900">{stat.value}</div>
+                                                <div class="text-sm text-ink-500 mt-1">{stat.label}</div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div class="grid lg:grid-cols-2 gap-6">
+                                    <div class="bg-white rounded-2xl border border-line p-6">
+                                        <h2 class="font-bold text-ink-900 mb-4">คิวรอตามหัวข้อ</h2>
+                                        {Object.keys(topicBreakdown).length === 0 ? (
+                                            <p class="text-sm text-ink-400">ไม่มีคิวรอในขณะนี้</p>
+                                        ) : (
+                                            <div class="space-y-3">
+                                                {Object.entries(topicBreakdown).map(([topic, count]) => {
+                                                    const max = Math.max(...Object.values(topicBreakdown), 1);
+                                                    const pct = Math.round((count / max) * 100);
+                                                    return (
+                                                        <div key={topic}>
+                                                            <div class="flex justify-between text-sm mb-1">
+                                                                <span class="text-ink-700">{getTopicLabel(topic)}</span>
+                                                                <span class="font-semibold text-primary-600">{count} คน</span>
+                                                            </div>
+                                                            <div class="h-2 bg-paper-100 rounded-full overflow-hidden">
+                                                                <div class="h-full bg-primary-500 rounded-full transition-all" style={{ width: pct + '%' }}></div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div class="bg-white rounded-2xl border border-line p-6">
+                                        <h2 class="font-bold text-ink-900 mb-4">สรุปความปลอดภัย</h2>
+                                        <div class="space-y-4">
+                                            <div class="flex items-center justify-between p-4 bg-red-50 rounded-xl border border-red-100">
+                                                <span class="text-sm text-red-700">บัญชีถูกแบน</span>
+                                                <span class="text-2xl font-bold text-red-600">{stats.bannedUsers}</span>
+                                            </div>
+                                            <div class="flex items-center justify-between p-4 bg-orange-50 rounded-xl border border-orange-100">
+                                                <span class="text-sm text-orange-700">รายงานรอตรวจ</span>
+                                                <span class="text-2xl font-bold text-orange-600">{stats.totalReports}</span>
+                                            </div>
+                                            <div class="flex items-center justify-between p-4 bg-primary-50 rounded-xl border border-primary-100">
+                                                <span class="text-sm text-primary-700">ห้องแชทที่เปิดอยู่</span>
+                                                <span class="text-2xl font-bold text-primary-600">{stats.activeRooms}</span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         )}
@@ -484,7 +588,17 @@
                         {activeTab === 'theme' && (
                             <div class="fade-in max-w-3xl">
                                 <h1 class="text-2xl font-bold text-ink-900 mb-2">ธีมเว็บไซต์</h1>
-                                <p class="text-ink-500 mb-8">เลือกสีและฟอนต์สำหรับทั้งเว็บไซต์ การเปลี่ยนแปลงจะมีผลทันทีกับทุกหน้าหลังบันทึก</p>
+                                <p class="text-ink-500 mb-8">เลือกสีและฟอนต์ — ดูตัวอย่างทันทีบนหน้านี้ กดบันทึกเพื่อใช้กับทั้งเว็บ</p>
+
+                                <div class="bg-paper-100 border border-line rounded-2xl p-6 mb-6">
+                                    <p class="text-xs text-ink-400 uppercase tracking-wide mb-2">ตัวอย่าง Preview</p>
+                                    <h3 class="text-xl font-bold text-primary-600 mb-1">พื้นที่แบ่งปันน้ำใจ</h3>
+                                    <p class="text-sm text-ink-500 mb-3">นี่คือตัวอย่างหน้าตาเว็บหลังเลือกธีม</p>
+                                    <div class="flex gap-2">
+                                        <span class="px-4 py-2 bg-primary-500 text-white rounded-full text-sm">ปุ่มหลัก</span>
+                                        <span class="px-4 py-2 bg-secondary-500 text-white rounded-full text-sm">ปุ่มรอง</span>
+                                    </div>
+                                </div>
 
                                 <div class="bg-white rounded-2xl border border-line p-6 mb-6">
                                     <h3 class="font-bold text-ink-900 mb-4">ชุดสี</h3>
@@ -492,7 +606,10 @@
                                         {Object.entries(window.BlissiamTheme?.THEME_PRESETS || {}).map(([key, preset]) => (
                                             <button
                                                 key={key}
-                                                onClick={() => setSelectedThemeKey(key)}
+                                                onClick={() => {
+                                            setSelectedThemeKey(key);
+                                            window.BlissiamTheme?.applyTheme(key, selectedFontKey);
+                                        }}
                                                 class={`text-left p-4 rounded-xl border-2 transition ${selectedThemeKey === key ? 'border-ink-900' : 'border-line hover:border-ink-300'}`}
                                             >
                                                 <div class="flex gap-1.5 mb-3">
@@ -511,7 +628,10 @@
                                         {Object.entries(window.BlissiamTheme?.FONT_SETS || {}).map(([key, font]) => (
                                             <button
                                                 key={key}
-                                                onClick={() => setSelectedFontKey(key)}
+                                                onClick={() => {
+                                            setSelectedFontKey(key);
+                                            window.BlissiamTheme?.applyTheme(selectedThemeKey, key);
+                                        }}
                                                 class={`text-left p-4 rounded-xl border-2 transition ${selectedFontKey === key ? 'border-ink-900' : 'border-line hover:border-ink-300'}`}
                                                 style={{fontFamily: font.family}}
                                             >

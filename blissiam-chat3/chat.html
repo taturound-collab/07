@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>ห้องสนทนา | Blissiam</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
@@ -10,37 +10,87 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script src="config.js"></script>
-    <link id="blissiam-font-link" href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link id="blissiam-font-link" href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     fontFamily: { sans: ['var(--font-body)', 'Kanit', 'sans-serif'] },
                     colors: {
-                        paper: { 50: '#fdfcfa', 100: '#f6f3ee', 200: '#ece7de', 300: '#ddd6c9' },
-                        ink: { 900: '#1a1a1a', 700: '#3a3a3a', 500: '#6b6b6b', 300: '#9c9c9c', 200: '#c2c2c2' },
-                        primary: { 500: 'var(--color-primary-500)', 600: 'var(--color-primary-600)' }
+                        paper: { 50: '#fdfcfa', 100: '#f6f3ee' },
+                        ink: { 900: '#1a1a1a', 700: '#3a3a3a', 500: '#6b6b6b', 400: '#8a8a8a', 300: '#b0b0b0' },
+                        primary: { 50: 'var(--color-primary-50)', 500: 'var(--color-primary-500)', 600: 'var(--color-primary-600)' },
+                        line: 'rgba(0,0,0,0.06)'
+                    },
+                    boxShadow: {
+                        'chat': '0 2px 16px rgba(0,0,0,0.06)',
+                        'float': '0 8px 32px rgba(0,0,0,0.12)',
+                        'bubble': '0 1px 2px rgba(0,0,0,0.06)',
                     }
                 }
             }
         }
     </script>
     <style>
-        :root { --color-primary-500: #4D7355; --color-primary-600: #3d5d44; --font-body: 'Kanit', sans-serif; }
-        body { font-family: 'Kanit', sans-serif; background-color: #fdfcfa; overflow: hidden; }
+        :root { --color-primary-50: #f3f7f1; --color-primary-500: #4D7355; --color-primary-600: #3d5d44; --font-body: 'Kanit', sans-serif; }
+        body { font-family: 'Kanit', sans-serif; overflow: hidden; -webkit-font-smoothing: antialiased; }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        @keyframes msgIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .msg-in { animation: msgIn 0.25s ease-out forwards; }
+        @keyframes typingDot { 0%, 60%, 100% { transform: translateY(0); opacity: 0.4; } 30% { transform: translateY(-4px); opacity: 1; } }
+        .typing-dot { animation: typingDot 1.2s ease-in-out infinite; }
+        .typing-dot:nth-child(2) { animation-delay: 0.15s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.3s; }
+        @keyframes sheetUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .sheet-up { animation: sheetUp 0.3s cubic-bezier(0.32, 0.72, 0, 1); }
+        .glass { background: rgba(255,255,255,0.88); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+        .glass-dark { background: rgba(255,255,255,0.75); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
     </style>
     <script src="theme.js"></script>
+    <script src="chat-backgrounds.js"></script>
+    <script src="chat-memes.js"></script>
 </head>
 <body class="h-screen text-ink-900">
     <div id="root" class="h-full"></div>
     <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+        const { useState, useEffect, useRef, useMemo } = React;
         const supabase = window.supabaseClient;
+        const GIPHY_KEY = window.GIPHY_API_KEY || '';
+        const { isMemeMessage, getMemeUrl, wrapMemeContent, searchBuiltinMemes, BUILTIN_MEMES } = window.BlissiamMemes;
+        const { CHAT_BACKGROUNDS, getChatBackground, getSavedChatBackgroundId, saveChatBackgroundId, applyChatBackgroundStyle, getChatBackgroundThumbStyle } = window.BlissiamChatBg;
 
-        const GIPHY_API_KEY = 'GlVGYHqc3SyCE33918nYjgCqQf1aSN9S';
-        const EMOJIS = ['😀','😂','🥺','❤️','👍','🙏','✨','😭','🥰','😅','🔥','👀','💪','🫂','🎉'];
+        const EMOJIS = ['😀','😂','🥺','❤️','👍','🙏','✨','😭','🥰','😅','🔥','👀','💪','🫂','🎉','😊','🤗','💯','🌟','🎈'];
+        const REPORT_REASONS = ['พูดจาไม่เหมาะสม', 'คุกคาม / ข่มขู่', 'สแปม / โฆษณา', 'อื่นๆ'];
+
+        function playMessageSound() {
+            try {
+                const Ctx = window.AudioContext || window.webkitAudioContext;
+                if (!Ctx) return;
+                const ctx = new Ctx();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.frequency.setValueAtTime(880, ctx.currentTime);
+                gain.gain.setValueAtTime(0.07, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+                osc.connect(gain); gain.connect(ctx.destination);
+                osc.start(); osc.stop(ctx.currentTime + 0.1);
+            } catch (e) {}
+        }
+
+        function formatTime(iso) {
+            if (!iso) return '';
+            return new Date(iso).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function IconBtn({ onClick, title, children, active }) {
+            return (
+                <button type="button" onClick={onClick} title={title}
+                    class={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 ${active ? 'bg-primary-50 text-primary-600' : 'text-ink-500 hover:bg-black/5 hover:text-ink-900'}`}>
+                    {children}
+                </button>
+            );
+        }
 
         function App() {
             const [user, setUser] = useState(null);
@@ -51,19 +101,39 @@
             const [partner, setPartner] = useState(null);
             const [partnerIdentity, setPartnerIdentity] = useState(null);
             const [partnerTyping, setPartnerTyping] = useState(false);
-            
-            // UI States
             const [showEndConfirm, setShowEndConfirm] = useState(false);
             const [showProfileModal, setShowProfileModal] = useState(false);
             const [showMediaMenu, setShowMediaMenu] = useState(false);
-            const [mediaTab, setMediaTab] = useState('emoji'); 
+            const [showBgPicker, setShowBgPicker] = useState(false);
+            const [bgFilter, setBgFilter] = useState('all');
+            const [chatBgId, setChatBgId] = useState(getSavedChatBackgroundId);
+            const [mediaTab, setMediaTab] = useState('meme');
             const [giphyMemes, setGiphyMemes] = useState([]);
             const [memeSearch, setMemeSearch] = useState('');
-            const [isVoiceActive, setIsVoiceActive] = useState(false);
-            
+            const [giphyLoading, setGiphyLoading] = useState(false);
+            const [giphyError, setGiphyError] = useState(null);
+            const [showReportModal, setShowReportModal] = useState(false);
+            const [reportReason, setReportReason] = useState(REPORT_REASONS[0]);
+            const [reportDetails, setReportDetails] = useState('');
+            const [kudosGiven, setKudosGiven] = useState(false);
+            const [sendingMeme, setSendingMeme] = useState(false);
+            const [soundEnabled, setSoundEnabled] = useState(() => localStorage.getItem('blissiam_sound') !== 'off');
+            const [deletingId, setDeletingId] = useState(null);
+
             const messagesEndRef = useRef(null);
-            const urlParams = new URLSearchParams(window.location.search);
-            const roomId = urlParams.get('room');
+            const roomId = new URLSearchParams(window.location.search).get('room');
+
+            const chatBg = useMemo(() => getChatBackground(chatBgId), [chatBgId]);
+            const bgStyle = useMemo(() => applyChatBackgroundStyle(chatBg), [chatBg]);
+
+            const builtinFiltered = useMemo(() => searchBuiltinMemes(memeSearch), [memeSearch]);
+
+            const bgFiltered = useMemo(() => {
+                if (bgFilter === 'color') return CHAT_BACKGROUNDS.filter(b => b.type === 'color');
+                if (bgFilter === 'gradient') return CHAT_BACKGROUNDS.filter(b => b.type === 'gradient');
+                if (bgFilter === 'image') return CHAT_BACKGROUNDS.filter(b => b.type === 'image');
+                return CHAT_BACKGROUNDS;
+            }, [bgFilter]);
 
             useEffect(() => {
                 window.BlissiamTheme?.loadAndApplyTheme();
@@ -72,19 +142,34 @@
             }, []);
 
             useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, partnerTyping]);
-            
+
             useEffect(() => {
-                if (showMediaMenu && mediaTab === 'meme' && giphyMemes.length === 0) fetchGiphy();
+                if (showMediaMenu && mediaTab === 'giphy' && giphyMemes.length === 0 && GIPHY_KEY) fetchGiphy();
             }, [showMediaMenu, mediaTab]);
 
+            function selectBackground(id) {
+                setChatBgId(id);
+                saveChatBackgroundId(id);
+            }
+
             async function fetchGiphy(query = '') {
-                const endpoint = query ? `https://api.giphy.com/v1/gifs/search?api_key=${GIPHY_API_KEY}&q=${encodeURIComponent(query)}&limit=16&rating=g`
-                                       : `https://api.giphy.com/v1/gifs/trending?api_key=${GIPHY_API_KEY}&limit=16&rating=g`;
+                if (!GIPHY_KEY) { setGiphyError('ตั้งค่า GIPHY_API_KEY ใน config.js (ไม่บังคับ — ใช้มีมในตัวได้)'); return; }
+                setGiphyLoading(true); setGiphyError(null);
+                const endpoint = query
+                    ? `https://api.giphy.com/v1/gifs/search?api_key=${GIPHY_KEY}&q=${encodeURIComponent(query)}&limit=12&rating=g`
+                    : `https://api.giphy.com/v1/gifs/trending?api_key=${GIPHY_KEY}&limit=12&rating=g`;
                 try {
                     const res = await fetch(endpoint);
                     const json = await res.json();
-                    if(json.data) setGiphyMemes(json.data.map(gif => gif.images.fixed_height.url));
-                } catch (e) { console.error(e); }
+                    if (json.data?.length) {
+                        setGiphyMemes(json.data.map(g => ({ url: g.images.fixed_height.url, title: g.title })));
+                    } else {
+                        setGiphyMemes([]);
+                        if (json.meta?.status !== 200) setGiphyError(json.meta?.msg || 'โหลด Giphy ไม่ได้ — ใช้แท็บมีมในตัวแทน');
+                    }
+                } catch (e) {
+                    setGiphyError('เชื่อมต่อ Giphy ไม่ได้ — ใช้มีมในตัวได้เลย');
+                } finally { setGiphyLoading(false); }
             }
 
             async function init() {
@@ -106,33 +191,102 @@
 
                     if (roomData.identity_mode === 'revealed') {
                         const { data: identityRows } = await supabase.rpc('get_partner_identity', { room_id: roomId, partner_id: partnerId });
-                        if (identityRows && identityRows.length > 0) setPartnerIdentity(identityRows[0]);
+                        if (identityRows?.length) setPartnerIdentity(identityRows[0]);
                     }
 
                     const { data: msgData } = await supabase.from('messages').select('*').eq('room_id', roomId).order('created_at', { ascending: true });
                     setMessages(msgData || []);
 
-                    // Realtime
+                    const { data: kudosRow } = await supabase.from('room_kudos').select('giver_id').eq('room_id', roomId).eq('giver_id', session.user.id).maybeSingle();
+                    if (kudosRow) setKudosGiven(true);
+
+                    await supabase.from('profiles').update({ status: 'in_chat', last_seen: new Date().toISOString() }).eq('id', session.user.id);
+
                     supabase.channel('messages-' + roomId)
                         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: 'room_id=eq.' + roomId }, (payload) => {
-                            setMessages(prev => [...prev, payload.new]);
-                            if (payload.new.sender_id !== session.user.id) setPartnerTyping(false);
+                            setMessages(prev => prev.some(m => m.id === payload.new.id) ? prev : [...prev, payload.new]);
+                            if (payload.new.sender_id !== session.user.id) {
+                                setPartnerTyping(false);
+                                if (localStorage.getItem('blissiam_sound') !== 'off' && !payload.new.is_system) playMessageSound();
+                            }
+                        })
+                        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages', filter: 'room_id=eq.' + roomId }, (payload) => {
+                            setMessages(prev => prev.filter(m => m.id !== payload.old.id));
                         }).subscribe();
-                        
+
                     supabase.channel('typing-' + roomId).on('broadcast', { event: 'typing' }, (payload) => {
                         if (payload.payload.senderId !== session.user.id) {
-                            setPartnerTyping(true); setTimeout(() => setPartnerTyping(false), 3000);
+                            setPartnerTyping(true);
+                            setTimeout(() => setPartnerTyping(false), 3000);
                         }
                     }).subscribe();
-
                 } catch (err) { alert(err.message); }
             }
 
             async function sendMessage(content, type = 'text') {
-                if (!content.trim() || !user) return;
+                const body = type === 'text' ? content.trim() : content;
+                if (!body || !user) return;
                 if (type === 'text') setInput('');
-                setShowMediaMenu(false);
-                await supabase.from('messages').insert({ room_id: roomId, sender_id: user.id, content: content, message_type: type });
+                if (type === 'meme') { setSendingMeme(true); setShowMediaMenu(false); }
+
+                const memeBody = type === 'meme' ? wrapMemeContent(body) : body;
+                let payload = { room_id: roomId, sender_id: user.id, content: type === 'meme' ? body : body, message_type: type };
+
+                let { error } = await supabase.from('messages').insert(payload);
+                if (error && type === 'meme') {
+                    ({ error } = await supabase.from('messages').insert({
+                        room_id: roomId, sender_id: user.id, content: memeBody
+                    }));
+                }
+                if (error && type === 'meme') {
+                    ({ error } = await supabase.from('messages').insert({
+                        room_id: roomId, sender_id: user.id, content: memeBody, message_type: 'text'
+                    }));
+                }
+                if (error) {
+                    alert('ส่งไม่สำเร็จ: ' + error.message + '\n\nถ้าเป็นข้อความมีม ให้รัน SQL เพิ่มคอลัมน์ message_type ใน Supabase');
+                    if (type === 'text') setInput(content);
+                }
+                setSendingMeme(false);
+            }
+
+            async function giveKudos() {
+                if (!partner || kudosGiven) return;
+                const partnerId = room.venter_id === user.id ? room.listener_id : room.venter_id;
+                const { error } = await supabase.rpc('give_kudos', { target_user_id: partnerId, room_id_param: roomId });
+                if (error) {
+                    if (error.message.includes('ให้แต้มในห้องนี้แล้ว')) { setKudosGiven(true); return; }
+                    alert('ให้แต้มไม่สำเร็จ: ' + error.message); return;
+                }
+                setKudosGiven(true);
+                setPartner(prev => prev ? { ...prev, kudos_count: (prev.kudos_count || 0) + 1 } : prev);
+            }
+
+            async function deleteMessage(msgId) {
+                if (!confirm('ลบข้อความนี้?')) return;
+                setDeletingId(msgId);
+                const { error } = await supabase.from('messages').delete().eq('id', msgId).eq('sender_id', user.id);
+                if (error) alert('ลบไม่สำเร็จ: ' + error.message);
+                else setMessages(prev => prev.filter(m => m.id !== msgId));
+                setDeletingId(null);
+            }
+
+            function toggleSound() {
+                const next = !soundEnabled;
+                setSoundEnabled(next);
+                localStorage.setItem('blissiam_sound', next ? 'on' : 'off');
+            }
+
+            async function submitReport() {
+                if (!partner || !user) return;
+                const partnerId = room.venter_id === user.id ? room.listener_id : room.venter_id;
+                const { error } = await supabase.from('reports').insert({
+                    reporter_id: user.id, reported_user_id: partnerId, room_id: roomId,
+                    reason: reportReason, details: reportDetails.trim() || null
+                });
+                if (error) { alert('ส่งรายงานไม่สำเร็จ: ' + error.message); return; }
+                setShowReportModal(false); setReportDetails('');
+                alert('ส่งรายงานแล้ว ทีมงานจะตรวจสอบโดยเร็วที่สุด');
             }
 
             async function triggerEndChat() {
@@ -141,156 +295,316 @@
                 window.location.href = 'index.html';
             }
 
-            if (!room || !profile) return <div class="h-full flex items-center justify-center">กำลังโหลด...</div>;
+            const partnerName = partnerIdentity?.real_name || partner?.display_name || 'คู่สนทนา';
+            const partnerSub = partnerIdentity?.school || 'พื้นที่ปลอดภัย · สนทนาส่วนตัว';
+
+            if (!room || !profile) return (
+                <div class="h-full flex flex-col items-center justify-center gap-4" style={bgStyle}>
+                    <div class="w-12 h-12 rounded-2xl bg-white/80 shadow-chat flex items-center justify-center">
+                        <div class="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                    <p class="text-sm text-ink-500">กำลังเตรียมห้องสนทนา...</p>
+                </div>
+            );
 
             return (
-                <div class="h-full flex flex-col bg-paper-50 relative">
-                    
+                <div class="h-full flex flex-col relative" style={bgStyle}>
                     {/* Header */}
-                    <header class="bg-white border-b border-line px-4 py-3 flex items-center justify-between z-10 shadow-sm">
-                        <div class="flex items-center gap-3 cursor-pointer hover:opacity-80 transition" onClick={() => setShowProfileModal(true)}>
-                            {/* รูปโปรไฟล์หัวแชท */}
-                            <div 
-                                class="w-10 h-10 rounded-full flex items-center justify-center bg-paper-100 font-bold border border-line bg-cover bg-center"
-                                style={partner?.avatar_url ? {backgroundImage: `url(${partner.avatar_url})`} : {}}
-                            >
-                                {!partner?.avatar_url && (partnerIdentity ? partnerIdentity.real_name.charAt(0) : partner?.display_name.charAt(0))}
-                            </div>
-                            <div>
-                                <div class="font-semibold">{partnerIdentity ? partnerIdentity.real_name : partner?.display_name}</div>
-                                <div class="text-xs text-primary-600 flex items-center gap-1">
-                                    <div class="w-1.5 h-1.5 bg-primary-500 rounded-full"></div> 
-                                    {partnerIdentity ? partnerIdentity.school : 'กำลังแชท'}
+                    <header class="glass border-b border-line px-4 py-3 flex items-center justify-between z-20 shrink-0">
+                        <button type="button" onClick={() => setShowProfileModal(true)} class="flex items-center gap-3 text-left group min-w-0">
+                            <div class="relative shrink-0">
+                                <div class="w-11 h-11 rounded-2xl bg-white shadow-bubble bg-cover bg-center flex items-center justify-center font-semibold text-primary-600 border border-white"
+                                    style={partner?.avatar_url ? { backgroundImage: `url(${partner.avatar_url})` } : {}}>
+                                    {!partner?.avatar_url && partnerName.charAt(0)}
                                 </div>
+                                <span class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-400 border-2 border-white rounded-full"></span>
                             </div>
+                            <div class="min-w-0">
+                                <div class="font-semibold text-ink-900 truncate group-hover:text-primary-600 transition">{partnerName}</div>
+                                <div class="text-xs text-ink-400 truncate">{partnerSub}</div>
+                            </div>
+                        </button>
+                        <div class="flex items-center gap-1 shrink-0">
+                            <IconBtn onClick={() => { setShowBgPicker(true); setShowMediaMenu(false); }} title="เปลี่ยนพื้นหลัง">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            </IconBtn>
+                            <IconBtn onClick={toggleSound} title={soundEnabled ? 'ปิดเสียง' : 'เปิดเสียง'} active={soundEnabled}>
+                                {soundEnabled ? (
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M15.536 8.464a5 5 0 010 7.072M12 6v12m-6-6h4l4-4v16l-4-4H6"/></svg>
+                                ) : (
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/></svg>
+                                )}
+                            </IconBtn>
+                            <IconBtn onClick={() => setShowReportModal(true)} title="รายงาน">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+                            </IconBtn>
+                            <button type="button" onClick={() => setShowEndConfirm(true)}
+                                class="ml-1 px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition">
+                                จบแชท
+                            </button>
                         </div>
-                        <button onClick={() => setShowEndConfirm(true)} class="px-4 py-2 bg-red-50 text-red-500 rounded-full text-sm font-medium">จบการสนทนา</button>
                     </header>
 
-                    {/* Messages Body */}
-                    <div class="flex-1 overflow-y-auto p-4 scrollbar-hide" onClick={() => setShowMediaMenu(false)}>
+                    {/* Messages */}
+                    <div class="flex-1 overflow-y-auto px-4 py-5 scrollbar-hide" onClick={() => { setShowMediaMenu(false); }}>
+                        {messages.length === 0 && (
+                            <div class="flex flex-col items-center justify-center py-16 text-center">
+                                <div class="w-16 h-16 rounded-3xl glass shadow-chat flex items-center justify-center text-3xl mb-4">💬</div>
+                                <p class="text-sm font-medium text-ink-700">เริ่มพูดคุยได้เลย</p>
+                                <p class="text-xs text-ink-400 mt-1">พื้นที่นี้ปลอดภัยและเป็นส่วนตัว</p>
+                            </div>
+                        )}
                         {messages.map((msg) => {
-                            if (msg.is_system) return <div key={msg.id} class="text-center text-xs text-ink-400 my-4">{msg.content}</div>;
-
+                            if (msg.is_system) return (
+                                <div key={msg.id} class="flex justify-center my-4">
+                                    <span class="text-xs text-ink-400 bg-white/60 px-3 py-1 rounded-full">{msg.content}</span>
+                                </div>
+                            );
                             const isMine = msg.sender_id === user.id;
                             const avatar = isMine ? profile?.avatar_url : partner?.avatar_url;
-                            const initial = isMine ? profile?.display_name.charAt(0) : partner?.display_name.charAt(0);
+                            const initial = isMine ? profile?.display_name?.charAt(0) : partner?.display_name?.charAt(0);
+                            const meme = isMemeMessage(msg);
 
                             return (
-                                <div key={msg.id} class={`flex gap-2 my-4 ${isMine ? 'justify-end' : 'justify-start'}`}>
-                                    {/* รูปโปรไฟล์คนอื่น (ซ้าย) */}
-                                    {!isMine && (
-                                        <div class="w-8 h-8 rounded-full shrink-0 bg-paper-100 border border-line bg-cover bg-center mt-auto mb-1 flex items-center justify-center text-xs" style={avatar ? {backgroundImage: `url(${avatar})`} : {}}>
-                                            {!avatar && initial}
-                                        </div>
-                                    )}
-                                    
-                                    <div class={`max-w-[75%] ${isMine ? 'items-end' : 'items-start'} flex flex-col`}>
-                                        {msg.message_type === 'meme' ? (
-                                            <img src={msg.content} class="rounded-2xl max-w-[200px] shadow-sm border border-line" loading="lazy" />
+                                <div key={msg.id} class={`msg-in flex gap-2.5 mb-3 ${isMine ? 'flex-row-reverse' : ''}`}>
+                                    <div class="w-8 h-8 rounded-xl shrink-0 bg-white/80 shadow-bubble bg-cover bg-center flex items-center justify-center text-xs font-medium text-primary-600 mt-auto"
+                                        style={avatar ? { backgroundImage: `url(${avatar})` } : {}}>
+                                        {!avatar && initial}
+                                    </div>
+                                    <div class={`group max-w-[78%] flex flex-col ${isMine ? 'items-end' : 'items-start'}`}>
+                                        {isMine && (
+                                            <button type="button" onClick={() => deleteMessage(msg.id)} disabled={deletingId === msg.id}
+                                                class="opacity-0 group-hover:opacity-100 text-[10px] text-red-400 hover:text-red-600 mb-1 transition">
+                                                {deletingId === msg.id ? 'กำลังลบ...' : 'ลบ'}
+                                            </button>
+                                        )}
+                                        {meme ? (
+                                            <div class="rounded-2xl overflow-hidden shadow-chat border border-white/80 bg-white/40">
+                                                <img src={getMemeUrl(msg)} alt="meme" class="max-w-[220px] max-h-[200px] object-cover block" loading="lazy"
+                                                    onError={(e) => { e.target.src = 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22120%22><rect fill=%22%23f0f0f0%22 width=%22200%22 height=%22120%22/><text x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22 font-size=%2214%22>โหลดรูปไม่ได้</text></svg>'; }} />
+                                            </div>
                                         ) : (
-                                            <div class={`px-4 py-2.5 rounded-2xl shadow-sm ${isMine ? 'bg-primary-500 text-white rounded-br-none' : 'bg-white text-ink-900 rounded-bl-none border border-line'}`}>
-                                                <div class="text-sm whitespace-pre-wrap">{msg.content}</div>
+                                            <div class={`px-4 py-2.5 rounded-2xl shadow-bubble text-sm leading-relaxed ${isMine
+                                                ? 'bg-primary-500 text-white rounded-br-md'
+                                                : 'glass text-ink-900 rounded-bl-md border border-white/60'}`}>
+                                                <span class="whitespace-pre-wrap break-words">{msg.content}</span>
                                             </div>
                                         )}
+                                        <span class="text-[10px] text-ink-300 mt-1 px-1">{formatTime(msg.created_at)}</span>
                                     </div>
-                                    
-                                    {/* รูปโปรไฟล์เราเอง (ขวา) */}
-                                    {isMine && (
-                                        <div class="w-8 h-8 rounded-full shrink-0 bg-primary-100 text-primary-700 border border-line bg-cover bg-center mt-auto mb-1 flex items-center justify-center text-xs" style={avatar ? {backgroundImage: `url(${avatar})`} : {}}>
-                                            {!avatar && initial}
-                                        </div>
-                                    )}
                                 </div>
                             );
                         })}
-                        <div ref={messagesEndRef} />
+                        {partnerTyping && (
+                            <div class="flex gap-2 items-center ml-10 mb-2">
+                                <div class="glass px-4 py-3 rounded-2xl rounded-bl-md shadow-bubble flex gap-1">
+                                    <span class="typing-dot w-1.5 h-1.5 bg-ink-400 rounded-full"></span>
+                                    <span class="typing-dot w-1.5 h-1.5 bg-ink-400 rounded-full"></span>
+                                    <span class="typing-dot w-1.5 h-1.5 bg-ink-400 rounded-full"></span>
+                                </div>
+                            </div>
+                        )}
+                        <div ref={messagesEndRef} class="h-2" />
                     </div>
 
-                    {/* Emoji/Giphy Modal */}
+                    {/* Media picker */}
                     {showMediaMenu && (
-                        <div class="absolute bottom-[80px] left-4 bg-white rounded-3xl shadow-xl p-4 w-80 z-20 max-h-[400px] flex flex-col border border-line">
-                            <div class="flex gap-4 mb-3 border-b border-line pb-2">
-                                <button onClick={() => setMediaTab('emoji')} class={`text-sm font-bold pb-1 ${mediaTab === 'emoji' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-ink-400'}`}>😀 Emojis</button>
-                                <button onClick={() => setMediaTab('meme')} class={`text-sm font-bold pb-1 ${mediaTab === 'meme' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-ink-400'}`}>🎨 Giphy Memes</button>
-                            </div>
-                            <div class="overflow-y-auto scrollbar-hide flex-1">
-                                {mediaTab === 'emoji' && (
-                                    <div class="flex flex-wrap gap-3">
-                                        {EMOJIS.map(e => <button key={e} onClick={() => setInput(prev => prev + e)} class="text-2xl hover:scale-125">{e}</button>)}
-                                    </div>
-                                )}
-                                {mediaTab === 'meme' && (
-                                    <div class="flex flex-col gap-3">
-                                        <form onSubmit={(e) => { e.preventDefault(); fetchGiphy(memeSearch); }} class="flex gap-2">
-                                            <input type="text" value={memeSearch} onChange={e => setMemeSearch(e.target.value)} placeholder="ค้นหามีม..." class="text-sm w-full bg-paper-50 rounded-xl px-3 py-2" />
-                                            <button type="submit" class="bg-primary-500 text-white px-3 rounded-xl">ค้นหา</button>
-                                        </form>
-                                        <div class="grid grid-cols-2 gap-2">
-                                            {giphyMemes.map((url, idx) => <img key={idx} src={url} onClick={() => sendMessage(url, 'meme')} class="w-full h-24 object-cover rounded-xl cursor-pointer hover:opacity-80" loading="lazy" />)}
+                        <div class="absolute inset-x-0 bottom-[88px] z-30 px-4">
+                            <div class="glass-dark rounded-3xl shadow-float border border-white/60 overflow-hidden max-w-lg mx-auto">
+                                <div class="flex border-b border-line">
+                                    {[
+                                        { id: 'meme', label: '🎭 มีมในตัว' },
+                                        { id: 'giphy', label: '🔍 Giphy' },
+                                        { id: 'emoji', label: '😊 อีโมจิ' },
+                                    ].map(tab => (
+                                        <button key={tab.id} type="button" onClick={() => setMediaTab(tab.id)}
+                                            class={`flex-1 py-3 text-xs font-semibold transition ${mediaTab === tab.id ? 'text-primary-600 border-b-2 border-primary-500 bg-primary-50/50' : 'text-ink-400 hover:text-ink-700'}`}>
+                                            {tab.label}
+                                        </button>
+                                    ))}
+                                </div>
+                                <div class="p-4 max-h-[280px] overflow-y-auto scrollbar-hide">
+                                    {mediaTab === 'emoji' && (
+                                        <div class="flex flex-wrap gap-2 justify-center">
+                                            {EMOJIS.map(e => (
+                                                <button key={e} type="button" onClick={() => setInput(prev => prev + e)}
+                                                    class="w-10 h-10 text-xl hover:bg-black/5 rounded-xl transition hover:scale-110">{e}</button>
+                                            ))}
                                         </div>
-                                    </div>
-                                )}
+                                    )}
+                                    {mediaTab === 'meme' && (
+                                        <div>
+                                            <input type="text" value={memeSearch} onChange={e => setMemeSearch(e.target.value)}
+                                                placeholder="ค้นหามีม..." class="w-full mb-3 text-sm bg-white/70 border border-line rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500/30" />
+                                            <div class="grid grid-cols-4 gap-2">
+                                                {builtinFiltered.map(m => (
+                                                    <button key={m.id} type="button" disabled={sendingMeme} onClick={() => sendMessage(m.url, 'meme')}
+                                                        class="relative aspect-square rounded-xl overflow-hidden border border-white/80 shadow-bubble hover:scale-105 transition disabled:opacity-50 group"
+                                                        title={m.label}>
+                                                        <img src={m.url} alt={m.label} class="w-full h-full object-cover" loading="lazy" />
+                                                        <span class="absolute inset-x-0 bottom-0 bg-black/50 text-white text-[9px] py-0.5 opacity-0 group-hover:opacity-100 transition">{m.label}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            <p class="text-[10px] text-ink-400 text-center mt-3">มีมในตัว {BUILTIN_MEMES.length} รายการ · ส่งได้ทันทีไม่ต้องรอ API</p>
+                                        </div>
+                                    )}
+                                    {mediaTab === 'giphy' && (
+                                        <div>
+                                            <form onSubmit={(e) => { e.preventDefault(); fetchGiphy(memeSearch); }} class="flex gap-2 mb-3">
+                                                <input type="text" value={memeSearch} onChange={e => setMemeSearch(e.target.value)} placeholder="ค้นหา Giphy..."
+                                                    class="flex-1 text-sm bg-white/70 border border-line rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500/30" />
+                                                <button type="submit" class="px-4 py-2 bg-primary-500 text-white text-sm rounded-xl font-medium">ค้นหา</button>
+                                            </form>
+                                            {giphyLoading && <p class="text-xs text-center text-ink-400 py-6">กำลังโหลด...</p>}
+                                            {giphyError && <p class="text-xs text-center text-amber-600 py-2">{giphyError}</p>}
+                                            <div class="grid grid-cols-3 gap-2">
+                                                {giphyMemes.map((m, i) => (
+                                                    <button key={i} type="button" disabled={sendingMeme} onClick={() => sendMessage(m.url, 'meme')}
+                                                        class="aspect-square rounded-xl overflow-hidden border border-white/80 hover:scale-105 transition disabled:opacity-50">
+                                                        <img src={m.url} alt="" class="w-full h-full object-cover" loading="lazy" />
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     )}
 
-                    {/* Input */}
-                    <form onSubmit={(e) => { e.preventDefault(); sendMessage(input, 'text'); }} class="bg-white border-t border-line p-4 z-10">
-                        <div class="flex gap-2">
-                            <button type="button" onClick={() => setShowMediaMenu(!showMediaMenu)} class="w-12 h-12 bg-paper-100 rounded-full flex items-center justify-center text-xl shrink-0">☺️</button>
-                            <input type="text" value={input} onChange={(e) => { setInput(e.target.value); supabase.channel('typing-' + roomId).send({ type: 'broadcast', event: 'typing', payload: { senderId: user.id } }); }} placeholder="พิมพ์ข้อความ..." class="flex-1 bg-paper-50 rounded-full px-5 focus:outline-none" />
-                            <button type="submit" disabled={!input.trim()} class="w-12 h-12 bg-primary-500 text-white rounded-full flex items-center justify-center shrink-0 disabled:opacity-50">🚀</button>
-                        </div>
-                    </form>
+                    {/* Input bar */}
+                    <div class="shrink-0 z-20 px-4 pb-4 pt-2">
+                        <form onSubmit={(e) => { e.preventDefault(); sendMessage(input, 'text'); }}
+                            class="glass-dark rounded-2xl shadow-float border border-white/70 p-2 flex gap-2 items-center max-w-2xl mx-auto">
+                            <button type="button" onClick={() => { setShowMediaMenu(!showMediaMenu); setShowBgPicker(false); }}
+                                class={`w-11 h-11 rounded-xl flex items-center justify-center text-xl transition ${showMediaMenu ? 'bg-primary-50 text-primary-600' : 'hover:bg-black/5'}`}>
+                                {showMediaMenu ? '✕' : '＋'}
+                            </button>
+                            <input type="text" value={input}
+                                onChange={(e) => {
+                                    setInput(e.target.value);
+                                    supabase.channel('typing-' + roomId).send({ type: 'broadcast', event: 'typing', payload: { senderId: user.id } });
+                                }}
+                                placeholder="พิมพ์ข้อความ..."
+                                class="flex-1 bg-transparent text-sm focus:outline-none placeholder:text-ink-300 min-w-0" />
+                            <button type="submit" disabled={!input.trim()}
+                                class="w-11 h-11 rounded-xl bg-primary-500 text-white flex items-center justify-center shrink-0 disabled:opacity-40 hover:bg-primary-600 transition shadow-bubble">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+                            </button>
+                        </form>
+                    </div>
 
-                    {/* Profile Modal + Instagram Link */}
+                    {/* Background picker */}
+                    {showBgPicker && (
+                        <div class="fixed inset-0 z-50 flex items-end sm:items-center justify-center" onClick={() => setShowBgPicker(false)}>
+                            <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
+                            <div class="relative w-full sm:max-w-lg max-h-[85vh] glass rounded-t-3xl sm:rounded-3xl shadow-float sheet-up flex flex-col" onClick={e => e.stopPropagation()}>
+                                <div class="p-5 border-b border-line shrink-0">
+                                    <div class="w-10 h-1 bg-ink-200 rounded-full mx-auto mb-4 sm:hidden"></div>
+                                    <h3 class="text-lg font-bold text-ink-900">พื้นหลังแชท</h3>
+                                    <p class="text-xs text-ink-400 mt-0.5">{CHAT_BACKGROUNDS.length} แบบให้เลือก · บันทึกในเครื่องของคุณ</p>
+                                    <div class="flex gap-2 mt-3 flex-wrap">
+                                        {[
+                                            { id: 'all', label: 'ทั้งหมด' },
+                                            { id: 'color', label: 'สี' },
+                                            { id: 'gradient', label: 'ไล่สี' },
+                                            { id: 'image', label: 'ภาพ' },
+                                        ].map(f => (
+                                            <button key={f.id} type="button" onClick={() => setBgFilter(f.id)}
+                                                class={`px-3 py-1 rounded-full text-xs font-medium transition ${bgFilter === f.id ? 'bg-ink-900 text-white' : 'bg-white/60 text-ink-600 hover:bg-white'}`}>
+                                                {f.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div class="p-4 overflow-y-auto scrollbar-hide grid grid-cols-4 gap-2.5">
+                                    {bgFiltered.map(bg => (
+                                        <button key={bg.id} type="button" onClick={() => selectBackground(bg.id)}
+                                            class={`relative aspect-square rounded-2xl overflow-hidden border-2 transition hover:scale-105 ${chatBgId === bg.id ? 'border-primary-500 ring-2 ring-primary-500/30' : 'border-white/80'}`}
+                                            style={getChatBackgroundThumbStyle(bg)} title={bg.label}>
+                                            {chatBgId === bg.id && (
+                                                <span class="absolute inset-0 flex items-center justify-center bg-black/20">
+                                                    <svg class="w-6 h-6 text-white drop-shadow" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                                </span>
+                                            )}
+                                            <span class="absolute bottom-0 inset-x-0 bg-black/45 text-white text-[8px] py-0.5 truncate px-1">{bg.label}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Profile modal */}
                     {showProfileModal && partner && (
-                        <div class="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
-                            <div class="bg-white rounded-3xl p-8 max-w-sm w-full text-center relative border border-line">
-                                <button onClick={() => setShowProfileModal(false)} class="absolute top-4 right-4 text-ink-300">✕</button>
-                                
-                                {/* รูปโปรไฟล์ใหญ่ */}
-                                <div class="w-24 h-24 mx-auto rounded-full bg-cover bg-center mb-4 flex items-center justify-center text-4xl font-bold bg-primary-100 text-primary-700 border-4 border-white shadow-sm"
-                                     style={partner.avatar_url ? {backgroundImage: `url(${partner.avatar_url})`} : {}}>
-                                    {!partner.avatar_url && (partnerIdentity ? partnerIdentity.real_name.charAt(0) : partner.display_name.charAt(0))}
+                        <div class="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowProfileModal(false)}>
+                            <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
+                            <div class="relative bg-white rounded-3xl p-8 max-w-sm w-full shadow-float border border-line" onClick={e => e.stopPropagation()}>
+                                <button type="button" onClick={() => setShowProfileModal(false)} class="absolute top-4 right-4 w-8 h-8 rounded-full hover:bg-paper-100 flex items-center justify-center text-ink-400">✕</button>
+                                <div class="w-24 h-24 mx-auto rounded-3xl bg-cover bg-center mb-4 flex items-center justify-center text-4xl font-bold bg-primary-50 text-primary-600 shadow-chat"
+                                    style={partner.avatar_url ? { backgroundImage: `url(${partner.avatar_url})` } : {}}>
+                                    {!partner.avatar_url && partnerName.charAt(0)}
                                 </div>
-                                
-                                <h3 class="text-xl font-bold mb-1">{partnerIdentity ? partnerIdentity.real_name : partner.display_name}</h3>
-                                
-                                {/* ลิงก์ IG (แสดงเฉพาะคนที่มี) */}
+                                <h3 class="text-xl font-bold text-center mb-1">{partnerName}</h3>
                                 {partner.ig_username ? (
-                                    <a href={`https://instagram.com/${partner.ig_username}`} target="_blank" class="flex items-center justify-center gap-1 text-pink-600 hover:text-pink-700 font-medium mt-1 mb-4 transition">
-                                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
-                                        @{partner.ig_username}
-                                    </a>
+                                    <a href={`https://instagram.com/${partner.ig_username}`} target="_blank" rel="noopener"
+                                        class="flex items-center justify-center gap-1 text-pink-600 text-sm font-medium mb-4 hover:underline">@{partner.ig_username}</a>
                                 ) : (
-                                    <p class="text-sm text-ink-500 mb-4">{partnerIdentity ? partnerIdentity.school : 'โหมดไม่ระบุตัวตน (Anonymous)'}</p>
+                                    <p class="text-sm text-ink-400 text-center mb-4">{partnerSub}</p>
                                 )}
-                                
-                                <div class="bg-yellow-50 border border-yellow-100 rounded-2xl p-4 flex items-center justify-center gap-3">
-                                    <span class="text-2xl">🌟</span>
-                                    <div class="text-left">
-                                        <div class="text-sm font-bold text-yellow-800">แต้มความใจดี</div>
-                                        <div class="text-xs text-yellow-700">{partner.kudos_count || 0} ครั้งที่ช่วยเหลือผู้อื่น</div>
+                                <div class="bg-amber-50 border border-amber-100 rounded-2xl p-4 flex items-center justify-between gap-3">
+                                    <div>
+                                        <div class="text-sm font-bold text-amber-900">แต้มความใจดี</div>
+                                        <div class="text-xs text-amber-700">{partner.kudos_count || 0} ครั้ง</div>
                                     </div>
+                                    <button type="button" onClick={giveKudos} disabled={kudosGiven}
+                                        class={`px-4 py-2 rounded-xl text-xs font-semibold transition ${kudosGiven ? 'bg-paper-100 text-ink-400' : 'bg-amber-200 text-amber-900 hover:bg-amber-300'}`}>
+                                        {kudosGiven ? 'ให้แล้ว ✓' : 'ให้แต้ม 🌟'}
+                                    </button>
                                 </div>
                             </div>
                         </div>
                     )}
-                    
-                    {/* End Confirm */}
+
+                    {/* Report modal */}
+                    {showReportModal && (
+                        <div class="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowReportModal(false)}>
+                            <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
+                            <div class="relative bg-white rounded-3xl p-6 max-w-sm w-full shadow-float" onClick={e => e.stopPropagation()}>
+                                <h3 class="text-lg font-bold mb-4">รายงานผู้ใช้</h3>
+                                <select value={reportReason} onChange={e => setReportReason(e.target.value)} class="w-full mb-3 text-sm border border-line rounded-xl px-3 py-2.5 bg-paper-50">
+                                    {REPORT_REASONS.map(r => <option key={r} value={r}>{r}</option>)}
+                                </select>
+                                <textarea value={reportDetails} onChange={e => setReportDetails(e.target.value)} rows="3" placeholder="รายละเอียด (ไม่บังคับ)"
+                                    class="w-full mb-4 text-sm border border-line rounded-xl px-3 py-2.5 bg-paper-50 resize-none" />
+                                <div class="grid grid-cols-2 gap-2">
+                                    <button type="button" onClick={() => setShowReportModal(false)} class="py-2.5 rounded-xl border text-sm font-medium">ยกเลิก</button>
+                                    <button type="button" onClick={submitReport} class="py-2.5 rounded-xl bg-red-500 text-white text-sm font-medium">ส่งรายงาน</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* End confirm */}
                     {showEndConfirm && (
-                        <div class="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
-                            <div class="bg-white rounded-3xl p-6 text-center max-w-sm w-full">
-                                <h3 class="text-lg font-bold mb-4">จบการสนทนาตอนนี้เลยไหม?</h3>
-                                <div class="grid grid-cols-2 gap-2"><button onClick={() => setShowEndConfirm(false)} class="py-2.5 rounded-full border">ยกเลิก</button><button onClick={triggerEndChat} class="py-2.5 bg-red-500 text-white rounded-full">จบเลย</button></div>
+                        <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                            <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowEndConfirm(false)}></div>
+                            <div class="relative bg-white rounded-3xl p-6 max-w-sm w-full shadow-float text-center">
+                                <div class="text-4xl mb-3">👋</div>
+                                <h3 class="text-lg font-bold mb-2">จบการสนทนา?</h3>
+                                <p class="text-sm text-ink-400 mb-5">คุณสามารถกลับมาคุยใหม่ได้ทุกเมื่อ</p>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <button type="button" onClick={() => setShowEndConfirm(false)} class="py-2.5 rounded-xl border font-medium text-sm">อยู่ต่อ</button>
+                                    <button type="button" onClick={triggerEndChat} class="py-2.5 rounded-xl bg-red-500 text-white font-medium text-sm">จบเลย</button>
+                                </div>
                             </div>
                         </div>
                     )}
                 </div>
             );
         }
+
         ReactDOM.createRoot(document.getElementById('root')).render(<App />);
     </script>
 </body>

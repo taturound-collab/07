@@ -103,7 +103,7 @@
                 }
                 addResult(true, 'Anonymous Sign-In ใช้งานได้');
 
-                const tables = ['profiles', 'rooms', 'messages', 'queue', 'reports'];
+                const tables = ['profiles', 'rooms', 'messages', 'queue', 'reports', 'site_settings'];
                 for (const table of tables) {
                     const { error } = await supabase.from(table).select('*', { count: 'exact', head: true });
                     if (error) {

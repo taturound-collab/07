@@ -3,6 +3,8 @@
 
 const SUPABASE_URL = 'https://your-project.supabase.co';
 const SUPABASE_ANON_KEY = 'your-anon-key';
+const GIPHY_API_KEY = 'your-giphy-api-key';
+window.GIPHY_API_KEY = GIPHY_API_KEY;
 
 function isSupabaseConfigured() {
     return SUPABASE_URL !== 'https://your-project.supabase.co'

@@ -94,6 +94,8 @@
             const params = new URLSearchParams(window.location.search);
             const redirect = params.get('redirect') || 'index.html';
             const role = params.get('role');
+            const identity = params.get('identity') === 'revealed' ? 'revealed' : 'anonymous';
+            const topic = params.get('topic') || 'general';
 
             useEffect(() => {
                 window.BlissiamTheme?.loadAndApplyTheme();
@@ -153,7 +155,7 @@
                                 status: 'waiting',
                                 last_seen: new Date().toISOString()
                             }).eq('id', data.user.id);
-                            window.location.href = `queue.html?role=${role}`;
+                            window.location.href = `queue.html?role=${role}&identity=${identity}&topic=${encodeURIComponent(topic)}`;
                         } else {
                             window.location.href = redirect;
                         }
@@ -285,7 +287,7 @@
                         ) : (
                             <p class="text-center mt-6 text-sm text-ink-500">
                                 มีบัญชีอยู่แล้ว?{' '}
-                                <a href={`login.html?redirect=${encodeURIComponent(redirect)}${role ? '&role=' + role : ''}`} class="text-primary-600 hover:text-primary-700 font-medium">
+                                <a href={`login.html?redirect=${encodeURIComponent(redirect)}${role ? '&role=' + role + '&identity=' + identity + '&topic=' + encodeURIComponent(topic) : ''}`} class="text-primary-600 hover:text-primary-700 font-medium">
                                     ลงชื่อเข้าใช้
                                 </a>
                             </p>
