@@ -64,39 +64,52 @@
         const { useState, useEffect } = React;
         const supabase = window.supabaseClient;
 
-        // ระบบบีปส่งสัญญาณเสียงอัจฉริยะเมื่อจับคู่สำเร็จ
+        // ฟังก์ชันสร้างเสียงสังเคราะห์ (ปลอดภัยและเบราว์เซอร์ไม่บล็อกการทำงาน)
         function playMatchSound() {
             try {
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContext) return;
                 
-                // เสียงที่ 1 (เสียงต่ำล่วงหน้า)
+                const audioCtx = new AudioContext();
                 const osc1 = audioCtx.createOscillator();
                 const gain1 = audioCtx.createGain();
+                
                 osc1.type = 'sine';
-                osc1.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
-                gain1.gain.setValueAtTime(0.12, audioCtx.currentTime);
+                osc1.frequency.setValueAtTime(523.25, audioCtx.currentTime); // โน้ต C5
+                gain1.gain.setValueAtTime(0.1, audioCtx.currentTime);
                 gain1.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+                
                 osc1.connect(gain1);
                 gain1.connect(audioCtx.destination);
                 osc1.start();
                 osc1.stop(audioCtx.currentTime + 0.15);
 
-                // เสียงที่ 2 (เสียงสูงตามมาเพื่อความสดใสแจ่มใส)
                 setTimeout(() => {
+                    if(audioCtx.state === 'closed') return;
                     const osc2 = audioCtx.createOscillator();
                     const gain2 = audioCtx.createGain();
                     osc2.type = 'sine';
-                    osc2.frequency.setValueAtTime(783.99, audioCtx.currentTime); // G5
-                    gain2.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                    osc2.frequency.setValueAtTime(783.99, audioCtx.currentTime); // โน้ต G5
+                    gain2.gain.setValueAtTime(0.12, audioCtx.currentTime);
                     gain2.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
                     osc2.connect(gain2);
                     gain2.connect(audioCtx.destination);
                     osc2.start();
                     osc2.stop(audioCtx.currentTime + 0.3);
-                }, 120);
+                }, 150);
             } catch (e) {
                 console.warn('เบราว์เซอร์บล็อกเสียงเริ่มต้น:', e);
             }
+        }
+
+        function DotLogo({ size = 28, animated = false }) {
+            return (
+                <svg width={size} height={size} viewBox="0 0 28 28" fill="none" class={animated ? 'dot-pulse' : ''}>
+                    <circle cx="4" cy="4" r="3" fill="#1a1a1a"/><circle cx="14" cy="4" r="3" fill="#1a1a1a"/><circle cx="24" cy="4" r="3" fill="#1a1a1a"/>
+                    <circle cx="4" cy="14" r="3" fill="#1a1a1a"/><circle cx="14" cy="14" r="3" fill="var(--color-primary-500)"/><circle cx="24" cy="14" r="3" fill="#1a1a1a"/>
+                    <circle cx="4" cy="24" r="3" fill="#1a1a1a"/><circle cx="14" cy="24" r="3" fill="#1a1a1a"/><circle cx="24" cy="24" r="3" fill="#1a1a1a"/>
+                </svg>
+            );
         }
 
         function App() {
@@ -112,9 +125,10 @@
 
             useEffect(() => {
                 window.BlissiamTheme?.loadAndApplyTheme();
-                // ขออนุญาตส่งแจ้งเตือนของบราวเซอร์ล่วงหน้าไว้
+                
+                // ขออนุญาตแจ้งเตือนล่วงหน้า
                 if (window.Notification && Notification.permission === 'default') {
-                    Notification.requestPermission();
+                    Notification.requestPermission().catch(console.warn);
                 }
                 init();
             }, []);
@@ -135,10 +149,10 @@
                     }
                     setUser(session.user);
 
-                    // ตรวจเผื่อว่ายังมีห้องค้างอยู่ไหม
+                    // 1. ตรวจเผื่อว่ายังมีห้องค้างอยู่ไหม
                     const { data: activeRooms } = await supabase
                         .from('rooms')
-                        .select('*')
+                        .select('id')
                         .or(`venter_id.eq.${session.user.id},listener_id.eq.${session.user.id}`)
                         .eq('status', 'active')
                         .maybeSingle();
@@ -148,15 +162,15 @@
                         return;
                     }
 
-                    // อัปเดตสถานะผู้ใช้
+                    // 2. อัปเดตสถานะผู้ใช้
                     await supabase.from('profiles').update({ 
                         status: 'waiting', 
                         role_preference: selectedRole,
                         last_seen: new Date().toISOString()
                     }).eq('id', session.user.id);
 
-                    // ยัดลงคิวจับคู่
-                    const { data: queueData, error: queueError } = await supabase
+                    // 3. นำชื่อเข้าคิวจับคู่
+                    const { error: queueError } = await supabase
                         .from('queue')
                         .insert({
                             user_id: session.user.id,
@@ -164,15 +178,13 @@
                             identity_mode: selectedIdentity,
                             topic: selectedTopic,
                             status: 'waiting'
-                        })
-                        .select()
-                        .single();
+                        });
 
                     if (queueError) throw queueError;
                     setQueueStatus('waiting');
 
-                    // ฟังเสียงเรียลไทม์การเปลี่ยนแปลงสถานะคิว
-                    const channel = supabase.channel('queue-' + session.user.id)
+                    // 4. ฟังเสียงเรียลไทม์สถานะการจับคู่
+                    const channel = supabase.channel('queue-status-' + session.user.id)
                         .on('postgres_changes', {
                             event: 'UPDATE',
                             schema: 'public',
@@ -182,12 +194,11 @@
                             if (payload.new.status === 'matched' && payload.new.matched_room_id) {
                                 setQueueStatus('matched');
                                 
-                                // แจ้งเตือนผู้ใช้ด้วยเสียงและระบบแอปพุช
+                                // ส่งเสียง + แจ้งเตือน Notification
                                 playMatchSound();
                                 if (window.Notification && Notification.permission === 'granted') {
                                     new Notification('Blissiam Chat 🌟', {
-                                        body: 'เราพบคู่สนทนาของคุณแล้ว! เข้ามาคุยกันเลย',
-                                        icon: 'favicon.ico'
+                                        body: 'เราพบคู่สนทนาของคุณแล้ว! เข้ามาเริ่มพูดคุยกันได้เลยครับ',
                                     });
                                 }
 
@@ -217,8 +228,15 @@
             };
 
             const getTopicLabel = (id) => {
-                const t = { general:'เรื่องทั่วไป 💬', study:'การเรียน/มหาลัย 📚', love:'ความรัก ❤️', work:'การทำงาน 💼', family:'ครอบครัว 🏠', health:'สุขภาพจิต 🧠' };
-                return t[id] || id;
+                const topics = { 
+                    general:'เรื่องทั่วไป 💬', 
+                    study:'การเรียน/มหาลัย 📚', 
+                    love:'ความรัก ❤️', 
+                    work:'การทำงาน 💼', 
+                    family:'ครอบครัว 🏠', 
+                    health:'สุขภาพจิต 🧠' 
+                };
+                return topics[id] || 'เรื่องทั่วไป';
             };
 
             if (error) return (
