@@ -114,9 +114,17 @@
 
         function App() {
             const [user, setUser] = useState(null);
-            const [queueStatus, setQueueStatus] = useState('joining'); 
-            const [waitTime, setWaitTime] = useState(0);
-            const [error, setError] = useState(null);
+           // ขออนุญาตแจ้งเตือนล่วงหน้า (ดัก Error สำหรับเบราว์เซอร์ที่ไม่รองรับ Promise)
+if (window.Notification && Notification.permission === 'default') {
+    try {
+        const permissionPromise = Notification.requestPermission();
+        if (permissionPromise && typeof permissionPromise.catch === 'function') {
+            permissionPromise.catch(console.warn);
+        }
+    } catch (err) {
+        console.warn('Notification permission error:', err);
+    }
+}
 
             const urlParams = new URLSearchParams(window.location.search);
             const selectedRole = urlParams.get('role') || 'venter';
