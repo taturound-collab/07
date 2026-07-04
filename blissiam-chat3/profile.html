@@ -17,17 +17,42 @@
                 extend: {
                     fontFamily: { sans: ['var(--font-body)', 'Kanit', 'sans-serif'] },
                     colors: {
-                        paper: { 50: '#fdfcfa', 100: '#f6f3ee', 200: '#ece7de', 300: '#ddd6c9' },
-                        ink: { 900: '#1a1a1a', 700: '#3a3a3a', 500: '#6b6b6b', 300: '#9c9c9c', 200: '#c2c2c2' },
-                        primary: { 500: 'var(--color-primary-500)', 600: 'var(--color-primary-600)' }
+                        paper: {
+                            50: 'var(--color-paper-50)', 100: 'var(--color-paper-100)',
+                            200: 'var(--color-paper-200)', 300: 'var(--color-paper-300)'
+                        },
+                        ink: {
+                            900: 'var(--color-ink-900)', 700: 'var(--color-ink-700)', 500: 'var(--color-ink-500)',
+                            400: 'var(--color-ink-400)', 300: 'var(--color-ink-300)', 200: 'var(--color-ink-200)'
+                        },
+                        surface: 'var(--color-surface)',
+                        primary: {
+                            50: 'var(--color-primary-50)', 500: 'var(--color-primary-500)', 600: 'var(--color-primary-600)'
+                        },
+                        line: 'var(--color-line)'
                     }
                 }
             }
         }
     </script>
     <style>
-        :root { --color-primary-500: #4D7355; --color-primary-600: #3d5d44; --font-body: 'Kanit', sans-serif; }
-        body { font-family: 'Kanit', sans-serif; background-color: #fdfcfa; }
+        :root {
+            --color-primary-50: #f3f7f1; --color-primary-500: #4D7355; --color-primary-600: #3d5d44;
+            --color-paper-50: #fdfcfa; --color-paper-100: #f6f3ee; --color-paper-200: #ece7de; --color-paper-300: #ddd6c9;
+            --color-ink-900: #1a1a1a; --color-ink-700: #3a3a3a; --color-ink-500: #6b6b6b; --color-ink-400: #8a8a8a; --color-ink-300: #9c9c9c; --color-ink-200: #c2c2c2;
+            --color-line: #e8e3d9; --color-surface: #ffffff;
+            --font-body: 'Kanit', sans-serif;
+        }
+        body { font-family: 'Kanit', sans-serif; background-color: var(--color-paper-50); transition: background-color 0.3s ease; }
+        @keyframes blobFloat { 0%, 100% { transform: translate(0, 0) scale(1); } 33% { transform: translate(20px, -25px) scale(1.05); } 66% { transform: translate(-15px, 15px) scale(0.96); } }
+        .blob { position: absolute; border-radius: 50%; filter: blur(40px); animation: blobFloat 12s ease-in-out infinite; pointer-events: none; }
+        @keyframes wiggle { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(-8deg); } 75% { transform: rotate(8deg); } }
+        .wiggle-hover:hover { animation: wiggle 0.4s ease-in-out; }
+        .btn-playful { border-radius: 9999px; background: linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600)); box-shadow: 0 8px 20px -6px var(--color-primary-500); transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .btn-playful:hover:not(:disabled) { transform: translateY(-2px) scale(1.02); box-shadow: 0 12px 26px -6px var(--color-primary-500); }
+        .btn-playful:active:not(:disabled) { transform: translateY(0) scale(0.98); }
+        .card-playful { border-radius: 2rem; box-shadow: 0 20px 45px -20px var(--color-primary-500); border: 1px solid color-mix(in srgb, var(--color-primary-500) 15%, var(--color-line)); }
+        .avatar-ring { background: linear-gradient(135deg, var(--color-primary-500), var(--color-secondary-500, var(--color-primary-600))); padding: 4px; }
     </style>
     <script src="theme.js"></script>
 </head>
@@ -37,6 +62,19 @@
         const { useState, useEffect, useRef } = React;
         const supabase = window.supabaseClient;
 
+        function DarkModeToggle({ isDark, onToggle }) {
+            return (
+                <button type="button" onClick={onToggle} title={isDark ? 'สลับเป็นโหมดสว่าง' : 'สลับเป็นโหมดมืด'}
+                    class="w-9 h-9 rounded-full flex items-center justify-center border border-line bg-surface hover:border-primary-400 transition text-ink-700 hover:text-primary-600">
+                    {isDark ? (
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 3v1.5m0 15V21m9-9h-1.5M4.5 12H3m15.36 6.36l-1.06-1.06M6.7 6.7L5.64 5.64m12.72 0l-1.06 1.06M6.7 17.3l-1.06 1.06M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                    ) : (
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+                    )}
+                </button>
+            );
+        }
+
         function App() {
             const [user, setUser] = useState(null);
             const [loading, setLoading] = useState(true);
@@ -44,6 +82,12 @@
             const [uploadingAvatar, setUploadingAvatar] = useState(false);
             const [error, setError] = useState(null);
             const [success, setSuccess] = useState(null);
+            const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
+
+            function toggleDarkMode() {
+                const resolved = window.BlissiamTheme?.toggleColorScheme();
+                setIsDark(resolved === 'dark');
+            }
 
             const [displayName, setDisplayName] = useState('');
             const [realName, setRealName] = useState('');
@@ -126,30 +170,37 @@
             if (loading) return <div class="min-h-screen flex items-center justify-center bg-paper-50">กำลังโหลด...</div>;
 
             return (
-                <div class="min-h-screen bg-paper-50">
-                    <nav class="sticky top-0 w-full z-50 bg-white border-b border-line px-6 py-4">
+                <div class="min-h-screen bg-paper-50 relative overflow-hidden">
+                    <div class="blob w-72 h-72 bg-primary-300 opacity-20 -top-10 -left-16"></div>
+                    <div class="blob w-64 h-64 bg-secondary-300 opacity-20 top-40 -right-10" style={{ animationDelay: '2s' }}></div>
+                    <nav class="sticky top-0 w-full z-50 bg-surface border-b border-line px-6 py-4">
                         <div class="max-w-2xl mx-auto flex justify-between items-center">
-                            <h1 class="text-xl font-bold tracking-tight">โปรไฟล์ของฉัน</h1>
-                            <a href="index.html" class="text-sm text-ink-700 hover:text-primary-600 font-medium">← กลับหน้าแรก</a>
+                            <h1 class="text-xl font-extrabold tracking-tight">โปรไฟล์ของฉัน ✨</h1>
+                            <div class="flex items-center gap-4">
+                                <DarkModeToggle isDark={isDark} onToggle={toggleDarkMode} />
+                                <a href="index.html" class="text-sm text-ink-700 hover:text-primary-600 font-medium">← กลับหน้าแรก</a>
+                            </div>
                         </div>
                     </nav>
 
-                    <div class="max-w-2xl mx-auto px-6 py-10">
+                    <div class="max-w-2xl mx-auto px-6 py-10 relative z-10">
                         {error && <div class="bg-red-50 text-red-600 px-4 py-3 rounded-xl mb-4 text-sm">{error}</div>}
                         {success && <div class="bg-primary-50 text-primary-700 px-4 py-3 rounded-xl mb-4 text-sm">{success}</div>}
 
-                        <form onSubmit={handleSave} class="bg-white border border-line rounded-3xl p-8 space-y-6 shadow-sm">
+                        <form onSubmit={handleSave} class="card-playful bg-surface p-8 space-y-6">
                             {/* ส่วนอัปโหลดรูป */}
                             <div class="flex flex-col items-center pb-6 border-b border-line">
-                                <div 
-                                    class="w-28 h-28 rounded-full border-4 border-paper-100 bg-cover bg-center mb-3 flex items-center justify-center text-4xl font-bold text-ink-300 relative cursor-pointer group"
-                                    style={avatarUrl ? {backgroundImage: `url(${avatarUrl})`} : {backgroundColor: '#f6f3ee'}}
+                                <div class="avatar-ring rounded-full mb-3">
+                                <div
+                                    class="w-28 h-28 rounded-full bg-cover bg-center flex items-center justify-center text-4xl font-bold text-ink-300 relative cursor-pointer group"
+                                    style={avatarUrl ? {backgroundImage: `url(${avatarUrl})`} : {backgroundColor: 'var(--color-paper-100)'}}
                                     onClick={() => fileInputRef.current.click()}
                                 >
                                     {!avatarUrl && displayName.charAt(0)}
                                     <div class="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
                                         <span class="text-white text-xs font-medium">เปลี่ยนรูป</span>
                                     </div>
+                                </div>
                                 </div>
                                 <input type="file" ref={fileInputRef} onChange={handleAvatarUpload} accept="image/*" class="hidden" />
                                 <div class="text-sm text-ink-500 font-medium">
@@ -187,7 +238,7 @@
                                 </div>
                             </div>
 
-                            <button type="submit" disabled={saving || uploadingAvatar} class="w-full bg-primary-500 text-white py-3 rounded-full font-medium hover:bg-primary-600 transition disabled:opacity-50">
+                            <button type="submit" disabled={saving || uploadingAvatar} class="btn-playful w-full text-white py-3 font-semibold disabled:opacity-50">
                                 {saving ? 'กำลังบันทึก...' : 'บันทึกการเปลี่ยนแปลง'}
                             </button>
                         </form>

@@ -17,8 +17,15 @@
                 extend: {
                     fontFamily: { sans: ['var(--font-body)', 'Kanit', 'sans-serif'] },
                     colors: {
-                        paper: { 50: '#fdfcfa', 100: '#f6f3ee', 200: '#ece7de', 300: '#ddd6c9' },
-                        ink: { 900: '#1a1a1a', 700: '#3a3a3a', 500: '#6b6b6b', 300: '#9c9c9c', 200: '#c2c2c2' },
+                        paper: {
+                            50: 'var(--color-paper-50)', 100: 'var(--color-paper-100)',
+                            200: 'var(--color-paper-200)', 300: 'var(--color-paper-300)'
+                        },
+                        ink: {
+                            900: 'var(--color-ink-900)', 700: 'var(--color-ink-700)', 500: 'var(--color-ink-500)',
+                            400: 'var(--color-ink-400)', 300: 'var(--color-ink-300)', 200: 'var(--color-ink-200)'
+                        },
+                        surface: 'var(--color-surface)',
                         primary: {
                             50: 'var(--color-primary-50)', 100: 'var(--color-primary-100)', 200: 'var(--color-primary-200)',
                             300: 'var(--color-primary-300)', 400: 'var(--color-primary-400)', 500: 'var(--color-primary-500)',
@@ -29,7 +36,7 @@
                             300: 'var(--color-secondary-300)', 400: 'var(--color-secondary-400)', 500: 'var(--color-secondary-500)',
                             600: 'var(--color-secondary-600)'
                         },
-                        line: '#e8e3d9'
+                        line: 'var(--color-line)'
                     }
                 }
             }
@@ -42,13 +49,16 @@
             --color-primary-600: #3d5d44; --color-primary-700: #314936;
             --color-secondary-50: #fbf3ea; --color-secondary-100: #f3e0c8; --color-secondary-200: #e6bf8e;
             --color-secondary-300: #cc9655; --color-secondary-400: #A8662A; --color-secondary-500: #925621; --color-secondary-600: #74441a;
+            --color-paper-50: #fdfcfa; --color-paper-100: #f6f3ee; --color-paper-200: #ece7de; --color-paper-300: #ddd6c9;
+            --color-ink-900: #1a1a1a; --color-ink-700: #3a3a3a; --color-ink-500: #6b6b6b; --color-ink-400: #8a8a8a; --color-ink-300: #9c9c9c; --color-ink-200: #c2c2c2;
+            --color-line: #e8e3d9; --color-surface: #ffffff;
             --font-body: 'Kanit', sans-serif;
         }
     </style>
     <script src="theme.js"></script>
     <style>
-        body { font-family: 'Kanit', sans-serif; background-color: #fdfcfa; background-image: radial-gradient(circle at 15% 10%, var(--color-primary-50) 0%, transparent 45%), radial-gradient(circle at 85% 90%, var(--color-secondary-50) 0%, transparent 45%); background-attachment: fixed; }
-        .watermark { font-size: 13rem; font-weight: 800; color: #1a1a1a; opacity: 0.045; letter-spacing: -0.02em; white-space: nowrap; user-select: none; }
+        body { font-family: 'Kanit', sans-serif; background-color: var(--color-paper-50); background-image: radial-gradient(circle at 15% 10%, var(--color-primary-50) 0%, transparent 45%), radial-gradient(circle at 85% 90%, var(--color-secondary-50) 0%, transparent 45%); background-attachment: fixed; transition: background-color 0.3s ease; }
+        .watermark { font-size: 13rem; font-weight: 800; color: var(--color-ink-900); opacity: 0.045; letter-spacing: -0.02em; white-space: nowrap; user-select: none; }
         @media (max-width: 768px) { .watermark { font-size: 6rem; } }
         .fade-in { animation: fadeIn 0.7s ease-out forwards; opacity: 0; transform: translateY(16px); }
         @keyframes fadeIn { to { opacity: 1; transform: translateY(0); } }
@@ -61,6 +71,30 @@
         @keyframes dotPulse { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
         .scroll-row { scrollbar-width: none; }
         .scroll-row::-webkit-scrollbar { display: none; }
+        .hero-photo {
+            background-image: url('assets/hero-bg.jpg');
+            background-size: cover;
+            background-position: center 30%;
+            background-attachment: fixed;
+        }
+        @media (max-width: 768px) {
+            .hero-photo { background-attachment: scroll; }
+        }
+        .hero-overlay {
+            background: linear-gradient(180deg, var(--color-paper-50) 0%, color-mix(in srgb, var(--color-paper-50) 60%, transparent) 45%, color-mix(in srgb, var(--color-paper-50) 60%, transparent) 65%, var(--color-paper-50) 100%);
+        }
+        .hero-fullscreen {
+            min-height: 100vh;
+            min-height: 100dvh;
+        }
+        @keyframes blobFloat { 0%, 100% { transform: translate(0, 0) scale(1); } 33% { transform: translate(20px, -25px) scale(1.05); } 66% { transform: translate(-15px, 15px) scale(0.96); } }
+        .blob { position: absolute; border-radius: 50%; filter: blur(40px); animation: blobFloat 12s ease-in-out infinite; pointer-events: none; }
+        @keyframes wiggle { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(-8deg); } 75% { transform: rotate(8deg); } }
+        .wiggle-hover:hover { animation: wiggle 0.4s ease-in-out; }
+        .btn-playful { border-radius: 9999px; background: linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600)); box-shadow: 0 8px 20px -6px var(--color-primary-500); transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .btn-playful:hover:not(:disabled) { transform: translateY(-2px) scale(1.02); box-shadow: 0 12px 26px -6px var(--color-primary-500); }
+        .btn-playful:active:not(:disabled) { transform: translateY(0) scale(0.98); }
+        .card-playful { border-radius: 2rem; box-shadow: 0 20px 45px -20px var(--color-primary-500); border: 1px solid color-mix(in srgb, var(--color-primary-500) 15%, var(--color-line)); }
     </style>
 </head>
 <body class="min-h-screen text-ink-900">
@@ -81,10 +115,23 @@
         function DotLogo({ size = 28, animated = false }) {
             return (
                 <svg width={size} height={size} viewBox="0 0 28 28" fill="none" class={animated ? 'dot-pulse' : ''}>
-                    <circle cx="4" cy="4" r="3" fill="#1a1a1a"/><circle cx="14" cy="4" r="3" fill="#1a1a1a"/><circle cx="24" cy="4" r="3" fill="#1a1a1a"/>
-                    <circle cx="4" cy="14" r="3" fill="#1a1a1a"/><circle cx="14" cy="14" r="3" fill="var(--color-primary-500)"/><circle cx="24" cy="14" r="3" fill="#1a1a1a"/>
-                    <circle cx="4" cy="24" r="3" fill="#1a1a1a"/><circle cx="14" cy="24" r="3" fill="#1a1a1a"/><circle cx="24" cy="24" r="3" fill="#1a1a1a"/>
+                    <circle cx="4" cy="4" r="3" fill="var(--color-ink-900)"/><circle cx="14" cy="4" r="3" fill="var(--color-ink-900)"/><circle cx="24" cy="4" r="3" fill="var(--color-ink-900)"/>
+                    <circle cx="4" cy="14" r="3" fill="var(--color-ink-900)"/><circle cx="14" cy="14" r="3" fill="var(--color-primary-500)"/><circle cx="24" cy="14" r="3" fill="var(--color-ink-900)"/>
+                    <circle cx="4" cy="24" r="3" fill="var(--color-ink-900)"/><circle cx="14" cy="24" r="3" fill="var(--color-ink-900)"/><circle cx="24" cy="24" r="3" fill="var(--color-ink-900)"/>
                 </svg>
+            );
+        }
+
+        function DarkModeToggle({ isDark, onToggle }) {
+            return (
+                <button type="button" onClick={onToggle} title={isDark ? 'สลับเป็นโหมดสว่าง' : 'สลับเป็นโหมดมืด'}
+                    class="w-9 h-9 rounded-full flex items-center justify-center border border-line hover:border-primary-400 transition text-ink-700 hover:text-primary-600">
+                    {isDark ? (
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 3v1.5m0 15V21m9-9h-1.5M4.5 12H3m15.36 6.36l-1.06-1.06M6.7 6.7L5.64 5.64m12.72 0l-1.06 1.06M6.7 17.3l-1.06 1.06M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                    ) : (
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+                    )}
+                </button>
             );
         }
 
@@ -95,6 +142,7 @@
             const [starting, setStarting] = useState(false);
             const [identityMode, setIdentityMode] = useState('anonymous');
             const [selectedTopic, setSelectedTopic] = useState('general');
+            const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
 
             useEffect(() => {
                 checkUser();
@@ -121,6 +169,11 @@
 
             async function logout() {
                 await supabase.auth.signOut();
+            }
+
+            function toggleDarkMode() {
+                const resolved = window.BlissiamTheme?.toggleColorScheme();
+                setIsDark(resolved === 'dark');
             }
 
             async function startWithRole(role) {
@@ -159,7 +212,8 @@
                                 <DotLogo />
                                 <span class="text-xl font-bold tracking-tight">Blissiam</span>
                             </a>
-                            <div class="flex items-center gap-5">
+                            <div class="flex items-center gap-4">
+                                <DarkModeToggle isDark={isDark} onToggle={toggleDarkMode} />
                                 {user && profile ? (
                                     <>
                                         <a href="profile.html" class="text-sm text-ink-700 hover:text-primary-600 transition font-medium hidden sm:inline">
@@ -174,7 +228,7 @@
                                         <a href="login.html" class="text-sm text-ink-700 hover:text-primary-600 transition font-medium">
                                             เข้าสู่ระบบ
                                         </a>
-                                        <a href="signup.html" class="text-sm bg-ink-900 text-white px-5 py-2.5 rounded-full hover:bg-primary-600 transition font-medium">
+                                        <a href="signup.html" class="btn-playful text-sm text-white px-5 py-2.5 font-semibold">
                                             สร้างบัญชี
                                         </a>
                                     </>
@@ -184,8 +238,10 @@
                     </nav>
 
                     {/* Hero */}
-                    <section class="relative pt-16 pb-8 px-6 overflow-hidden">
-                        <div class="absolute top-8 left-1/2 -translate-x-1/2 pointer-events-none select-none">
+                    <section class="hero-fullscreen relative flex flex-col items-center justify-center px-6 overflow-hidden">
+                        <div class="absolute inset-0 z-0 hero-photo"></div>
+                        <div class="absolute inset-0 z-0 hero-overlay"></div>
+                        <div class="absolute top-8 left-1/2 -translate-x-1/2 pointer-events-none select-none z-[1]">
                             <span class="watermark">BLISSIAM</span>
                         </div>
                         <div class="max-w-3xl mx-auto text-center relative z-10 fade-in">
@@ -193,12 +249,15 @@
                                 <span class="w-1.5 h-1.5 rounded-full bg-primary-500"></span>
                                 พื้นที่ปลอดภัย · ไม่ระบุตัวตน · ฟรี
                             </div>
-                            <h1 class="text-5xl md:text-6xl font-bold leading-[1.1] mb-4">
-                                พื้นที่แบ่งปันน้ำใจ
+                            <h1 class="text-5xl md:text-6xl font-black leading-[1.1] mb-4">
+                                พื้นที่แบ่งปันน้ำใจ <span class="wiggle-hover inline-block">✨</span>
                             </h1>
                             <p class="text-base text-ink-500 max-w-xl mx-auto leading-relaxed">
                                 ไม่ว่าจะเป็นใคร อยู่ที่ไหน ไม่ว่าจะกี่โมง มีคนพร้อมรับฟังคุณอยู่เสมอ
                             </p>
+                        </div>
+                        <div class="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 animate-bounce pointer-events-none">
+                            <svg class="w-6 h-6 text-ink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
                         </div>
                     </section>
 
@@ -206,12 +265,15 @@
                     <section class="px-6 pb-20">
                         <div class="max-w-6xl mx-auto">
                             {!isAdmin && (
-                                <div class="mb-8 bg-white border border-line rounded-3xl p-6 sm:p-8 shadow-sm">
+                                <div class="mb-8 bg-surface border border-line rounded-3xl p-6 sm:p-8 shadow-sm">
                                     {/* 1. เลือกหัวข้อสนทนา */}
                                     <div class="mb-6">
                                         <div class="flex items-center justify-between mb-3">
-                                            <h3 class="font-bold text-base text-ink-900">1. เลือกเรื่องราวที่คุณสนใจหรืออยากพูดคุย</h3>
-                                            <span class="text-xs text-primary-600 font-medium">ระบบจะจับคู่ตามเรื่องที่เลือก</span>
+                                            <h3 class="font-bold text-base text-ink-900 flex items-center gap-2.5">
+                                                <span class="w-6 h-6 rounded-full bg-primary-500 text-white text-xs font-bold flex items-center justify-center shrink-0">1</span>
+                                                เลือกเรื่องราวที่คุณสนใจหรืออยากพูดคุย
+                                            </h3>
+                                            <span class="text-xs text-primary-600 font-medium hidden sm:inline">ระบบจะจับคู่ตามเรื่องที่เลือก</span>
                                         </div>
                                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                             {TOPICS.map(t => (
@@ -230,7 +292,10 @@
                                     {/* 2. เลือกโหมดระบุตัวตน */}
                                     <div class="border-t border-line pt-6">
                                         <div class="flex items-center justify-between mb-3">
-                                            <h3 class="font-bold text-base text-ink-900">2. เลือกโหมดการแสดงตัวตน</h3>
+                                            <h3 class="font-bold text-base text-ink-900 flex items-center gap-2.5">
+                                                <span class="w-6 h-6 rounded-full bg-primary-500 text-white text-xs font-bold flex items-center justify-center shrink-0">2</span>
+                                                เลือกโหมดการแสดงตัวตน
+                                            </h3>
                                         </div>
                                         <div class="grid grid-cols-2 gap-4">
                                             <button
@@ -260,46 +325,51 @@
 
                             {/* Role Cards Area */}
                             <div class="flex items-end justify-between mb-6">
-                                <h2 class="text-xl font-bold">
-                                    {isAdmin ? 'ระบบจัดการหลังบ้าน' : '3. เริ่มต้นจับคู่พูดคุยได้เลย'}
+                                <h2 class="text-2xl font-extrabold flex items-center gap-2.5">
+                                    {!isAdmin && <span class="w-6 h-6 rounded-full bg-primary-500 text-white text-xs font-bold flex items-center justify-center shrink-0">3</span>}
+                                    {isAdmin ? 'ระบบจัดการหลังบ้าน' : 'เริ่มต้นจับคู่พูดคุยได้เลย'}
                                 </h2>
                             </div>
 
-                            <div class="flex gap-5 overflow-x-auto scroll-row pb-4 -mx-6 px-6 sm:mx-0 sm:px-0">
-                                {isAdmin ? (
-                                    <a href="admin.html" class="role-card shrink-0 w-80 bg-white border border-line rounded-3xl overflow-hidden shadow-sm">
-                                        <div class="h-48 bg-ink-900 flex items-end p-5 relative overflow-hidden">
-                                            <h3 class="text-white text-2xl font-bold">ไปหน้าจัดการระบบ</h3>
-                                        </div>
-                                        <div class="p-5">
-                                            <p class="text-sm text-ink-500">ดูคิว ห้องแชท รายงานปัญหา และตั้งค่าธีม</p>
-                                        </div>
-                                    </a>
-                                ) : (
-                                    <>
-                                        <button onClick={() => startWithRole('venter')} disabled={starting}
-                                            class="role-card shrink-0 w-85 text-left bg-white border border-line rounded-3xl overflow-hidden shadow-sm disabled:opacity-50">
-                                            <div class="h-40 bg-primary-500 flex items-end p-5 relative">
-                                                <h3 class="text-white text-2xl font-bold">ฉันอยากระบาย 😔</h3>
+                            <div class="relative">
+                                <div class="blob w-72 h-72 bg-primary-300 opacity-20 -top-10 -left-16"></div>
+                                <div class="blob w-64 h-64 bg-secondary-300 opacity-20 -bottom-10 right-10" style={{ animationDelay: '3s' }}></div>
+                                <div class="relative flex gap-5 overflow-x-auto scroll-row pb-4 -mx-6 px-6 sm:mx-0 sm:px-0">
+                                    {isAdmin ? (
+                                        <a href="admin.html" class="role-card card-playful shrink-0 w-80 bg-surface overflow-hidden">
+                                            <div class="h-48 bg-gradient-to-br from-ink-900 to-primary-700 flex items-end p-5 relative overflow-hidden">
+                                                <h3 class="text-white text-2xl font-extrabold">ไปหน้าจัดการระบบ</h3>
                                             </div>
-                                            <div class="p-5 flex items-center justify-between">
-                                                <p class="text-sm text-ink-500">อึดอัด มีเรื่องในใจ หาคนช่วยรับฟังทางนี้</p>
-                                                <svg class="w-5 h-5 text-ink-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+                                            <div class="p-5">
+                                                <p class="text-sm text-ink-500">ดูคิว ห้องแชท รายงานปัญหา และตั้งค่าธีม</p>
                                             </div>
-                                        </button>
+                                        </a>
+                                    ) : (
+                                        <>
+                                            <button onClick={() => startWithRole('venter')} disabled={starting}
+                                                class="role-card card-playful shrink-0 w-85 text-left bg-surface overflow-hidden disabled:opacity-50">
+                                                <div class="h-40 bg-gradient-to-br from-primary-400 to-primary-600 flex items-end p-5 relative">
+                                                    <h3 class="text-white text-2xl font-extrabold wiggle-hover">ฉันอยากระบาย 😔</h3>
+                                                </div>
+                                                <div class="p-5 flex items-center justify-between">
+                                                    <p class="text-sm text-ink-500">อึดอัด มีเรื่องในใจ หาคนช่วยรับฟังทางนี้</p>
+                                                    <svg class="w-5 h-5 text-primary-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+                                                </div>
+                                            </button>
 
-                                        <button onClick={() => startWithRole('listener')} disabled={starting}
-                                            class="role-card shrink-0 w-85 text-left bg-white border border-line rounded-3xl overflow-hidden shadow-sm disabled:opacity-50">
-                                            <div class="h-40 bg-secondary-500 flex items-end p-5 relative">
-                                                <h3 class="text-white text-2xl font-bold">ฉันอยากรับฟัง 😊</h3>
-                                            </div>
-                                            <div class="p-5 flex items-center justify-between">
-                                                <p class="text-sm text-ink-500">พร้อมเปิดใจ มอบพลังบวกและรับฟังคนอื่น</p>
-                                                <svg class="w-5 h-5 text-ink-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
-                                            </div>
-                                        </button>
-                                    </>
-                                )}
+                                            <button onClick={() => startWithRole('listener')} disabled={starting}
+                                                class="role-card card-playful shrink-0 w-85 text-left bg-surface overflow-hidden disabled:opacity-50">
+                                                <div class="h-40 bg-gradient-to-br from-secondary-400 to-secondary-600 flex items-end p-5 relative">
+                                                    <h3 class="text-white text-2xl font-extrabold wiggle-hover">ฉันอยากรับฟัง 😊</h3>
+                                                </div>
+                                                <div class="p-5 flex items-center justify-between">
+                                                    <p class="text-sm text-ink-500">พร้อมเปิดใจ มอบพลังบวกและรับฟังคนอื่น</p>
+                                                    <svg class="w-5 h-5 text-secondary-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+                                                </div>
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </section>

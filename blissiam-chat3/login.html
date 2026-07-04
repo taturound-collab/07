@@ -17,8 +17,15 @@
                 extend: {
                     fontFamily: { sans: ['var(--font-body)', 'Kanit', 'sans-serif'] },
                     colors: {
-                        paper: { 50: '#fdfcfa', 100: '#f6f3ee', 200: '#ece7de', 300: '#ddd6c9' },
-                        ink: { 900: '#1a1a1a', 700: '#3a3a3a', 500: '#6b6b6b', 300: '#9c9c9c', 200: '#c2c2c2' },
+                        paper: {
+                            50: 'var(--color-paper-50)', 100: 'var(--color-paper-100)',
+                            200: 'var(--color-paper-200)', 300: 'var(--color-paper-300)'
+                        },
+                        ink: {
+                            900: 'var(--color-ink-900)', 700: 'var(--color-ink-700)', 500: 'var(--color-ink-500)',
+                            400: 'var(--color-ink-400)', 300: 'var(--color-ink-300)', 200: 'var(--color-ink-200)'
+                        },
+                        surface: 'var(--color-surface)',
                         primary: {
                             50: 'var(--color-primary-50)', 100: 'var(--color-primary-100)', 200: 'var(--color-primary-200)',
                             300: 'var(--color-primary-300)', 400: 'var(--color-primary-400)', 500: 'var(--color-primary-500)',
@@ -29,7 +36,7 @@
                             300: 'var(--color-secondary-300)', 400: 'var(--color-secondary-400)', 500: 'var(--color-secondary-500)',
                             600: 'var(--color-secondary-600)'
                         },
-                        line: '#e8e3d9'
+                        line: 'var(--color-line)'
                     }
                 }
             }
@@ -42,12 +49,15 @@
             --color-primary-600: #3d5d44; --color-primary-700: #314936;
             --color-secondary-50: #fbf3ea; --color-secondary-100: #f3e0c8; --color-secondary-200: #e6bf8e;
             --color-secondary-300: #cc9655; --color-secondary-400: #A8662A; --color-secondary-500: #925621; --color-secondary-600: #74441a;
+            --color-paper-50: #fdfcfa; --color-paper-100: #f6f3ee; --color-paper-200: #ece7de; --color-paper-300: #ddd6c9;
+            --color-ink-900: #1a1a1a; --color-ink-700: #3a3a3a; --color-ink-500: #6b6b6b; --color-ink-400: #8a8a8a; --color-ink-300: #9c9c9c; --color-ink-200: #c2c2c2;
+            --color-line: #e8e3d9; --color-surface: #ffffff;
             --font-body: 'Kanit', sans-serif;
         }
     </style>
     <script src="theme.js"></script>
     <style>
-        body { font-family: 'Kanit', sans-serif; background-color: #fdfcfa; background-image: radial-gradient(circle at 15% 10%, var(--color-primary-50) 0%, transparent 45%), radial-gradient(circle at 85% 90%, var(--color-secondary-50) 0%, transparent 45%); background-attachment: fixed; }
+        body { font-family: 'Kanit', sans-serif; background-color: var(--color-paper-50); background-image: radial-gradient(circle at 15% 10%, var(--color-primary-50) 0%, transparent 45%), radial-gradient(circle at 85% 90%, var(--color-secondary-50) 0%, transparent 45%); background-attachment: fixed; transition: background-color 0.3s ease; }
         .dot-pulse circle { animation: dotPulse 1.4s ease-in-out infinite; }
         .dot-pulse circle:nth-child(1) { animation-delay: 0s; }
         .dot-pulse circle:nth-child(2) { animation-delay: 0.1s; }
@@ -59,9 +69,17 @@
         .dot-pulse circle:nth-child(8) { animation-delay: 0.3s; }
         .dot-pulse circle:nth-child(9) { animation-delay: 0.4s; }
         @keyframes dotPulse { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
+        @keyframes blobFloat { 0%, 100% { transform: translate(0, 0) scale(1); } 33% { transform: translate(20px, -25px) scale(1.05); } 66% { transform: translate(-15px, 15px) scale(0.96); } }
+        .blob { position: absolute; border-radius: 50%; filter: blur(40px); animation: blobFloat 12s ease-in-out infinite; pointer-events: none; }
+        @keyframes wiggle { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(-8deg); } 75% { transform: rotate(8deg); } }
+        .wiggle-hover:hover { animation: wiggle 0.4s ease-in-out; }
+        .btn-playful { border-radius: 9999px; background: linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600)); box-shadow: 0 8px 20px -6px var(--color-primary-500); transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .btn-playful:hover:not(:disabled) { transform: translateY(-2px) scale(1.02); box-shadow: 0 12px 26px -6px var(--color-primary-500); }
+        .btn-playful:active:not(:disabled) { transform: translateY(0) scale(0.98); }
+        .card-playful { border-radius: 2rem; box-shadow: 0 20px 45px -20px var(--color-primary-500); border: 1px solid color-mix(in srgb, var(--color-primary-500) 15%, var(--color-line)); }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-6 text-ink-900">
+<body class="min-h-screen flex items-center justify-center p-6 text-ink-900 relative overflow-hidden">
     <div id="root"></div>
     <script type="text/babel">
         const { useState, useEffect } = React;
@@ -69,11 +87,24 @@
 
         function DotLogo({ size = 28, animated = false }) {
             return (
-                <svg width={size} height={size} viewBox="0 0 28 28" fill="none" class={animated ? 'dot-pulse' : ''}>
-                    <circle cx="4" cy="4" r="3" fill="#1a1a1a"/><circle cx="14" cy="4" r="3" fill="#1a1a1a"/><circle cx="24" cy="4" r="3" fill="#1a1a1a"/>
-                    <circle cx="4" cy="14" r="3" fill="#1a1a1a"/><circle cx="14" cy="14" r="3" fill="var(--color-primary-500)"/><circle cx="24" cy="14" r="3" fill="#1a1a1a"/>
-                    <circle cx="4" cy="24" r="3" fill="#1a1a1a"/><circle cx="14" cy="24" r="3" fill="#1a1a1a"/><circle cx="24" cy="24" r="3" fill="#1a1a1a"/>
+                <svg width={size} height={size} viewBox="0 0 28 28" fill="none" class={`wiggle-hover ${animated ? 'dot-pulse' : ''}`}>
+                    <circle cx="4" cy="4" r="3" fill="var(--color-ink-900)"/><circle cx="14" cy="4" r="3" fill="var(--color-ink-900)"/><circle cx="24" cy="4" r="3" fill="var(--color-ink-900)"/>
+                    <circle cx="4" cy="14" r="3" fill="var(--color-ink-900)"/><circle cx="14" cy="14" r="3" fill="var(--color-primary-500)"/><circle cx="24" cy="14" r="3" fill="var(--color-ink-900)"/>
+                    <circle cx="4" cy="24" r="3" fill="var(--color-ink-900)"/><circle cx="14" cy="24" r="3" fill="var(--color-ink-900)"/><circle cx="24" cy="24" r="3" fill="var(--color-ink-900)"/>
                 </svg>
+            );
+        }
+
+        function DarkModeToggle({ isDark, onToggle }) {
+            return (
+                <button type="button" onClick={onToggle} title={isDark ? 'สลับเป็นโหมดสว่าง' : 'สลับเป็นโหมดมืด'}
+                    class="w-9 h-9 rounded-full flex items-center justify-center border border-line bg-surface hover:border-primary-400 transition text-ink-700 hover:text-primary-600">
+                    {isDark ? (
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 3v1.5m0 15V21m9-9h-1.5M4.5 12H3m15.36 6.36l-1.06-1.06M6.7 6.7L5.64 5.64m12.72 0l-1.06 1.06M6.7 17.3l-1.06 1.06M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                    ) : (
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+                    )}
+                </button>
             );
         }
 
@@ -83,6 +114,12 @@
             const [loading, setLoading] = useState(true);
             const [submitting, setSubmitting] = useState(false);
             const [error, setError] = useState(null);
+            const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
+
+            function toggleDarkMode() {
+                const resolved = window.BlissiamTheme?.toggleColorScheme();
+                setIsDark(resolved === 'dark');
+            }
 
             const params = new URLSearchParams(window.location.search);
             const redirect = params.get('redirect') || 'index.html';
@@ -153,67 +190,74 @@
             );
 
             return (
-                <div class="w-full max-w-md">
-                    <div class="bg-white rounded-3xl p-8 border border-line">
-                        <div class="text-center mb-8">
-                            <div class="flex justify-center mb-4">
-                                <DotLogo />
-                            </div>
-                            <div class="text-xl font-bold mb-2">Blissiam</div>
-                            <h1 class="text-lg font-semibold text-ink-900">ลงชื่อเข้าใช้</h1>
-                            <p class="text-ink-500 text-sm mt-1">เข้าสู่พื้นที่แบ่งปันน้ำใจ</p>
-                        </div>
-
-                        {error && (
-                            <div class="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl mb-4 text-sm">
-                                {error}
-                            </div>
-                        )}
-
-                        <form onSubmit={handleLogin} class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-medium text-ink-700 mb-1">อีเมล</label>
-                                <input
-                                    type="email"
-                                    value={email}
-                                    onChange={e => setEmail(e.target.value)}
-                                    required
-                                    class="w-full bg-white border border-line text-ink-900 placeholder-ink-300 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
-                                    placeholder="you@email.com"
-                                />
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-ink-700 mb-1">รหัสผ่าน</label>
-                                <input
-                                    type="password"
-                                    value={password}
-                                    onChange={e => setPassword(e.target.value)}
-                                    required
-                                    class="w-full bg-white border border-line text-ink-900 placeholder-ink-300 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
-                                    placeholder="••••••••"
-                                />
-                            </div>
-                            <button
-                                type="submit"
-                                disabled={submitting}
-                                class="w-full bg-primary-500 text-white py-3 rounded-full font-medium hover:bg-primary-600 transition disabled:opacity-50"
-                            >
-                                {submitting ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}
-                            </button>
-                        </form>
-
-                        <p class="text-center mt-6 text-sm text-ink-500">
-                            ยังไม่มีบัญชี?{' '}
-                            <a href={`signup.html?redirect=${encodeURIComponent(redirect)}${role ? '&role=' + role + '&identity=' + identity + '&topic=' + encodeURIComponent(topic) : ''}`} class="text-primary-600 hover:text-primary-700 font-medium">
-                                สร้างบัญชี
-                            </a>
-                        </p>
-
-                        <a href="index.html" class="block text-center mt-4 text-sm text-ink-500 hover:text-primary-600 transition">
-                            ← กลับหน้าแรก
-                        </a>
+                <>
+                    <div class="blob w-72 h-72 bg-primary-300 opacity-30 -top-10 -left-16"></div>
+                    <div class="blob w-64 h-64 bg-secondary-300 opacity-30 -bottom-16 -right-10" style={{ animationDelay: '2s' }}></div>
+                    <div class="absolute top-6 right-6 z-20">
+                        <DarkModeToggle isDark={isDark} onToggle={toggleDarkMode} />
                     </div>
-                </div>
+                    <div class="w-full max-w-md relative z-10">
+                        <div class="card-playful bg-surface p-8">
+                            <div class="text-center mb-8">
+                                <div class="flex justify-center mb-4">
+                                    <DotLogo />
+                                </div>
+                                <div class="text-xl font-extrabold mb-2">Blissiam</div>
+                                <h1 class="text-xl font-bold text-ink-900">ลงชื่อเข้าใช้ 👋</h1>
+                                <p class="text-ink-500 text-sm mt-1">เข้าสู่พื้นที่แบ่งปันน้ำใจ</p>
+                            </div>
+
+                            {error && (
+                                <div class="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl mb-4 text-sm">
+                                    {error}
+                                </div>
+                            )}
+
+                            <form onSubmit={handleLogin} class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-ink-700 mb-1">อีเมล</label>
+                                    <input
+                                        type="email"
+                                        value={email}
+                                        onChange={e => setEmail(e.target.value)}
+                                        required
+                                        class="w-full bg-surface border border-line text-ink-900 placeholder-ink-300 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
+                                        placeholder="you@email.com"
+                                    />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-ink-700 mb-1">รหัสผ่าน</label>
+                                    <input
+                                        type="password"
+                                        value={password}
+                                        onChange={e => setPassword(e.target.value)}
+                                        required
+                                        class="w-full bg-surface border border-line text-ink-900 placeholder-ink-300 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
+                                        placeholder="••••••••"
+                                    />
+                                </div>
+                                <button
+                                    type="submit"
+                                    disabled={submitting}
+                                    class="btn-playful w-full text-white py-3 font-semibold disabled:opacity-50"
+                                >
+                                    {submitting ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}
+                                </button>
+                            </form>
+
+                            <p class="text-center mt-6 text-sm text-ink-500">
+                                ยังไม่มีบัญชี?{' '}
+                                <a href={`signup.html?redirect=${encodeURIComponent(redirect)}${role ? '&role=' + role + '&identity=' + identity + '&topic=' + encodeURIComponent(topic) : ''}`} class="text-primary-600 hover:text-primary-700 font-medium">
+                                    สร้างบัญชี
+                                </a>
+                            </p>
+
+                            <a href="index.html" class="block text-center mt-4 text-sm text-ink-500 hover:text-primary-600 transition">
+                                ← กลับหน้าแรก
+                            </a>
+                        </div>
+                    </div>
+                </>
             );
         }
 

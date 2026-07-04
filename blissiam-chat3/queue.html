@@ -17,8 +17,15 @@
                 extend: {
                     fontFamily: { sans: ['var(--font-body)', 'Kanit', 'sans-serif'] },
                     colors: {
-                        paper: { 50: '#fdfcfa', 100: '#f6f3ee', 200: '#ece7de', 300: '#ddd6c9' },
-                        ink: { 900: '#1a1a1a', 700: '#3a3a3a', 500: '#6b6b6b', 300: '#9c9c9c', 200: '#c2c2c2' },
+                        paper: {
+                            50: 'var(--color-paper-50)', 100: 'var(--color-paper-100)',
+                            200: 'var(--color-paper-200)', 300: 'var(--color-paper-300)'
+                        },
+                        ink: {
+                            900: 'var(--color-ink-900)', 700: 'var(--color-ink-700)', 500: 'var(--color-ink-500)',
+                            400: 'var(--color-ink-400)', 300: 'var(--color-ink-300)', 200: 'var(--color-ink-200)'
+                        },
+                        surface: 'var(--color-surface)',
                         primary: {
                             50: 'var(--color-primary-50)', 100: 'var(--color-primary-100)', 200: 'var(--color-primary-200)',
                             300: 'var(--color-primary-300)', 400: 'var(--color-primary-400)', 500: 'var(--color-primary-500)',
@@ -29,7 +36,7 @@
                             300: 'var(--color-secondary-300)', 400: 'var(--color-secondary-400)', 500: 'var(--color-secondary-500)',
                             600: 'var(--color-secondary-600)'
                         },
-                        line: '#e8e3d9'
+                        line: 'var(--color-line)'
                     }
                 }
             }
@@ -42,12 +49,15 @@
             --color-primary-600: #3d5d44; --color-primary-700: #314936;
             --color-secondary-50: #fbf3ea; --color-secondary-100: #f3e0c8; --color-secondary-200: #e6bf8e;
             --color-secondary-300: #cc9655; --color-secondary-400: #A8662A; --color-secondary-500: #925621; --color-secondary-600: #74441a;
+            --color-paper-50: #fdfcfa; --color-paper-100: #f6f3ee; --color-paper-200: #ece7de; --color-paper-300: #ddd6c9;
+            --color-ink-900: #1a1a1a; --color-ink-700: #3a3a3a; --color-ink-500: #6b6b6b; --color-ink-400: #8a8a8a; --color-ink-300: #9c9c9c; --color-ink-200: #c2c2c2;
+            --color-line: #e8e3d9; --color-surface: #ffffff;
             --font-body: 'Kanit', sans-serif;
         }
     </style>
     <script src="theme.js"></script>
     <style>
-        body { font-family: 'Kanit', sans-serif; background-color: #fdfcfa; background-image: radial-gradient(circle at 15% 10%, var(--color-primary-50) 0%, transparent 45%), radial-gradient(circle at 85% 90%, var(--color-secondary-50) 0%, transparent 45%); background-attachment: fixed; }
+        body { font-family: 'Kanit', sans-serif; background-color: var(--color-paper-50); background-image: radial-gradient(circle at 15% 10%, var(--color-primary-50) 0%, transparent 45%), radial-gradient(circle at 85% 90%, var(--color-secondary-50) 0%, transparent 45%); background-attachment: fixed; transition: background-color 0.3s ease; }
         .dot-pulse circle { animation: dotPulse 1.4s ease-in-out infinite; }
         .dot-pulse circle:nth-child(1) { animation-delay: 0s; }
         .dot-pulse circle:nth-child(2) { animation-delay: 0.1s; }
@@ -55,7 +65,24 @@
         @keyframes dotPulse { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
         .fade-in { animation: fadeIn 0.5s ease-out forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .watermark { font-size: 9rem; font-weight: 800; color: #1a1a1a; opacity: 0.04; letter-spacing: -0.02em; white-space: nowrap; user-select: none; }
+        .watermark { font-size: 9rem; font-weight: 800; color: var(--color-ink-900); opacity: 0.04; letter-spacing: -0.02em; white-space: nowrap; user-select: none; }
+        .waiting-illustration {
+            background-image: url('assets/waiting-illustration.png');
+            background-size: cover;
+            background-position: center 25%;
+            background-attachment: fixed;
+        }
+        @media (max-width: 768px) {
+            .waiting-illustration { background-attachment: scroll; }
+        }
+        .waiting-overlay {
+            background: linear-gradient(180deg, var(--color-paper-50) 0%, color-mix(in srgb, var(--color-paper-50) 55%, transparent) 40%, color-mix(in srgb, var(--color-paper-50) 55%, transparent) 70%, var(--color-paper-50) 100%);
+        }
+        @keyframes blobFloat { 0%, 100% { transform: translate(0, 0) scale(1); } 33% { transform: translate(20px, -25px) scale(1.05); } 66% { transform: translate(-15px, 15px) scale(0.96); } }
+        .blob { position: absolute; border-radius: 50%; filter: blur(40px); animation: blobFloat 12s ease-in-out infinite; pointer-events: none; }
+        @keyframes wiggle { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(-8deg); } 75% { transform: rotate(8deg); } }
+        .wiggle-hover:hover { animation: wiggle 0.4s ease-in-out; }
+        .card-playful { border-radius: 2rem; box-shadow: 0 20px 45px -20px var(--color-primary-500); border: 1px solid color-mix(in srgb, var(--color-primary-500) 15%, var(--color-line)); }
     </style>
 </head>
 <body class="min-h-screen text-ink-900">
@@ -105,26 +132,111 @@
         function DotLogo({ size = 28, animated = false }) {
             return (
                 <svg width={size} height={size} viewBox="0 0 28 28" fill="none" class={animated ? 'dot-pulse' : ''}>
-                    <circle cx="4" cy="4" r="3" fill="#1a1a1a"/><circle cx="14" cy="4" r="3" fill="#1a1a1a"/><circle cx="24" cy="4" r="3" fill="#1a1a1a"/>
-                    <circle cx="4" cy="14" r="3" fill="#1a1a1a"/><circle cx="14" cy="14" r="3" fill="var(--color-primary-500)"/><circle cx="24" cy="14" r="3" fill="#1a1a1a"/>
-                    <circle cx="4" cy="24" r="3" fill="#1a1a1a"/><circle cx="14" cy="24" r="3" fill="#1a1a1a"/><circle cx="24" cy="24" r="3" fill="#1a1a1a"/>
+                    <circle cx="4" cy="4" r="3" fill="var(--color-ink-900)"/><circle cx="14" cy="4" r="3" fill="var(--color-ink-900)"/><circle cx="24" cy="4" r="3" fill="var(--color-ink-900)"/>
+                    <circle cx="4" cy="14" r="3" fill="var(--color-ink-900)"/><circle cx="14" cy="14" r="3" fill="var(--color-primary-500)"/><circle cx="24" cy="14" r="3" fill="var(--color-ink-900)"/>
+                    <circle cx="4" cy="24" r="3" fill="var(--color-ink-900)"/><circle cx="14" cy="24" r="3" fill="var(--color-ink-900)"/><circle cx="24" cy="24" r="3" fill="var(--color-ink-900)"/>
                 </svg>
+            );
+        }
+
+        function DarkModeToggle({ isDark, onToggle }) {
+            return (
+                <button type="button" onClick={onToggle} title={isDark ? 'สลับเป็นโหมดสว่าง' : 'สลับเป็นโหมดมืด'}
+                    class="w-9 h-9 rounded-full flex items-center justify-center border border-line hover:border-primary-400 transition text-ink-700 hover:text-primary-600">
+                    {isDark ? (
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 3v1.5m0 15V21m9-9h-1.5M4.5 12H3m15.36 6.36l-1.06-1.06M6.7 6.7L5.64 5.64m12.72 0l-1.06 1.06M6.7 17.3l-1.06 1.06M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                    ) : (
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+                    )}
+                </button>
+            );
+        }
+
+        const ENCOURAGEMENT_QUOTES = [
+            'ทุกความรู้สึกของคุณสำคัญเสมอ',
+            'แค่คุณอยู่ตรงนี้ก็เก่งมากแล้ว',
+            'ไม่เป็นไรถ้าวันนี้จะไม่โอเค พรุ่งนี้อาจจะดีขึ้น',
+            'การขอความช่วยเหลือคือความกล้าหาญ ไม่ใช่ความอ่อนแอ',
+            'หายใจลึกๆ อีกสักครู่จะมีคนมาคุยกับคุณ',
+            'คุณไม่ได้อยู่คนเดียวในเรื่องนี้',
+            'ทุกพายุมีวันสงบเสมอ',
+            'ให้เวลากับตัวเองบ้าง คุณสมควรได้รับมัน',
+            'แค่ผ่านวันนี้ไปได้ก็ถือว่าเก่งแล้ว',
+            'ความรู้สึกของคุณมีความหมาย และเรื่องราวของคุณสำคัญ',
+            'ไม่มีใครสมบูรณ์แบบ และนั่นก็โอเค',
+            'บางครั้งการปล่อยให้น้ำตาไหลก็ช่วยให้ใจเบาลงได้',
+            'คุณเข้มแข็งกว่าที่คุณคิดไว้มาก',
+            'พักสักครู่ก็ไม่ได้แปลว่าล้มเหลว',
+            'มีคนพร้อมรับฟังคุณอยู่เสมอ',
+            'ทุกก้าวเล็กๆ ก็คือความก้าวหน้า',
+        ];
+
+        function WaitingCompanion({ waitTime }) {
+            const [quoteIndex, setQuoteIndex] = useState(() => Math.floor(Math.random() * ENCOURAGEMENT_QUOTES.length));
+
+            useEffect(() => {
+                const interval = setInterval(() => {
+                    setQuoteIndex(prev => {
+                        if (ENCOURAGEMENT_QUOTES.length <= 1) return prev;
+                        let next = Math.floor(Math.random() * ENCOURAGEMENT_QUOTES.length);
+                        while (next === prev) next = Math.floor(Math.random() * ENCOURAGEMENT_QUOTES.length);
+                        return next;
+                    });
+                }, 6000);
+                return () => clearInterval(interval);
+            }, []);
+
+            return (
+                <div class="card-playful bg-surface overflow-hidden mt-4">
+                    <div key={quoteIndex} class="p-5 text-center fade-in">
+                        <p class="text-sm font-medium text-ink-700 leading-relaxed">"{ENCOURAGEMENT_QUOTES[quoteIndex]}"</p>
+                    </div>
+                </div>
+            );
+        }
+
+        function StepIndicator({ status }) {
+            const steps = [
+                { key: 'joining', label: 'เข้าคิว' },
+                { key: 'waiting', label: 'รอจับคู่' },
+                { key: 'matched', label: 'จับคู่สำเร็จ' },
+            ];
+            const order = { joining: 0, waiting: 1, matched: 2 };
+            const activeIdx = order[status] ?? 0;
+            return (
+                <div class="flex items-center justify-center gap-2 mb-8">
+                    {steps.map((s, i) => (
+                        <React.Fragment key={s.key}>
+                            <div class="flex flex-col items-center gap-1.5">
+                                <div class={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
+                                    i < activeIdx ? 'bg-primary-500 text-white' :
+                                    i === activeIdx ? 'bg-primary-500 text-white ring-4 ring-primary-100' :
+                                    'bg-paper-200 text-ink-400'
+                                }`}>
+                                    {i < activeIdx ? '✓' : i + 1}
+                                </div>
+                                <span class={`text-[10px] font-medium ${i <= activeIdx ? 'text-primary-600' : 'text-ink-300'}`}>{s.label}</span>
+                            </div>
+                            {i < steps.length - 1 && (
+                                <div class={`w-10 sm:w-16 h-0.5 mb-4 rounded transition-colors duration-300 ${i < activeIdx ? 'bg-primary-500' : 'bg-paper-200'}`}></div>
+                            )}
+                        </React.Fragment>
+                    ))}
+                </div>
             );
         }
 
         function App() {
             const [user, setUser] = useState(null);
-           // ขออนุญาตแจ้งเตือนล่วงหน้า (ดัก Error สำหรับเบราว์เซอร์ที่ไม่รองรับ Promise)
-if (window.Notification && Notification.permission === 'default') {
-    try {
-        const permissionPromise = Notification.requestPermission();
-        if (permissionPromise && typeof permissionPromise.catch === 'function') {
-            permissionPromise.catch(console.warn);
-        }
-    } catch (err) {
-        console.warn('Notification permission error:', err);
-    }
-}
+            const [queueStatus, setQueueStatus] = useState('joining');
+            const [waitTime, setWaitTime] = useState(0);
+            const [error, setError] = useState(null);
+            const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
+
+            function toggleDarkMode() {
+                const resolved = window.BlissiamTheme?.toggleColorScheme();
+                setIsDark(resolved === 'dark');
+            }
 
             const urlParams = new URLSearchParams(window.location.search);
             const selectedRole = urlParams.get('role') || 'venter';
@@ -134,9 +246,16 @@ if (window.Notification && Notification.permission === 'default') {
             useEffect(() => {
                 window.BlissiamTheme?.loadAndApplyTheme();
                 
-                // ขออนุญาตแจ้งเตือนล่วงหน้า
+                // แก้ไข: ดักจับ Error การขอ Notification อย่างปลอดภัย
                 if (window.Notification && Notification.permission === 'default') {
-                    Notification.requestPermission().catch(console.warn);
+                    try {
+                        const permissionPromise = Notification.requestPermission();
+                        if (permissionPromise && typeof permissionPromise.catch === 'function') {
+                            permissionPromise.catch(console.warn);
+                        }
+                    } catch (err) {
+                        console.warn('Notification permission error:', err);
+                    }
                 }
                 init();
             }, []);
@@ -157,7 +276,6 @@ if (window.Notification && Notification.permission === 'default') {
                     }
                     setUser(session.user);
 
-                    // 1. ตรวจเผื่อว่ายังมีห้องค้างอยู่ไหม
                     const { data: activeRooms } = await supabase
                         .from('rooms')
                         .select('id')
@@ -170,14 +288,12 @@ if (window.Notification && Notification.permission === 'default') {
                         return;
                     }
 
-                    // 2. อัปเดตสถานะผู้ใช้
                     await supabase.from('profiles').update({ 
                         status: 'waiting', 
                         role_preference: selectedRole,
                         last_seen: new Date().toISOString()
                     }).eq('id', session.user.id);
 
-                    // 3. นำชื่อเข้าคิวจับคู่
                     const { error: queueError } = await supabase
                         .from('queue')
                         .insert({
@@ -191,7 +307,6 @@ if (window.Notification && Notification.permission === 'default') {
                     if (queueError) throw queueError;
                     setQueueStatus('waiting');
 
-                    // 4. ฟังเสียงเรียลไทม์สถานะการจับคู่
                     const channel = supabase.channel('queue-status-' + session.user.id)
                         .on('postgres_changes', {
                             event: 'UPDATE',
@@ -201,15 +316,12 @@ if (window.Notification && Notification.permission === 'default') {
                         }, (payload) => {
                             if (payload.new.status === 'matched' && payload.new.matched_room_id) {
                                 setQueueStatus('matched');
-                                
-                                // ส่งเสียง + แจ้งเตือน Notification
                                 playMatchSound();
                                 if (window.Notification && Notification.permission === 'granted') {
                                     new Notification('Blissiam Chat 🌟', {
                                         body: 'เราพบคู่สนทนาของคุณแล้ว! เข้ามาเริ่มพูดคุยกันได้เลยครับ',
                                     });
                                 }
-
                                 setTimeout(() => {
                                     window.location.href = 'chat.html?room=' + payload.new.matched_room_id;
                                 }, 1500);
@@ -249,7 +361,7 @@ if (window.Notification && Notification.permission === 'default') {
 
             if (error) return (
                 <div class="min-h-screen flex items-center justify-center p-6">
-                    <div class="bg-white border border-line p-8 rounded-3xl max-w-md text-center">
+                    <div class="bg-surface border border-line p-8 rounded-3xl max-w-md text-center">
                         <h2 class="text-xl font-bold text-red-500 mb-2">เกิดข้อผิดพลาด</h2>
                         <p class="text-ink-500 mb-6">{error}</p>
                         <a href="index.html" class="bg-primary-500 text-white px-6 py-3 rounded-full inline-block">กลับหน้าแรก</a>
@@ -259,12 +371,28 @@ if (window.Notification && Notification.permission === 'default') {
 
             return (
                 <div class="min-h-screen flex items-center justify-center p-6 relative overflow-hidden">
+                    {queueStatus === 'waiting' && (
+                        <>
+                            <div class="fixed inset-0 z-0 waiting-illustration"></div>
+                            <div class="fixed inset-0 z-0 waiting-overlay"></div>
+                        </>
+                    )}
+                    {queueStatus !== 'waiting' && (
+                        <>
+                            <div class="blob w-72 h-72 bg-primary-300 opacity-20 -top-10 -left-16"></div>
+                            <div class="blob w-64 h-64 bg-secondary-300 opacity-20 -bottom-16 -right-10" style={{ animationDelay: '2s' }}></div>
+                        </>
+                    )}
+                    <div class="absolute top-6 right-6 z-20">
+                        <DarkModeToggle isDark={isDark} onToggle={toggleDarkMode} />
+                    </div>
                     <div class="absolute top-10 left-1/2 -translate-x-1/2 pointer-events-none select-none">
                         <span class="watermark">BLISSIAM</span>
                     </div>
 
                     <div class="relative z-10 max-w-md w-full">
-                        <div class="bg-white rounded-3xl p-10 text-center border border-line shadow-sm">
+                        {queueStatus !== 'joining' && <StepIndicator status={queueStatus} />}
+                        <div class="card-playful bg-surface p-10 text-center">
                             {queueStatus === 'joining' && (
                                 <div>
                                     <div class="flex justify-center mb-6">
@@ -311,6 +439,8 @@ if (window.Notification && Notification.permission === 'default') {
                                 </div>
                             )}
                         </div>
+
+                        {queueStatus === 'waiting' && <WaitingCompanion waitTime={waitTime} />}
                     </div>
                 </div>
             );

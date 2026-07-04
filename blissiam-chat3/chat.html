@@ -17,10 +17,20 @@
                 extend: {
                     fontFamily: { sans: ['var(--font-body)', 'Kanit', 'sans-serif'] },
                     colors: {
-                        paper: { 50: '#fdfcfa', 100: '#f6f3ee' },
-                        ink: { 900: '#1a1a1a', 700: '#3a3a3a', 500: '#6b6b6b', 400: '#8a8a8a', 300: '#b0b0b0' },
-                        primary: { 50: 'var(--color-primary-50)', 500: 'var(--color-primary-500)', 600: 'var(--color-primary-600)' },
-                        line: 'rgba(0,0,0,0.06)'
+                        paper: {
+                            50: 'var(--color-paper-50)', 100: 'var(--color-paper-100)',
+                            200: 'var(--color-paper-200)', 300: 'var(--color-paper-300)'
+                        },
+                        ink: {
+                            900: 'var(--color-ink-900)', 700: 'var(--color-ink-700)', 500: 'var(--color-ink-500)',
+                            400: 'var(--color-ink-400)', 300: 'var(--color-ink-300)', 200: 'var(--color-ink-200)'
+                        },
+                        surface: 'var(--color-surface)',
+                        primary: {
+                            50: 'var(--color-primary-50)', 500: 'var(--color-primary-500)', 600: 'var(--color-primary-600)'
+                        },
+                        secondary: { 500: 'var(--color-secondary-500)', 600: 'var(--color-secondary-600)' },
+                        line: 'var(--color-line)'
                     },
                     boxShadow: {
                         'chat': '0 2px 16px rgba(0,0,0,0.06)',
@@ -32,8 +42,15 @@
         }
     </script>
     <style>
-        :root { --color-primary-50: #f3f7f1; --color-primary-500: #4D7355; --color-primary-600: #3d5d44; --font-body: 'Kanit', sans-serif; }
-        body { font-family: 'Kanit', sans-serif; overflow: hidden; -webkit-font-smoothing: antialiased; }
+        :root {
+            --color-primary-50: #f3f7f1; --color-primary-500: #4D7355; --color-primary-600: #3d5d44;
+            --color-secondary-500: #925621; --color-secondary-600: #74441a;
+            --color-paper-50: #fdfcfa; --color-paper-100: #f6f3ee; --color-paper-200: #ece7de; --color-paper-300: #ddd6c9;
+            --color-ink-900: #1a1a1a; --color-ink-700: #3a3a3a; --color-ink-500: #6b6b6b; --color-ink-400: #8a8a8a; --color-ink-300: #b0b0b0; --color-ink-200: #c2c2c2;
+            --color-line: #e8e3d9; --color-surface: #ffffff;
+            --font-body: 'Kanit', sans-serif;
+        }
+        body { font-family: 'Kanit', sans-serif; overflow: hidden; -webkit-font-smoothing: antialiased; transition: background-color 0.3s ease; }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
         @keyframes msgIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
@@ -44,8 +61,10 @@
         .typing-dot:nth-child(3) { animation-delay: 0.3s; }
         @keyframes sheetUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         .sheet-up { animation: sheetUp 0.3s cubic-bezier(0.32, 0.72, 0, 1); }
-        .glass { background: rgba(255,255,255,0.88); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
-        .glass-dark { background: rgba(255,255,255,0.75); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+        .glass { background: color-mix(in srgb, var(--color-surface) 88%, transparent); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+        .glass-dark { background: color-mix(in srgb, var(--color-surface) 75%, transparent); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+        @keyframes wiggle { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(-8deg); } 75% { transform: rotate(8deg); } }
+        .wiggle-hover:hover { animation: wiggle 0.4s ease-in-out; }
     </style>
     <script src="theme.js"></script>
     <script src="chat-backgrounds.js"></script>
@@ -97,12 +116,35 @@
             return new Date(iso).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
         }
 
+        function formatDayLabel(iso) {
+            if (!iso) return '';
+            const d = new Date(iso);
+            const today = new Date();
+            const yesterday = new Date(); yesterday.setDate(today.getDate() - 1);
+            const sameDay = (a, b) => a.toDateString() === b.toDateString();
+            if (sameDay(d, today)) return 'วันนี้';
+            if (sameDay(d, yesterday)) return 'เมื่อวาน';
+            return d.toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: d.getFullYear() !== today.getFullYear() ? 'numeric' : undefined });
+        }
+
         function IconBtn({ onClick, title, children, active }) {
             return (
                 <button type="button" onClick={onClick} title={title}
                     class={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 ${active ? 'bg-primary-50 text-primary-600' : 'text-ink-500 hover:bg-black/5 hover:text-ink-900'}`}>
                     {children}
                 </button>
+            );
+        }
+
+        function DarkModeToggle({ isDark, onToggle }) {
+            return (
+                <IconBtn onClick={onToggle} title={isDark ? 'สลับเป็นโหมดสว่าง' : 'สลับเป็นโหมดมืด'}>
+                    {isDark ? (
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 3v1.5m0 15V21m9-9h-1.5M4.5 12H3m15.36 6.36l-1.06-1.06M6.7 6.7L5.64 5.64m12.72 0l-1.06 1.06M6.7 17.3l-1.06 1.06M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                    ) : (
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+                    )}
+                </IconBtn>
             );
         }
 
@@ -133,6 +175,12 @@
             const [sendingMeme, setSendingMeme] = useState(false);
             const [soundEnabled, setSoundEnabled] = useState(() => localStorage.getItem('blissiam_sound') !== 'off');
             const [deletingId, setDeletingId] = useState(null);
+            const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
+
+            function toggleDarkMode() {
+                const resolved = window.BlissiamTheme?.toggleColorScheme();
+                setIsDark(resolved === 'dark');
+            }
 
             const messagesEndRef = useRef(null);
             const roomId = new URLSearchParams(window.location.search).get('room');
@@ -326,7 +374,7 @@
                     {/* Header */}
                     <header class="glass border-b border-line px-4 py-3 flex items-center justify-between z-20 shrink-0">
                         <button type="button" onClick={() => setShowProfileModal(true)} class="flex items-center gap-3 text-left group min-w-0">
-                            <div class="relative shrink-0">
+                            <div class="relative shrink-0 wiggle-hover">
                                 <div class="w-11 h-11 rounded-2xl bg-white shadow-bubble bg-cover bg-center flex items-center justify-center font-semibold text-primary-600 border border-white"
                                     style={partner?.avatar_url ? { backgroundImage: `url(${partner.avatar_url})` } : {}}>
                                     {!partner?.avatar_url && partnerName.charAt(0)}
@@ -335,10 +383,22 @@
                             </div>
                             <div class="min-w-0">
                                 <div class="font-semibold text-ink-900 truncate group-hover:text-primary-600 transition">{partnerName}</div>
-                                <div class="text-xs text-ink-400 truncate">{partnerSub}</div>
+                                {partnerTyping ? (
+                                    <div class="flex items-center gap-1 text-xs font-medium text-primary-600">
+                                        <span>กำลังพิมพ์</span>
+                                        <span class="flex gap-0.5">
+                                            <span class="typing-dot w-1 h-1 bg-primary-500 rounded-full"></span>
+                                            <span class="typing-dot w-1 h-1 bg-primary-500 rounded-full"></span>
+                                            <span class="typing-dot w-1 h-1 bg-primary-500 rounded-full"></span>
+                                        </span>
+                                    </div>
+                                ) : (
+                                    <div class="text-xs text-ink-400 truncate">{partnerSub}</div>
+                                )}
                             </div>
                         </button>
                         <div class="flex items-center gap-1 shrink-0">
+                            <DarkModeToggle isDark={isDark} onToggle={toggleDarkMode} />
                             <IconBtn onClick={() => { setShowBgPicker(true); setShowMediaMenu(false); }} title="เปลี่ยนพื้นหลัง">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                             </IconBtn>
@@ -368,11 +428,21 @@
                                 <p class="text-xs text-ink-400 mt-1">พื้นที่นี้ปลอดภัยและเป็นส่วนตัว</p>
                             </div>
                         )}
-                        {messages.map((msg) => {
+                        {messages.map((msg, idx) => {
+                            const prevMsg = messages[idx - 1];
+                            const showDateDivider = !prevMsg || new Date(prevMsg.created_at).toDateString() !== new Date(msg.created_at).toDateString();
+
                             if (msg.is_system) return (
-                                <div key={msg.id} class="flex justify-center my-4">
-                                    <span class="text-xs text-ink-400 bg-white/60 px-3 py-1 rounded-full">{msg.content}</span>
-                                </div>
+                                <React.Fragment key={msg.id}>
+                                    {showDateDivider && (
+                                        <div class="flex justify-center my-4">
+                                            <span class="text-[10px] font-medium text-ink-400 bg-black/5 px-3 py-1 rounded-full tracking-wide">{formatDayLabel(msg.created_at)}</span>
+                                        </div>
+                                    )}
+                                    <div class="flex justify-center my-4">
+                                        <span class="text-xs text-ink-400 bg-white/60 px-3 py-1 rounded-full">{msg.content}</span>
+                                    </div>
+                                </React.Fragment>
                             );
                             const isMine = msg.sender_id === user.id;
                             const avatar = isMine ? profile?.avatar_url : partner?.avatar_url;
@@ -380,51 +450,49 @@
                             const meme = isMemeMessage(msg);
 
                             return (
-                                <div key={msg.id} class={`msg-in flex gap-2.5 mb-3 ${isMine ? 'flex-row-reverse' : ''}`}>
-                                    <div class="w-8 h-8 rounded-xl shrink-0 bg-white/80 shadow-bubble bg-cover bg-center flex items-center justify-center text-xs font-medium text-primary-600 mt-auto"
-                                        style={avatar ? { backgroundImage: `url(${avatar})` } : {}}>
-                                        {!avatar && initial}
+                                <React.Fragment key={msg.id}>
+                                    {showDateDivider && (
+                                        <div class="flex justify-center my-4">
+                                            <span class="text-[10px] font-medium text-ink-400 bg-black/5 px-3 py-1 rounded-full tracking-wide">{formatDayLabel(msg.created_at)}</span>
+                                        </div>
+                                    )}
+                                    <div class={`msg-in flex gap-2.5 mb-3 ${isMine ? 'flex-row-reverse' : ''}`}>
+                                        <div class="w-8 h-8 rounded-xl shrink-0 bg-white/80 shadow-bubble bg-cover bg-center flex items-center justify-center text-xs font-medium text-primary-600 mt-auto ring-1 ring-black/5"
+                                            style={avatar ? { backgroundImage: `url(${avatar})` } : {}}>
+                                            {!avatar && initial}
+                                        </div>
+                                        <div class={`group max-w-[78%] flex flex-col ${isMine ? 'items-end' : 'items-start'}`}>
+                                            {isMine && (
+                                                <button type="button" onClick={() => deleteMessage(msg.id)} disabled={deletingId === msg.id}
+                                                    class="opacity-0 group-hover:opacity-100 text-[10px] text-red-400 hover:text-red-600 mb-1 transition">
+                                                    {deletingId === msg.id ? 'กำลังลบ...' : 'ลบ'}
+                                                </button>
+                                            )}
+                                            {meme ? (
+                                                <div class="rounded-2xl overflow-hidden shadow-chat border border-white/80 bg-white/40">
+                                                    <img src={getMemeUrl(msg)} alt="meme" class="max-w-[220px] max-h-[200px] object-cover block" loading="lazy"
+                                                        onError={(e) => { e.target.src = 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22120%22><rect fill=%22%23f0f0f0%22 width=%22200%22 height=%22120%22/><text x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22 font-size=%2214%22>โหลดรูปไม่ได้</text></svg>'; }} />
+                                                </div>
+                                            ) : (
+                                                <div class={`px-4 py-2.5 rounded-2xl shadow-bubble text-sm leading-relaxed transition-transform ${isMine
+                                                    ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white rounded-br-md'
+                                                    : 'glass text-ink-900 rounded-bl-md border border-white/60'}`}>
+                                                    <span class="whitespace-pre-wrap break-words">{msg.content}</span>
+                                                </div>
+                                            )}
+                                            <span class="text-[10px] text-ink-300 mt-1 px-1">{formatTime(msg.created_at)}</span>
+                                        </div>
                                     </div>
-                                    <div class={`group max-w-[78%] flex flex-col ${isMine ? 'items-end' : 'items-start'}`}>
-                                        {isMine && (
-                                            <button type="button" onClick={() => deleteMessage(msg.id)} disabled={deletingId === msg.id}
-                                                class="opacity-0 group-hover:opacity-100 text-[10px] text-red-400 hover:text-red-600 mb-1 transition">
-                                                {deletingId === msg.id ? 'กำลังลบ...' : 'ลบ'}
-                                            </button>
-                                        )}
-                                        {meme ? (
-                                            <div class="rounded-2xl overflow-hidden shadow-chat border border-white/80 bg-white/40">
-                                                <img src={getMemeUrl(msg)} alt="meme" class="max-w-[220px] max-h-[200px] object-cover block" loading="lazy"
-                                                    onError={(e) => { e.target.src = 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22120%22><rect fill=%22%23f0f0f0%22 width=%22200%22 height=%22120%22/><text x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22 font-size=%2214%22>โหลดรูปไม่ได้</text></svg>'; }} />
-                                            </div>
-                                        ) : (
-                                            <div class={`px-4 py-2.5 rounded-2xl shadow-bubble text-sm leading-relaxed ${isMine
-                                                ? 'bg-primary-500 text-white rounded-br-md'
-                                                : 'glass text-ink-900 rounded-bl-md border border-white/60'}`}>
-                                                <span class="whitespace-pre-wrap break-words">{msg.content}</span>
-                                            </div>
-                                        )}
-                                        <span class="text-[10px] text-ink-300 mt-1 px-1">{formatTime(msg.created_at)}</span>
-                                    </div>
-                                </div>
+                                </React.Fragment>
                             );
                         })}
-                        {partnerTyping && (
-                            <div class="flex gap-2 items-center ml-10 mb-2">
-                                <div class="glass px-4 py-3 rounded-2xl rounded-bl-md shadow-bubble flex gap-1">
-                                    <span class="typing-dot w-1.5 h-1.5 bg-ink-400 rounded-full"></span>
-                                    <span class="typing-dot w-1.5 h-1.5 bg-ink-400 rounded-full"></span>
-                                    <span class="typing-dot w-1.5 h-1.5 bg-ink-400 rounded-full"></span>
-                                </div>
-                            </div>
-                        )}
                         <div ref={messagesEndRef} class="h-2" />
                     </div>
 
                     {/* Media picker */}
                     {showMediaMenu && (
-                        <div class="absolute inset-x-0 bottom-[88px] z-30 px-4">
-                            <div class="glass-dark rounded-3xl shadow-float border border-white/60 overflow-hidden max-w-lg mx-auto">
+                        <div class="absolute inset-x-0 bottom-[80px] sm:bottom-[88px] z-30 px-3 sm:px-4 max-h-[70vh] flex flex-col justify-end">
+                            <div class="glass-dark rounded-3xl shadow-float border border-white/60 overflow-hidden max-w-lg w-full mx-auto sheet-up">
                                 <div class="flex border-b border-line">
                                     {[
                                         { id: 'meme', label: '🎭 มีมในตัว' },
@@ -437,7 +505,7 @@
                                         </button>
                                     ))}
                                 </div>
-                                <div class="p-4 max-h-[280px] overflow-y-auto scrollbar-hide">
+                                <div class="p-4 max-h-[45vh] sm:max-h-[280px] overflow-y-auto scrollbar-hide">
                                     {mediaTab === 'emoji' && (
                                         <div class="flex flex-wrap gap-2 justify-center">
                                             {EMOJIS.map(e => (
@@ -490,10 +558,10 @@
                     {/* Input bar */}
                     <div class="shrink-0 z-20 px-4 pb-4 pt-2">
                         <form onSubmit={(e) => { e.preventDefault(); sendMessage(input, 'text'); }}
-                            class="glass-dark rounded-2xl shadow-float border border-white/70 p-2 flex gap-2 items-center max-w-2xl mx-auto">
+                            class="glass-dark rounded-2xl shadow-float border border-white/70 p-2 flex gap-2 items-center max-w-2xl mx-auto focus-within:ring-2 focus-within:ring-primary-500/25 transition-shadow">
                             <button type="button" onClick={() => { setShowMediaMenu(!showMediaMenu); setShowBgPicker(false); }}
-                                class={`w-11 h-11 rounded-xl flex items-center justify-center text-xl transition ${showMediaMenu ? 'bg-primary-50 text-primary-600' : 'hover:bg-black/5'}`}>
-                                {showMediaMenu ? '✕' : '＋'}
+                                class={`w-11 h-11 rounded-xl flex items-center justify-center text-xl transition-all duration-200 active:scale-90 ${showMediaMenu ? 'bg-primary-50 text-primary-600 rotate-45' : 'hover:bg-black/5'}`}>
+                                ＋
                             </button>
                             <input type="text" value={input}
                                 onChange={(e) => {
@@ -503,7 +571,7 @@
                                 placeholder="พิมพ์ข้อความ..."
                                 class="flex-1 bg-transparent text-sm focus:outline-none placeholder:text-ink-300 min-w-0" />
                             <button type="submit" disabled={!input.trim()}
-                                class="w-11 h-11 rounded-xl bg-primary-500 text-white flex items-center justify-center shrink-0 disabled:opacity-40 hover:bg-primary-600 transition shadow-bubble">
+                                class="w-11 h-11 rounded-xl bg-primary-500 text-white flex items-center justify-center shrink-0 disabled:opacity-40 hover:bg-primary-600 active:scale-90 transition-all duration-150 shadow-bubble">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
                             </button>
                         </form>
