@@ -75,10 +75,8 @@
             background-image: url('assets/hero-bg.jpg');
             background-size: cover;
             background-position: center 30%;
-            background-attachment: fixed;
-        }
-        @media (max-width: 768px) {
-            .hero-photo { background-attachment: scroll; }
+            left: 0; right: 0; top: -30%; height: 160%;
+            will-change: transform;
         }
         .hero-overlay {
             background: linear-gradient(180deg, var(--color-paper-50) 0%, color-mix(in srgb, var(--color-paper-50) 60%, transparent) 45%, color-mix(in srgb, var(--color-paper-50) 60%, transparent) 65%, var(--color-paper-50) 100%);
@@ -154,6 +152,23 @@
                 });
                 return () => listener.subscription.unsubscribe();
             }, []);
+
+            // Parallax: ให้รูป hero เลื่อนตามการ scroll (ช้ากว่าเนื้อหา สร้างมิติ)
+            useEffect(() => {
+                let raf = null;
+                const update = () => {
+                    raf = null;
+                    const el = document.querySelector('.hero-photo');
+                    if (!el) return;
+                    const hero = el.parentElement;
+                    const y = Math.min(window.scrollY, hero ? hero.offsetHeight : window.innerHeight);
+                    el.style.transform = `translate3d(0, ${y * 0.28}px, 0)`;
+                };
+                const onScroll = () => { if (raf == null) raf = requestAnimationFrame(update); };
+                window.addEventListener('scroll', onScroll, { passive: true });
+                update();
+                return () => { window.removeEventListener('scroll', onScroll); if (raf) cancelAnimationFrame(raf); };
+            }, [loading]);
 
             async function checkUser() {
                 const { data: { session } } = await supabase.auth.getSession();
@@ -239,7 +254,7 @@
 
                     {/* Hero */}
                     <section class="hero-fullscreen relative flex flex-col items-center justify-center px-6 overflow-hidden">
-                        <div class="absolute inset-0 z-0 hero-photo"></div>
+                        <div class="absolute z-0 hero-photo"></div>
                         <div class="absolute inset-0 z-0 hero-overlay"></div>
                         <div class="absolute top-8 left-1/2 -translate-x-1/2 pointer-events-none select-none z-[1]">
                             <span class="watermark">NOMGI</span>
