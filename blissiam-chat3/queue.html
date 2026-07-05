@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>กำลังจับคู่... | Blissiam</title>
+    <title>กำลังจับคู่... | NomGI</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
@@ -318,7 +318,7 @@
                                 setQueueStatus('matched');
                                 playMatchSound();
                                 if (window.Notification && Notification.permission === 'granted') {
-                                    new Notification('Blissiam Chat 🌟', {
+                                    new Notification('NomGI 🌟', {
                                         body: 'เราพบคู่สนทนาของคุณแล้ว! เข้ามาเริ่มพูดคุยกันได้เลยครับ',
                                     });
                                 }
@@ -387,7 +387,7 @@
                         <DarkModeToggle isDark={isDark} onToggle={toggleDarkMode} />
                     </div>
                     <div class="absolute top-10 left-1/2 -translate-x-1/2 pointer-events-none select-none">
-                        <span class="watermark">BLISSIAM</span>
+                        <span class="watermark">NOMGI</span>
                     </div>
 
                     <div class="relative z-10 max-w-md w-full">

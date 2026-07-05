@@ -1,3 +1,4 @@
+;(function(){
 // ============================================================
 // Blissiam — Built-in Memes (ทำงานได้แม้ไม่มี Giphy API)
 // ============================================================
@@ -63,3 +64,5 @@ window.BlissiamMemes = {
     wrapMemeContent,
     searchBuiltinMemes,
 };
+
+})();

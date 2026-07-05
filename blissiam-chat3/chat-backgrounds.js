@@ -1,3 +1,4 @@
+;(function(){
 // ============================================================
 // Blissiam — Chat Background Presets (36+ แบบ)
 // ใช้ใน chat.html: เลือกสี / ไล่สี / ภาพพื้นหลัง
@@ -102,3 +103,5 @@ window.BlissiamChatBg = {
     applyChatBackgroundStyle,
     getChatBackgroundThumbStyle,
 };
+
+})();
