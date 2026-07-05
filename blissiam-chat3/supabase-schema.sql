@@ -250,23 +250,36 @@ RETURNS TRIGGER AS $$
 DECLARE
     matched_user UUID;
     new_room_id UUID;
+    fresh_cutoff TIMESTAMPTZ := NOW() - INTERVAL '60 seconds';
 BEGIN
+    -- ล้างคิวผี: คนที่เข้าคิวแล้วปิดแท็บหนี (last_seen เก่ากว่า 90 วิ) ให้ยกเลิกอัตโนมัติ
+    -- กันการจับคู่กับคนที่ไม่อยู่แล้ว (เข้าห้องไปเจอห้องว่าง)
+    UPDATE queue SET status = 'cancelled'
+    WHERE status = 'waiting'
+      AND user_id <> NEW.user_id
+      AND user_id IN (SELECT id FROM profiles WHERE last_seen < NOW() - INTERVAL '90 seconds');
+
+    -- จับคู่เฉพาะคนที่ยัง "อยู่จริง" — last_seen สดใหม่ภายใน 60 วินาที
     IF NEW.role = 'venter' THEN
-        SELECT user_id INTO matched_user 
-        FROM queue 
-        WHERE role = 'listener' AND status = 'waiting' 
-          AND identity_mode = NEW.identity_mode
-          AND COALESCE(topic, 'general') = COALESCE(NEW.topic, 'general')
-          AND user_id != NEW.user_id
-        ORDER BY created_at ASC LIMIT 1;
+        SELECT q.user_id INTO matched_user
+        FROM queue q
+        JOIN profiles p ON p.id = q.user_id
+        WHERE q.role = 'listener' AND q.status = 'waiting'
+          AND q.identity_mode = NEW.identity_mode
+          AND COALESCE(q.topic, 'general') = COALESCE(NEW.topic, 'general')
+          AND q.user_id <> NEW.user_id
+          AND p.last_seen > fresh_cutoff
+        ORDER BY q.created_at ASC LIMIT 1;
     ELSE
-        SELECT user_id INTO matched_user 
-        FROM queue 
-        WHERE role = 'venter' AND status = 'waiting' 
-          AND identity_mode = NEW.identity_mode
-          AND COALESCE(topic, 'general') = COALESCE(NEW.topic, 'general')
-          AND user_id != NEW.user_id
-        ORDER BY created_at ASC LIMIT 1;
+        SELECT q.user_id INTO matched_user
+        FROM queue q
+        JOIN profiles p ON p.id = q.user_id
+        WHERE q.role = 'venter' AND q.status = 'waiting'
+          AND q.identity_mode = NEW.identity_mode
+          AND COALESCE(q.topic, 'general') = COALESCE(NEW.topic, 'general')
+          AND q.user_id <> NEW.user_id
+          AND p.last_seen > fresh_cutoff
+        ORDER BY q.created_at ASC LIMIT 1;
     END IF;
 
     IF matched_user IS NOT NULL THEN

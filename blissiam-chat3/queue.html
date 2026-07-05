@@ -267,6 +267,17 @@
                 }
             }, [queueStatus]);
 
+            // Heartbeat ระหว่างรอคิว: อัปเดต last_seen ทุก 20 วิ ให้ระบบรู้ว่าเรายังรออยู่จริง
+            // (ฟังก์ชัน match_users จับคู่เฉพาะคน last_seen สดใหม่ ถ้าไม่เต้นจะโดนมองเป็นผี)
+            useEffect(() => {
+                if (queueStatus !== 'waiting' || !user) return;
+                const beat = () => supabase.from('profiles')
+                    .update({ status: 'waiting', last_seen: new Date().toISOString() })
+                    .eq('id', user.id);
+                const iv = setInterval(beat, 20000);
+                return () => clearInterval(iv);
+            }, [queueStatus, user]);
+
             async function init() {
                 try {
                     const { data: { session } } = await supabase.auth.getSession();
@@ -302,11 +313,17 @@
                             .eq('id', room.id);
                     }
 
-                    await supabase.from('profiles').update({ 
-                        status: 'waiting', 
+                    await supabase.from('profiles').update({
+                        status: 'waiting',
                         role_preference: selectedRole,
                         last_seen: new Date().toISOString()
                     }).eq('id', session.user.id);
+
+                    // ล้างคิวเก่าของตัวเองที่ยังค้าง (กันมีหลายคิวซ้อน)
+                    await supabase.from('queue')
+                        .update({ status: 'cancelled' })
+                        .eq('user_id', session.user.id)
+                        .eq('status', 'waiting');
 
                     const { error: queueError } = await supabase
                         .from('queue')
