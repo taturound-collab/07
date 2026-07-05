@@ -363,8 +363,10 @@
                                         <>
                                             <button onClick={() => startWithRole('venter')} disabled={starting}
                                                 class="role-card card-playful shrink-0 w-85 text-left bg-surface overflow-hidden disabled:opacity-50">
-                                                <div class="h-40 bg-gradient-to-br from-primary-400 to-primary-600 flex items-end p-5 relative">
-                                                    <h3 class="text-white text-2xl font-extrabold wiggle-hover">ฉันอยากระบาย 😔</h3>
+                                                <div class="h-44 bg-gradient-to-br from-primary-400 to-primary-600 flex items-end p-5 relative overflow-hidden">
+                                                    <div class="absolute inset-0 bg-cover" style={{ backgroundImage: "url('assets/card-venter.jpg')", backgroundPosition: 'center 60%' }}></div>
+                                                    <div class="absolute inset-0" style={{ background: 'linear-gradient(to top, var(--color-primary-700) 0%, color-mix(in srgb, var(--color-primary-600) 50%, transparent) 42%, transparent 80%)' }}></div>
+                                                    <h3 class="relative text-white text-2xl font-extrabold wiggle-hover" style={{ textShadow: '0 1px 8px rgba(0,0,0,.45)' }}>ฉันอยากระบาย 😔</h3>
                                                 </div>
                                                 <div class="p-5 flex items-center justify-between">
                                                     <p class="text-sm text-ink-500">อึดอัด มีเรื่องในใจ หาคนช่วยรับฟังทางนี้</p>
@@ -374,8 +376,10 @@
 
                                             <button onClick={() => startWithRole('listener')} disabled={starting}
                                                 class="role-card card-playful shrink-0 w-85 text-left bg-surface overflow-hidden disabled:opacity-50">
-                                                <div class="h-40 bg-gradient-to-br from-secondary-400 to-secondary-600 flex items-end p-5 relative">
-                                                    <h3 class="text-white text-2xl font-extrabold wiggle-hover">ฉันอยากรับฟัง 😊</h3>
+                                                <div class="h-44 bg-gradient-to-br from-secondary-400 to-secondary-600 flex items-end p-5 relative overflow-hidden">
+                                                    <div class="absolute inset-0 bg-cover" style={{ backgroundImage: "url('assets/card-listener.jpg')", backgroundPosition: 'center 38%' }}></div>
+                                                    <div class="absolute inset-0" style={{ background: 'linear-gradient(to top, var(--color-secondary-600) 0%, color-mix(in srgb, var(--color-secondary-500) 50%, transparent) 42%, transparent 80%)' }}></div>
+                                                    <h3 class="relative text-white text-2xl font-extrabold wiggle-hover" style={{ textShadow: '0 1px 8px rgba(0,0,0,.45)' }}>ฉันอยากรับฟัง 😊</h3>
                                                 </div>
                                                 <div class="p-5 flex items-center justify-between">
                                                     <p class="text-sm text-ink-500">พร้อมเปิดใจ มอบพลังบวกและรับฟังคนอื่น</p>
