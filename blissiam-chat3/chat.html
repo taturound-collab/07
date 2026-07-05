@@ -205,6 +205,18 @@
 
             useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, partnerTyping]);
 
+            // Heartbeat: อัปเดต last_seen ทุก 25 วิ ให้ระบบรู้ว่าเรายังอยู่ในห้องจริง
+            // (queue.html ใช้ค่านี้ตรวจว่าคู่สนทนายังออนไลน์ไหม กันการโยนคนเข้าห้องร้าง)
+            useEffect(() => {
+                if (!user) return;
+                const beat = () => supabase.from('profiles')
+                    .update({ status: 'in_chat', last_seen: new Date().toISOString() })
+                    .eq('id', user.id);
+                beat();
+                const iv = setInterval(beat, 25000);
+                return () => clearInterval(iv);
+            }, [user]);
+
             useEffect(() => {
                 if (showMediaMenu && mediaTab === 'giphy' && giphyMemes.length === 0 && GIPHY_KEY) fetchGiphy();
             }, [showMediaMenu, mediaTab]);

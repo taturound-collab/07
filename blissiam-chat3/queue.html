@@ -276,16 +276,30 @@
                     }
                     setUser(session.user);
 
+                    // หาห้องที่ยัง active ของเรา — แต่ต้องเช็คว่าคู่สนทนายังอยู่จริงก่อน
+                    // ไม่งั้นจะโดนโยนกลับเข้าห้องร้างที่อีกฝ่ายปิดแท็บหนีไปแล้ว
                     const { data: activeRooms } = await supabase
                         .from('rooms')
-                        .select('id')
+                        .select('id, venter_id, listener_id')
                         .or(`venter_id.eq.${session.user.id},listener_id.eq.${session.user.id}`)
-                        .eq('status', 'active')
-                        .maybeSingle();
+                        .eq('status', 'active');
 
-                    if (activeRooms) {
-                        window.location.href = 'chat.html?room=' + activeRooms.id;
-                        return;
+                    const PRESENCE_WINDOW = 60 * 1000; // ถือว่ายังอยู่ถ้า last_seen ภายใน 60 วิ
+                    for (const room of (activeRooms || [])) {
+                        const partnerId = room.venter_id === session.user.id ? room.listener_id : room.venter_id;
+                        const { data: partnerProfile } = await supabase
+                            .from('public_profiles').select('last_seen, status').eq('id', partnerId).maybeSingle();
+                        const partnerPresent = partnerProfile && partnerProfile.status === 'in_chat'
+                            && partnerProfile.last_seen
+                            && (Date.now() - new Date(partnerProfile.last_seen).getTime() < PRESENCE_WINDOW);
+                        if (partnerPresent) {
+                            window.location.href = 'chat.html?room=' + room.id;
+                            return;
+                        }
+                        // คู่สนทนาไม่อยู่แล้ว → ปิดห้องร้างทิ้ง แล้วไปเข้าคิวหาคนใหม่
+                        await supabase.from('rooms')
+                            .update({ status: 'closed', ended_at: new Date().toISOString(), ended_by: session.user.id })
+                            .eq('id', room.id);
                     }
 
                     await supabase.from('profiles').update({ 
