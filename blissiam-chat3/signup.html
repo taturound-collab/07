@@ -120,22 +120,8 @@
             const [loading, setLoading] = useState(true);
             const [submitting, setSubmitting] = useState(false);
             const [error, setError] = useState(null);
+            const [success, setSuccess] = useState(null);
             const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
-
-            // ขั้นตอนยืนยันอีเมลด้วยรหัส OTP 6 หลัก
-            const [step, setStep] = useState('form'); // 'form' | 'otp'
-            const [otpCode, setOtpCode] = useState('');
-            const [otpError, setOtpError] = useState(null);
-            const [verifying, setVerifying] = useState(false);
-            const [resending, setResending] = useState(false);
-            const [resendMsg, setResendMsg] = useState(null);
-            const [resendCooldown, setResendCooldown] = useState(0);
-
-            useEffect(() => {
-                if (resendCooldown <= 0) return;
-                const t = setInterval(() => setResendCooldown(c => Math.max(0, c - 1)), 1000);
-                return () => clearInterval(t);
-            }, [resendCooldown > 0]);
 
             function toggleDarkMode() {
                 const resolved = window.BlissiamTheme?.toggleColorScheme();
@@ -156,32 +142,10 @@
                 });
             }, []);
 
-            // ทำหลังยืนยันตัวตนสำเร็จ (ไม่ว่าจะสำเร็จทันทีตอนสมัคร หรือหลังกรอกรหัส OTP)
-            async function finishSignup(user, name) {
-                await supabase.from('profiles').upsert({
-                    id: user.id,
-                    display_name: name,
-                    real_name: realName.trim(),
-                    school: school.trim(),
-                    status: 'offline',
-                    last_seen: new Date().toISOString()
-                });
-
-                if (redirect === 'queue.html' && role) {
-                    await supabase.from('profiles').update({
-                        role_preference: role,
-                        status: 'waiting',
-                        last_seen: new Date().toISOString()
-                    }).eq('id', user.id);
-                    window.location.href = `queue.html?role=${role}&identity=${identity}&topic=${encodeURIComponent(topic)}`;
-                } else {
-                    window.location.href = redirect;
-                }
-            }
-
             async function handleSignup(e) {
                 e.preventDefault();
                 setError(null);
+                setSuccess(null);
 
                 if (!realName.trim()) {
                     setError('กรุณากรอกชื่อจริง');
@@ -213,61 +177,33 @@
                     if (error) throw error;
 
                     if (data.session) {
-                        await finishSignup(data.user, name);
+                        await supabase.from('profiles').upsert({
+                            id: data.user.id,
+                            display_name: name,
+                            real_name: realName.trim(),
+                            school: school.trim(),
+                            status: 'offline',
+                            last_seen: new Date().toISOString()
+                        });
+
+                        if (redirect === 'queue.html' && role) {
+                            await supabase.from('profiles').update({
+                                role_preference: role,
+                                status: 'waiting',
+                                last_seen: new Date().toISOString()
+                            }).eq('id', data.user.id);
+                            window.location.href = `queue.html?role=${role}&identity=${identity}&topic=${encodeURIComponent(topic)}`;
+                        } else {
+                            window.location.href = redirect;
+                        }
                         return;
                     }
 
-                    // ต้องยืนยันอีเมลก่อน — เปลี่ยนไปหน้ากรอกรหัส OTP ที่ส่งไปทางอีเมล
-                    setStep('otp');
-                    setResendCooldown(45);
+                    setSuccess('สมัครสำเร็จ! กรุณาตรวจสอบอีเมลเพื่อยืนยันบัญชี แล้วกลับมาลงชื่อเข้าใช้');
                     setSubmitting(false);
                 } catch (err) {
                     setError(err.message);
                     setSubmitting(false);
-                }
-            }
-
-            async function handleVerifyOtp(e) {
-                e.preventDefault();
-                setOtpError(null);
-
-                if (!/^\d{6}$/.test(otpCode.trim())) {
-                    setOtpError('กรุณากรอกรหัส 6 หลักให้ครบ');
-                    return;
-                }
-
-                setVerifying(true);
-                try {
-                    const { data, error } = await supabase.auth.verifyOtp({
-                        email, token: otpCode.trim(), type: 'signup'
-                    });
-                    if (error) throw error;
-
-                    const name = displayName.trim()
-                        || RANDOM_NAMES[Math.floor(Math.random() * RANDOM_NAMES.length)] + '-' + Math.floor(Math.random() * 9999);
-                    await finishSignup(data.user, name);
-                } catch (err) {
-                    setOtpError(err.message === 'Token has expired or is invalid'
-                        ? 'รหัสไม่ถูกต้องหรือหมดอายุแล้ว ลองขอรหัสใหม่'
-                        : err.message);
-                    setVerifying(false);
-                }
-            }
-
-            async function handleResendOtp() {
-                if (resendCooldown > 0 || resending) return;
-                setResending(true);
-                setResendMsg(null);
-                setOtpError(null);
-                try {
-                    const { error } = await supabase.auth.resend({ type: 'signup', email });
-                    if (error) throw error;
-                    setResendMsg('ส่งรหัสใหม่แล้ว กรุณาเช็คอีเมลอีกครั้ง');
-                    setResendCooldown(45);
-                } catch (err) {
-                    setOtpError(err.message);
-                } finally {
-                    setResending(false);
                 }
             }
 
@@ -289,75 +225,22 @@
                                 <DotLogo />
                             </div>
                             <div class="text-xl font-extrabold mb-2">NomGI</div>
-                            {step === 'otp' ? (
-                                <>
-                                    <h1 class="text-xl font-bold text-ink-900">ยืนยันอีเมล 📩</h1>
-                                    <p class="text-ink-500 text-sm mt-1">กรอกรหัส 6 หลักที่ส่งไปที่<br/><span class="font-medium text-ink-700">{email}</span></p>
-                                </>
-                            ) : (
-                                <>
-                                    <h1 class="text-xl font-bold text-ink-900">สร้างบัญชี 🌱</h1>
-                                    <p class="text-ink-500 text-sm mt-1">เริ่มต้นแบ่งปันน้ำใจกับเรา</p>
-                                </>
-                            )}
+                            <h1 class="text-xl font-bold text-ink-900">สร้างบัญชี 🌱</h1>
+                            <p class="text-ink-500 text-sm mt-1">เริ่มต้นแบ่งปันน้ำใจกับเรา</p>
                         </div>
 
-                        {step === 'form' && error && (
+                        {error && (
                             <div class="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl mb-4 text-sm">
                                 {error}
                             </div>
                         )}
-
-                        {step === 'otp' && (
-                            <form onSubmit={handleVerifyOtp} class="space-y-4">
-                                {otpError && (
-                                    <div class="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl text-sm">
-                                        {otpError}
-                                    </div>
-                                )}
-                                {resendMsg && (
-                                    <div class="bg-primary-50 border border-primary-300 text-primary-700 px-4 py-3 rounded-xl text-sm">
-                                        {resendMsg}
-                                    </div>
-                                )}
-                                <div>
-                                    <input
-                                        type="text"
-                                        inputMode="numeric"
-                                        autoComplete="one-time-code"
-                                        value={otpCode}
-                                        onChange={e => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                                        maxLength={6}
-                                        placeholder="000000"
-                                        class="w-full bg-surface border border-line text-ink-900 text-center text-3xl font-bold tracking-[0.5em] rounded-2xl px-4 py-4 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
-                                    />
-                                </div>
-                                <button
-                                    type="submit"
-                                    disabled={verifying || otpCode.length !== 6}
-                                    class="btn-playful w-full text-white py-3 font-semibold disabled:opacity-50"
-                                >
-                                    {verifying ? 'กำลังยืนยัน...' : 'ยืนยันรหัส'}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={handleResendOtp}
-                                    disabled={resendCooldown > 0 || resending}
-                                    class="w-full text-center text-sm text-primary-600 hover:text-primary-700 font-medium disabled:opacity-40 disabled:cursor-not-allowed py-1"
-                                >
-                                    {resending ? 'กำลังส่ง...' : resendCooldown > 0 ? `ส่งรหัสใหม่ได้ใน ${resendCooldown} วิ` : 'ไม่ได้รับรหัส? ส่งใหม่อีกครั้ง'}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => { setStep('form'); setOtpCode(''); setOtpError(null); setResendMsg(null); }}
-                                    class="w-full text-center text-sm text-ink-500 hover:text-primary-600 transition py-1"
-                                >
-                                    ← แก้ไขข้อมูลที่กรอกไป
-                                </button>
-                            </form>
+                        {success && (
+                            <div class="bg-primary-50 border border-primary-300 text-primary-700 px-4 py-3 rounded-xl mb-4 text-sm">
+                                {success}
+                            </div>
                         )}
 
-                        {step === 'form' && (
+                        {!success && (
                             <form onSubmit={handleSignup} class="space-y-4">
                                 <div>
                                     <label class="block text-sm font-medium text-ink-700 mb-1">ชื่อจริง</label>
@@ -440,7 +323,11 @@
                             </form>
                         )}
 
-                        {step === 'form' && (
+                        {success ? (
+                            <a href="login.html" class="btn-playful block w-full text-center text-white py-3 font-semibold mt-2">
+                                ไปหน้าลงชื่อเข้าใช้
+                            </a>
+                        ) : (
                             <p class="text-center mt-6 text-sm text-ink-500">
                                 มีบัญชีอยู่แล้ว?{' '}
                                 <a href={`login.html?redirect=${encodeURIComponent(redirect)}${role ? '&role=' + role + '&identity=' + identity + '&topic=' + encodeURIComponent(topic) : ''}`} class="text-primary-600 hover:text-primary-700 font-medium">
