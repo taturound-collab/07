@@ -208,6 +208,20 @@
                 setMoodRole(role); // เปิด mood check-in ก่อน แล้วค่อยเข้าคิว
             }
 
+            // #6 เข้าวงกลมแบ่งปัน (ห้องกลุ่มตามหัวข้อ)
+            async function joinGroupRoom() {
+                if (!user) { window.location.href = 'login.html?redirect=index.html'; return; }
+                setStarting(true);
+                try {
+                    const { data, error } = await supabase.rpc('join_group', { p_topic: selectedTopic });
+                    if (error) throw error;
+                    window.location.href = 'group.html?g=' + data;
+                } catch (err) {
+                    alert('เข้าวงกลมไม่สำเร็จ: ' + (err.message || err) + '\n\n(ถ้าเพิ่งเพิ่มฟีเจอร์นี้ ต้องรันไฟล์ supabase-group-rooms.sql ใน Supabase ก่อน)');
+                    setStarting(false);
+                }
+            }
+
             // เลือกความรู้สึกก่อนเข้าคิว (บันทึกส่วนตัว) แล้วเข้าคิว — ข้ามได้
             async function proceedToQueue(role, moodScore) {
                 if (moodScore) { try { window.NomGIMood?.setPending(moodScore); } catch (e) {} }
@@ -426,6 +440,21 @@
                                     )}
                                 </div>
                             </div>
+
+                            {/* วงกลมแบ่งปัน — ห้องกลุ่ม (#6) */}
+                            {!isAdmin && (
+                                <button onClick={joinGroupRoom} disabled={starting}
+                                    class="mt-6 w-full card-playful bg-surface overflow-hidden text-left disabled:opacity-50 group">
+                                    <div class="flex items-center gap-4 p-5 sm:p-6">
+                                        <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-400 to-secondary-500 flex items-center justify-center text-3xl shrink-0 group-hover:scale-105 transition">👥</div>
+                                        <div class="min-w-0 flex-1">
+                                            <div class="font-extrabold text-lg text-ink-900">เข้าวงกลมแบ่งปัน</div>
+                                            <div class="text-sm text-ink-500">คุยกันเป็นกลุ่มเล็ก 3-4 คนในหัวข้อ <span class="text-primary-600 font-medium">{TOPICS.find(t => t.id === selectedTopic)?.label || 'เรื่องทั่วไป'}</span> · ไม่ระบุตัวตน</div>
+                                        </div>
+                                        <svg class="w-5 h-5 text-primary-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+                                    </div>
+                                </button>
+                            )}
                         </div>
                     </section>
 

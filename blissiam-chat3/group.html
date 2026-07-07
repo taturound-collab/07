@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>วงกลมแบ่งปัน | NomGI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="config.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = { theme: { extend: {
+            fontFamily: { sans: ['var(--font-body)', 'Kanit', 'sans-serif'] },
+            colors: {
+                paper: { 50: 'var(--color-paper-50)', 100: 'var(--color-paper-100)', 200: 'var(--color-paper-200)', 300: 'var(--color-paper-300)' },
+                ink: { 900: 'var(--color-ink-900)', 700: 'var(--color-ink-700)', 500: 'var(--color-ink-500)', 400: 'var(--color-ink-400)', 300: 'var(--color-ink-300)', 200: 'var(--color-ink-200)' },
+                surface: 'var(--color-surface)',
+                primary: { 50: 'var(--color-primary-50)', 100: 'var(--color-primary-100)', 500: 'var(--color-primary-500)', 600: 'var(--color-primary-600)' },
+                secondary: { 500: 'var(--color-secondary-500)' },
+                line: 'var(--color-line)'
+            }
+        } } }
+    </script>
+    <style>
+        :root {
+            --color-primary-50: #f3f7f1; --color-primary-100: #e3ece0; --color-primary-500: #4D7355; --color-primary-600: #3d5d44;
+            --color-secondary-500: #925621;
+            --color-paper-50: #fdfcfa; --color-paper-100: #f6f3ee; --color-paper-200: #ece7de; --color-paper-300: #ddd6c9;
+            --color-ink-900: #1a1a1a; --color-ink-700: #3a3a3a; --color-ink-500: #6b6b6b; --color-ink-400: #8a8a8a; --color-ink-300: #b0b0b0; --color-ink-200: #c2c2c2;
+            --color-line: #e8e3d9; --color-surface: #ffffff; --font-body: 'Kanit', sans-serif;
+        }
+        body { font-family: 'Kanit', sans-serif; overflow: hidden; background-color: var(--color-paper-50); -webkit-font-smoothing: antialiased; transition: background-color 0.3s ease; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; } .scrollbar-hide { scrollbar-width: none; }
+        @keyframes msgIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .msg-in { animation: msgIn 0.25s ease-out forwards; }
+        .glass { background: color-mix(in srgb, var(--color-surface) 88%, transparent); backdrop-filter: blur(16px); }
+        .glass-dark { background: color-mix(in srgb, var(--color-surface) 75%, transparent); backdrop-filter: blur(20px); }
+    </style>
+    <script src="theme.js"></script>
+</head>
+<body class="h-screen text-ink-900">
+    <div id="root" class="h-full"></div>
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+        const supabase = window.supabaseClient;
+        const EMOJIS = ['😀','😂','🥺','❤️','👍','🙏','✨','😭','🥰','🔥','💪','🫂','🎉','😊','🤗','🌟'];
+        const AVATAR_COLORS = ['#4D7355','#3E6184','#6B5A91','#96623A','#A85C3B','#9C5566','#0E8074','#B0215A'];
+
+        function colorFor(id) {
+            let h = 0; for (let i = 0; i < (id||'').length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+            return AVATAR_COLORS[h % AVATAR_COLORS.length];
+        }
+        function formatTime(iso) { return iso ? new Date(iso).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : ''; }
+        const TOPIC_LABELS = { general:'เรื่องทั่วไป 💬', study:'การเรียน 📚', love:'ความรัก ❤️', work:'การทำงาน 💼', family:'ครอบครัว 🏠', health:'สุขภาพจิต 🧠' };
+
+        function DarkModeToggle({ isDark, onToggle }) {
+            return (
+                <button type="button" onClick={onToggle} title={isDark ? 'โหมดสว่าง' : 'โหมดมืด'}
+                    class="w-10 h-10 rounded-xl flex items-center justify-center text-ink-500 hover:bg-black/5 transition">
+                    {isDark
+                        ? <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 3v1.5m0 15V21m9-9h-1.5M4.5 12H3m15.36 6.36l-1.06-1.06M6.7 6.7L5.64 5.64m12.72 0l-1.06 1.06M6.7 17.3l-1.06 1.06M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                        : <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>}
+                </button>
+            );
+        }
+
+        function App() {
+            const [user, setUser] = useState(null);
+            const [groupRoom, setGroupRoom] = useState(null);
+            const [members, setMembers] = useState([]);      // [{user_id, display_name}]
+            const [names, setNames] = useState({});          // id -> display_name
+            const [messages, setMessages] = useState([]);
+            const [input, setInput] = useState('');
+            const [showEmoji, setShowEmoji] = useState(false);
+            const [showMembers, setShowMembers] = useState(false);
+            const [leaving, setLeaving] = useState(false);
+            const [error, setError] = useState(null);
+            const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
+            const endRef = useRef(null);
+            const gid = new URLSearchParams(window.location.search).get('g');
+
+            function toggleDarkMode() { setIsDark(window.BlissiamTheme?.toggleColorScheme() === 'dark'); }
+
+            useEffect(() => {
+                window.BlissiamTheme?.loadAndApplyTheme();
+                if (!gid) { window.location.href = 'index.html'; return; }
+                init();
+            }, []);
+
+            useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+
+            // heartbeat presence
+            useEffect(() => {
+                if (!user) return;
+                const beat = () => supabase.from('profiles').update({ status: 'in_chat', last_seen: new Date().toISOString() }).eq('id', user.id);
+                beat(); const iv = setInterval(beat, 25000); return () => clearInterval(iv);
+            }, [user]);
+
+            async function loadMembers() {
+                const { data } = await supabase.from('group_members')
+                    .select('user_id, left_at, profiles:user_id(display_name)')
+                    .eq('group_room_id', gid);
+                const rows = data || [];
+                const active = rows.filter(r => !r.left_at).map(r => ({ user_id: r.user_id, display_name: r.profiles?.display_name || 'สมาชิก' }));
+                const map = {}; rows.forEach(r => { map[r.user_id] = r.profiles?.display_name || 'สมาชิก'; });
+                setMembers(active); setNames(map);
+            }
+
+            async function init() {
+                try {
+                    const { data: { session } } = await supabase.auth.getSession();
+                    if (!session) { window.location.href = 'login.html'; return; }
+                    setUser(session.user);
+
+                    const { data: gr } = await supabase.from('group_rooms').select('*').eq('id', gid).single();
+                    if (!gr) { setError('ไม่พบวงกลมนี้ อาจถูกปิดไปแล้ว'); return; }
+                    setGroupRoom(gr);
+
+                    await loadMembers();
+
+                    const { data: msgs } = await supabase.from('messages').select('*').eq('group_room_id', gid).order('created_at', { ascending: true });
+                    setMessages(msgs || []);
+
+                    await supabase.from('profiles').update({ status: 'in_chat', last_seen: new Date().toISOString() }).eq('id', session.user.id);
+
+                    supabase.channel('group-msg-' + gid)
+                        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: 'group_room_id=eq.' + gid }, (payload) => {
+                            setMessages(prev => prev.some(m => m.id === payload.new.id) ? prev : [...prev, payload.new]);
+                        }).subscribe();
+
+                    supabase.channel('group-mem-' + gid)
+                        .on('postgres_changes', { event: '*', schema: 'public', table: 'group_members', filter: 'group_room_id=eq.' + gid }, () => { loadMembers(); }).subscribe();
+                } catch (err) { setError(err.message); }
+            }
+
+            async function sendMessage(e) {
+                e && e.preventDefault();
+                const body = input.trim();
+                if (!body || !user) return;
+                setInput('');
+                const { error } = await supabase.from('messages').insert({ group_room_id: gid, sender_id: user.id, content: body, message_type: 'text' });
+                if (error) { alert('ส่งไม่สำเร็จ: ' + error.message); setInput(body); }
+            }
+
+            async function leaveGroup() {
+                if (leaving) return;
+                setLeaving(true);
+                try { await supabase.rpc('leave_group', { p_gid: gid }); } catch (e) {}
+                await supabase.from('profiles').update({ status: 'offline' }).eq('id', user.id);
+                window.location.href = 'index.html';
+            }
+
+            if (error) return (
+                <div class="h-full flex flex-col items-center justify-center gap-4 p-6 text-center">
+                    <div class="text-4xl">🌫️</div>
+                    <p class="text-ink-500">{error}</p>
+                    <a href="index.html" class="bg-primary-500 text-white px-6 py-3 rounded-full">กลับหน้าแรก</a>
+                </div>
+            );
+            if (!groupRoom || !user) return (
+                <div class="h-full flex flex-col items-center justify-center gap-3">
+                    <div class="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+                    <p class="text-sm text-ink-500">กำลังเข้าวงกลม...</p>
+                </div>
+            );
+
+            return (
+                <div class="h-full flex flex-col relative">
+                    {/* Header */}
+                    <header class="glass border-b border-line px-4 py-3 flex items-center justify-between z-20 shrink-0">
+                        <div class="min-w-0">
+                            <div class="font-bold text-ink-900 truncate flex items-center gap-2">👥 วงกลมแบ่งปัน</div>
+                            <div class="text-xs text-ink-400 truncate">{TOPIC_LABELS[groupRoom.topic] || groupRoom.topic} · {members.length} คนในวง</div>
+                        </div>
+                        <div class="flex items-center gap-1 shrink-0">
+                            <button type="button" onClick={() => setShowMembers(true)} class="w-10 h-10 rounded-xl flex items-center justify-center text-ink-500 hover:bg-black/5 transition" title="ดูสมาชิก">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4z"/></svg>
+                            </button>
+                            <DarkModeToggle isDark={isDark} onToggle={toggleDarkMode} />
+                            <button type="button" onClick={leaveGroup} disabled={leaving}
+                                class="ml-1 px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition disabled:opacity-50">ออกจากวง</button>
+                        </div>
+                    </header>
+
+                    {/* Messages */}
+                    <div class="flex-1 overflow-y-auto px-4 py-5 scrollbar-hide" onClick={() => setShowEmoji(false)}>
+                        <div class="max-w-2xl mx-auto">
+                            <div class="flex flex-col items-center text-center py-6 mb-2">
+                                <div class="w-14 h-14 rounded-3xl glass shadow flex items-center justify-center text-2xl mb-2">🕯️</div>
+                                <p class="text-sm font-medium text-ink-700">ยินดีต้อนรับสู่วงกลมแบ่งปัน</p>
+                                <p class="text-xs text-ink-400 mt-1 max-w-xs">พื้นที่กลุ่มเล็กๆ ไม่ระบุตัวตน · รับฟังกันด้วยใจ ไม่ตัดสินกัน</p>
+                            </div>
+                            {messages.map((msg) => {
+                                if (msg.is_system) return (
+                                    <div key={msg.id} class="flex justify-center my-3"><span class="text-xs text-ink-400 bg-black/5 px-3 py-1 rounded-full">{msg.content}</span></div>
+                                );
+                                const mine = msg.sender_id === user.id;
+                                const nm = names[msg.sender_id] || 'สมาชิก';
+                                const col = colorFor(msg.sender_id);
+                                return (
+                                    <div key={msg.id} class={`msg-in flex gap-2.5 mb-3 ${mine ? 'flex-row-reverse' : ''}`}>
+                                        <div class="w-8 h-8 rounded-xl shrink-0 flex items-center justify-center text-xs font-bold text-white mt-auto" style={{ backgroundColor: col }}>{nm.charAt(0)}</div>
+                                        <div class={`max-w-[78%] flex flex-col ${mine ? 'items-end' : 'items-start'}`}>
+                                            {!mine && <span class="text-[11px] font-medium mb-0.5 px-1" style={{ color: col }}>{nm}</span>}
+                                            <div class={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed shadow ${mine ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white rounded-br-md' : 'glass text-ink-900 rounded-bl-md border border-white/60'}`}>
+                                                <span class="whitespace-pre-wrap break-words">{msg.content}</span>
+                                            </div>
+                                            <span class="text-[10px] text-ink-300 mt-1 px-1">{formatTime(msg.created_at)}</span>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                            <div ref={endRef} class="h-2" />
+                        </div>
+                    </div>
+
+                    {/* Emoji */}
+                    {showEmoji && (
+                        <div class="absolute inset-x-0 bottom-[80px] z-30 px-4">
+                            <div class="glass-dark rounded-3xl shadow-lg border border-white/60 p-4 max-w-lg mx-auto flex flex-wrap gap-2 justify-center">
+                                {EMOJIS.map(e => <button key={e} type="button" onClick={() => setInput(p => p + e)} class="w-10 h-10 text-xl hover:bg-black/5 rounded-xl transition hover:scale-110">{e}</button>)}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Input */}
+                    <div class="shrink-0 z-20 px-4 pb-4 pt-2">
+                        <form onSubmit={sendMessage} class="glass-dark rounded-2xl shadow-lg border border-white/70 p-2 flex gap-2 items-center max-w-2xl mx-auto">
+                            <button type="button" onClick={() => setShowEmoji(!showEmoji)} class={`w-11 h-11 rounded-xl flex items-center justify-center text-xl transition ${showEmoji ? 'bg-primary-50 text-primary-600' : 'hover:bg-black/5'}`}>😊</button>
+                            <input type="text" value={input} onChange={e => setInput(e.target.value)} placeholder="พิมพ์ข้อความถึงทั้งวง..." class="flex-1 bg-transparent text-sm focus:outline-none placeholder:text-ink-300 min-w-0" />
+                            <button type="submit" disabled={!input.trim()} class="w-11 h-11 rounded-xl bg-primary-500 text-white flex items-center justify-center shrink-0 disabled:opacity-40 hover:bg-primary-600 active:scale-90 transition">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+                            </button>
+                        </form>
+                    </div>
+
+                    {/* Members sheet */}
+                    {showMembers && (
+                        <div class="fixed inset-0 z-50 flex items-end sm:items-center justify-center" onClick={() => setShowMembers(false)}>
+                            <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
+                            <div class="relative w-full sm:max-w-sm glass rounded-t-3xl sm:rounded-3xl shadow-xl p-5" onClick={e => e.stopPropagation()}>
+                                <div class="w-10 h-1 bg-ink-200 rounded-full mx-auto mb-4 sm:hidden"></div>
+                                <h3 class="text-lg font-bold text-ink-900 mb-3">สมาชิกในวง ({members.length})</h3>
+                                <div class="space-y-2">
+                                    {members.map(m => (
+                                        <div key={m.user_id} class="flex items-center gap-3">
+                                            <div class="w-9 h-9 rounded-xl flex items-center justify-center text-white text-sm font-bold" style={{ backgroundColor: colorFor(m.user_id) }}>{m.display_name.charAt(0)}</div>
+                                            <span class="text-sm text-ink-900">{m.display_name}{m.user_id === user.id ? ' (คุณ)' : ''}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>
