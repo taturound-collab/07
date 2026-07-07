@@ -51,12 +51,15 @@
         return read().pending;
     }
 
-    // บันทึกความรู้สึกหลังคุย จับคู่กับ pending (ถ้ามี) แล้วเก็บเป็น entry
-    function commitAfter(score) {
+    // บันทึกความรู้สึกหลังคุย (+ บันทึกสะท้อนใจ note ถ้ามี) จับคู่กับ pending แล้วเก็บเป็น entry
+    function commitAfter(score, note) {
         const d = read();
-        const after = clamp(score);
+        const after = (score == null) ? null : clamp(score);
         const before = d.pending ? d.pending.score : null;
-        d.entries.push({ before, after, at: new Date().toISOString() });
+        const n = (note || '').toString().trim().slice(0, 500);
+        const entry = { before, after, at: new Date().toISOString() };
+        if (n) entry.note = n;
+        d.entries.push(entry);
         d.pending = null;
         if (d.entries.length > 200) d.entries = d.entries.slice(-200);
         write(d);

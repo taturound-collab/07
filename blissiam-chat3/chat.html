@@ -82,6 +82,7 @@
     <script src="chat-memes.js"></script>
     <script src="kudos-tree.js"></script>
     <script src="mood.js"></script>
+    <script src="safety.js"></script>
 </head>
 <body class="h-screen text-ink-900">
     <div id="root" class="h-full"></div>
@@ -108,6 +109,29 @@
 
         const EMOJIS = ['😀','😂','🥺','❤️','👍','🙏','✨','😭','🥰','😅','🔥','👀','💪','🫂','🎉','😊','🤗','💯','🌟','🎈'];
         const REPORT_REASONS = ['พูดจาไม่เหมาะสม', 'คุกคาม / ข่มขู่', 'สแปม / โฆษณา', 'อื่นๆ'];
+
+        const _safety = window.NomGISafety || {};
+        const isRiskyText = _safety.isRisky || (() => false);
+        const HOTLINES = _safety.HOTLINES || [];
+
+        // #4 ประโยคเปิดบทสนทนา (สำหรับคนที่ไม่รู้จะเริ่มยังไง)
+        const ICE_BREAKERS = [
+            'สวัสดีนะ วันนี้เป็นยังไงบ้าง? 🌿',
+            'ยินดีที่ได้เจอกันนะ อยากเล่าอะไรก็เล่าได้เลย ไม่ต้องรีบ',
+            'เราพร้อมรับฟังอยู่ตรงนี้นะ มีอะไรอยากระบายไหม?',
+            'ช่วงนี้มีอะไรหนักใจอยู่หรือเปล่า?',
+            'ไม่ต้องกังวลนะ ที่นี่ปลอดภัย อยากพูดแค่ไหนก็ได้',
+            'วันนี้เจอเรื่องอะไรมาบ้าง อยากเล่าให้ฟังไหม?',
+        ];
+        // #5 การ์ดกำลังใจสำเร็จรูป (ส่งเร็ว)
+        const ENCOURAGEMENTS = [
+            'เก่งมากเลยนะที่ผ่านมาได้ถึงตรงนี้ 💪',
+            'ไม่เป็นไรเลยที่จะรู้สึกแบบนั้น เรารับฟังอยู่นะ 🫂',
+            'ขอบคุณที่ไว้ใจเล่าให้ฟังนะ 🌷',
+            'เราอยู่ตรงนี้ด้วยเสมอ ไม่ต้องเผชิญคนเดียวนะ',
+            'ค่อยๆ ก็ได้นะ ไม่ต้องรีบ ทุกความรู้สึกของเธอสำคัญ',
+            'เธอมีค่ามากกว่าที่คิดไว้เยอะเลยนะ ✨',
+        ];
 
         // Guard: ต้นไม้น้ำใจ + mood (กัน crash ถ้าไฟล์โหลดไม่สำเร็จ)
         const kudosPlantSvg = (window.NomGIKudos && window.NomGIKudos.plantSvg) || (() => '');
@@ -183,6 +207,10 @@
             const [partnerIdentity, setPartnerIdentity] = useState(null);
             const [partnerTyping, setPartnerTyping] = useState(false);
             const [showEndConfirm, setShowEndConfirm] = useState(false);
+            const [showCrisis, setShowCrisis] = useState(false);
+            const [crisisDismissed, setCrisisDismissed] = useState(false);
+            const [showGuidelines, setShowGuidelines] = useState(() => { try { return !localStorage.getItem('nomgi_guidelines_ok'); } catch (e) { return false; } });
+            const [showHelper, setShowHelper] = useState(false);
             const [showProfileModal, setShowProfileModal] = useState(false);
             const [showMediaMenu, setShowMediaMenu] = useState(false);
             const [showBgPicker, setShowBgPicker] = useState(false);
@@ -204,6 +232,7 @@
             // พิธีกรรมปิดจบ (#3) + mood หลังคุย (#4)
             const [endStep, setEndStep] = useState('ask');       // 'ask' | 'mood' | 'farewell'
             const [afterMood, setAfterMood] = useState(null);
+            const [reflectNote, setReflectNote] = useState('');
             // โหมดเงียบ/อยู่เป็นเพื่อน (#1)
             const [warmthToast, setWarmthToast] = useState(false);  // ได้รับไออุ่นจากคู่สนทนา
             const [warmthCooldown, setWarmthCooldown] = useState(0);
@@ -236,6 +265,16 @@
             }, []);
 
             useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, partnerTyping]);
+
+            // Crisis detection: สแกนข้อความล่าสุด ถ้าพบสัญญาณเสี่ยง เสนอการ์ดสายด่วน
+            // ทำงานฝั่ง client ล้วน ไม่ส่งข้อมูลไปไหน — เป็นการ "ยื่นมือช่วย" ไม่ใช่บล็อก
+            useEffect(() => {
+                if (crisisDismissed || !messages.length) return;
+                const recent = messages.slice(-6);
+                if (recent.some(m => !m.is_system && !isMemeMessage(m) && isRiskyText(m.content))) {
+                    setShowCrisis(true);
+                }
+            }, [messages, crisisDismissed]);
 
             // Heartbeat: อัปเดต last_seen ทุก 25 วิ ให้ระบบรู้ว่าเรายังอยู่ในห้องจริง
             // (queue.html ใช้ค่านี้ตรวจว่าคู่สนทนายังออนไลน์ไหม กันการโยนคนเข้าห้องร้าง)
@@ -437,11 +476,19 @@
             function openFarewell() {
                 setEndStep('ask'); setAfterMood(null); setShowMediaMenu(false); setShowEndConfirm(true);
             }
-            // เลือก mood หลังคุย -> บันทึก -> ไปสเต็ปอำลา
+            // เลือก mood หลังคุย -> ไปสเต็ปอำลา (ค่อย commit ตอนจบจริง เผื่อจดบันทึกด้วย)
             function chooseAfterMood(score) {
                 setAfterMood(score);
-                try { NomGIMood.commitAfter(score); } catch (e) {}
                 setEndStep('farewell');
+            }
+            // ปิดจบจริง: บันทึก mood + reflection note ลง "เส้นทางใจ" แล้วออกจากห้อง
+            function finalizeAndEnd() {
+                try {
+                    if (afterMood != null || (reflectNote || '').trim()) {
+                        NomGIMood.commitAfter(afterMood, reflectNote);
+                    }
+                } catch (e) {}
+                triggerEndChat();
             }
 
             const partnerName = partnerIdentity?.real_name || partner?.display_name || 'คู่สนทนา';
@@ -681,9 +728,13 @@
                     <div class="shrink-0 z-20 px-4 pb-4 pt-2">
                         <form onSubmit={(e) => { e.preventDefault(); sendMessage(input, 'text'); }}
                             class="glass-dark rounded-2xl shadow-float border border-white/70 p-2 flex gap-2 items-center max-w-2xl mx-auto focus-within:ring-2 focus-within:ring-primary-500/25 transition-shadow">
-                            <button type="button" onClick={() => { setShowMediaMenu(!showMediaMenu); setShowBgPicker(false); }}
+                            <button type="button" onClick={() => { setShowMediaMenu(!showMediaMenu); setShowBgPicker(false); setShowHelper(false); }}
                                 class={`w-11 h-11 rounded-xl flex items-center justify-center text-xl transition-all duration-200 active:scale-90 ${showMediaMenu ? 'bg-primary-50 text-primary-600 rotate-45' : 'hover:bg-black/5'}`}>
                                 ＋
+                            </button>
+                            <button type="button" onClick={() => { setShowHelper(!showHelper); setShowMediaMenu(false); }} title="ตัวช่วยเริ่มคุย / กำลังใจ"
+                                class={`w-11 h-11 rounded-xl flex items-center justify-center text-lg transition-all duration-200 active:scale-90 shrink-0 ${showHelper ? 'bg-primary-50 text-primary-600' : 'hover:bg-black/5'}`}>
+                                💡
                             </button>
                             <input type="text" value={input}
                                 onChange={(e) => {
@@ -793,6 +844,86 @@
                         </div>
                     )}
 
+                    {/* #3 คำแนะนำก่อนเริ่มคุย (แสดงครั้งเดียวต่อเครื่อง) */}
+                    {showGuidelines && (
+                        <div class="fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-4">
+                            <div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+                            <div class="relative w-full sm:max-w-md bg-surface rounded-3xl shadow-float border border-line overflow-hidden sheet-up">
+                                <div class="p-6">
+                                    <div class="text-3xl mb-2 text-center">🤝</div>
+                                    <h3 class="text-lg font-bold text-ink-900 text-center mb-1">ก่อนเริ่มพูดคุย</h3>
+                                    <p class="text-xs text-ink-400 text-center mb-5">พื้นที่นี้คือการรับฟังกันด้วยใจ</p>
+                                    <div class="space-y-3 text-sm text-ink-700">
+                                        <div class="flex gap-3"><span>💚</span><span>ให้เกียรติและใจดีต่อกัน · ไม่ตัดสิน ไม่กดดัน</span></div>
+                                        <div class="flex gap-3"><span>🔒</span><span>เคารพความเป็นส่วนตัว · ไม่บันทึก/เผยแพร่บทสนทนาของอีกฝ่าย</span></div>
+                                        <div class="flex gap-3"><span>ℹ️</span><span>ที่นี่คือเพื่อนรับฟัง <b>ไม่ใช่คำปรึกษาจากผู้เชี่ยวชาญ</b> หากอยู่ในภาวะเสี่ยง โปรดโทรสายด่วน 1323</span></div>
+                                    </div>
+                                    <button type="button" onClick={() => { try { localStorage.setItem('nomgi_guidelines_ok', '1'); } catch(e){} setShowGuidelines(false); }}
+                                        class="btn-farewell w-full py-3 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 text-white font-semibold text-sm mt-6 hover:brightness-105 transition">
+                                        เข้าใจแล้ว เริ่มพูดคุย
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* #4/#5 ตัวช่วย: ประโยคเปิดบทสนทนา + การ์ดกำลังใจ */}
+                    {showHelper && (
+                        <div class="absolute inset-x-0 bottom-[80px] sm:bottom-[88px] z-30 px-3 sm:px-4 max-h-[70vh] flex flex-col justify-end" onClick={() => setShowHelper(false)}>
+                            <div class="glass-dark rounded-3xl shadow-float border border-white/60 overflow-hidden max-w-lg w-full mx-auto sheet-up" onClick={e => e.stopPropagation()}>
+                                <div class="p-4 max-h-[45vh] sm:max-h-[300px] overflow-y-auto scrollbar-hide space-y-4">
+                                    <div>
+                                        <div class="text-xs font-semibold text-primary-600 mb-2">💬 ประโยคเปิดบทสนทนา</div>
+                                        <div class="space-y-1.5">
+                                            {ICE_BREAKERS.map((t, i) => (
+                                                <button key={i} type="button" onClick={() => { sendMessage(t, 'text'); setShowHelper(false); }}
+                                                    class="w-full text-left text-sm bg-surface/70 hover:bg-primary-50 border border-line rounded-xl px-3 py-2.5 transition">{t}</button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="text-xs font-semibold text-amber-600 mb-2">🫂 การ์ดกำลังใจ (แตะเพื่อส่ง)</div>
+                                        <div class="flex flex-wrap gap-1.5">
+                                            {ENCOURAGEMENTS.map((t, i) => (
+                                                <button key={i} type="button" onClick={() => { sendMessage(t, 'text'); setShowHelper(false); }}
+                                                    class="text-xs bg-amber-50 text-amber-700 border border-amber-200 rounded-full px-3 py-1.5 hover:brightness-95 transition">{t}</button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Crisis / สายด่วนช่วยเหลือ — ยื่นมือช่วยแบบอ่อนโยน ไม่บล็อกการคุย */}
+                    {showCrisis && (
+                        <div class="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4">
+                            <div class="absolute inset-0 bg-black/45 backdrop-blur-sm" onClick={() => { setShowCrisis(false); setCrisisDismissed(true); }}></div>
+                            <div class="relative w-full sm:max-w-md bg-surface rounded-3xl shadow-float border border-line overflow-hidden sheet-up">
+                                <div class="bg-gradient-to-br from-rose-500 to-red-500 p-5 text-white">
+                                    <div class="flex items-center gap-2 text-lg font-bold">🫂 คุณไม่ได้อยู่คนเดียวนะ</div>
+                                    <p class="text-sm text-white/90 mt-1 leading-relaxed">ดูเหมือนตอนนี้คุณกำลังเจอเรื่องหนักมากๆ ถ้ารู้สึกไม่ไหว มีคนพร้อมรับฟังและช่วยเหลือคุณจริงๆ</p>
+                                </div>
+                                <div class="p-5 space-y-2.5">
+                                    {HOTLINES.map((h, i) => (
+                                        <a key={i} href={h.href}
+                                            class="flex items-center justify-between gap-3 p-3.5 rounded-2xl border border-line hover:border-rose-300 hover:bg-rose-50/50 transition group">
+                                            <div class="min-w-0">
+                                                <div class="text-sm font-semibold text-ink-900 truncate">{h.name}</div>
+                                                <div class="text-xs text-ink-400">{h.note}</div>
+                                            </div>
+                                            <span class="shrink-0 px-3 py-1.5 rounded-full bg-rose-500 text-white text-sm font-bold group-hover:bg-rose-600 transition">{h.phone}</span>
+                                        </a>
+                                    ))}
+                                    <button type="button" onClick={() => { setShowCrisis(false); setCrisisDismissed(true); }}
+                                        class="w-full text-center text-sm text-ink-500 hover:text-ink-900 transition py-2 mt-1">
+                                        ขอบคุณ ฉันโอเค คุยต่อได้
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* พิธีกรรมปิดจบ (3 สเต็ป) */}
                     {showEndConfirm && (
                         <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -846,8 +977,11 @@
                                             </div>
                                         </div>
                                         <h3 class="text-lg font-bold mb-1 text-ink-900 warmth-pop">ขอบคุณที่แบ่งปันน้ำใจกันวันนี้</h3>
-                                        <p class="text-sm text-ink-400 mb-6">{togetherLabel || 'พื้นที่นี้จะอยู่ตรงนี้เสมอ'} · เดินทางปลอดภัยนะ 🕊️</p>
-                                        <button type="button" onClick={triggerEndChat} class="btn-farewell w-full py-3 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 text-white font-semibold text-sm hover:brightness-105 transition">
+                                        <p class="text-sm text-ink-400 mb-4">{togetherLabel || 'พื้นที่นี้จะอยู่ตรงนี้เสมอ'} · เดินทางปลอดภัยนะ 🕊️</p>
+                                        <textarea value={reflectNote} onChange={e => setReflectNote(e.target.value.slice(0, 500))} rows="2"
+                                            placeholder="จดสิ่งที่ได้เรียนรู้/รู้สึกวันนี้ (ไม่บังคับ · เก็บเป็นของคุณคนเดียว)"
+                                            class="w-full text-sm bg-paper-50 border border-line rounded-2xl px-4 py-3 mb-4 resize-none focus:outline-none focus:ring-2 focus:ring-primary-500/30 placeholder:text-ink-300" />
+                                        <button type="button" onClick={finalizeAndEnd} class="btn-farewell w-full py-3 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 text-white font-semibold text-sm hover:brightness-105 transition">
                                             ปิดบทสนทนาอย่างอบอุ่น
                                         </button>
                                     </>

@@ -39,13 +39,21 @@
         .glass { background: color-mix(in srgb, var(--color-surface) 88%, transparent); backdrop-filter: blur(16px); }
         .glass-dark { background: color-mix(in srgb, var(--color-surface) 75%, transparent); backdrop-filter: blur(20px); }
     </style>
+    <style>
+        @keyframes sheetUp2 { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .sheet-up { animation: sheetUp2 0.3s cubic-bezier(0.32, 0.72, 0, 1); }
+    </style>
     <script src="theme.js"></script>
+    <script src="safety.js"></script>
 </head>
 <body class="h-screen text-ink-900">
     <div id="root" class="h-full"></div>
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
         const supabase = window.supabaseClient;
+        const _safety = window.NomGISafety || {};
+        const isRiskyText = _safety.isRisky || (() => false);
+        const HOTLINES = _safety.HOTLINES || [];
         const EMOJIS = ['😀','😂','🥺','❤️','👍','🙏','✨','😭','🥰','🔥','💪','🫂','🎉','😊','🤗','🌟'];
         const AVATAR_COLORS = ['#4D7355','#3E6184','#6B5A91','#96623A','#A85C3B','#9C5566','#0E8074','#B0215A'];
 
@@ -78,7 +86,14 @@
             const [showMembers, setShowMembers] = useState(false);
             const [leaving, setLeaving] = useState(false);
             const [error, setError] = useState(null);
+            const [showCrisis, setShowCrisis] = useState(false);
+            const [crisisDismissed, setCrisisDismissed] = useState(false);
             const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
+
+            useEffect(() => {
+                if (crisisDismissed || !messages.length) return;
+                if (messages.slice(-6).some(m => !m.is_system && isRiskyText(m.content))) setShowCrisis(true);
+            }, [messages, crisisDismissed]);
             const endRef = useRef(null);
             const gid = new URLSearchParams(window.location.search).get('g');
 
@@ -238,6 +253,30 @@
                     </div>
 
                     {/* Members sheet */}
+                    {showCrisis && (
+                        <div class="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4">
+                            <div class="absolute inset-0 bg-black/45 backdrop-blur-sm" onClick={() => { setShowCrisis(false); setCrisisDismissed(true); }}></div>
+                            <div class="relative w-full sm:max-w-md bg-surface rounded-3xl shadow-xl border border-line overflow-hidden sheet-up">
+                                <div class="bg-gradient-to-br from-rose-500 to-red-500 p-5 text-white">
+                                    <div class="flex items-center gap-2 text-lg font-bold">🫂 คุณไม่ได้อยู่คนเดียวนะ</div>
+                                    <p class="text-sm text-white/90 mt-1 leading-relaxed">ถ้าตอนนี้รู้สึกไม่ไหว มีคนพร้อมรับฟังและช่วยเหลือคุณจริงๆ</p>
+                                </div>
+                                <div class="p-5 space-y-2.5">
+                                    {HOTLINES.map((h, i) => (
+                                        <a key={i} href={h.href} class="flex items-center justify-between gap-3 p-3.5 rounded-2xl border border-line hover:border-rose-300 hover:bg-rose-50/50 transition group">
+                                            <div class="min-w-0">
+                                                <div class="text-sm font-semibold text-ink-900 truncate">{h.name}</div>
+                                                <div class="text-xs text-ink-400">{h.note}</div>
+                                            </div>
+                                            <span class="shrink-0 px-3 py-1.5 rounded-full bg-rose-500 text-white text-sm font-bold group-hover:bg-rose-600 transition">{h.phone}</span>
+                                        </a>
+                                    ))}
+                                    <button type="button" onClick={() => { setShowCrisis(false); setCrisisDismissed(true); }} class="w-full text-center text-sm text-ink-500 hover:text-ink-900 transition py-2 mt-1">ขอบคุณ ฉันโอเค</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {showMembers && (
                         <div class="fixed inset-0 z-50 flex items-end sm:items-center justify-center" onClick={() => setShowMembers(false)}>
                             <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
