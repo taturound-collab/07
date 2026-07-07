@@ -126,6 +126,7 @@
             const role = params.get('role');
             const identity = params.get('identity') === 'revealed' ? 'revealed' : 'anonymous';
             const topic = params.get('topic') || 'general';
+            const support = params.get('support') || '';
 
             useEffect(() => {
                 window.BlissiamTheme?.loadAndApplyTheme();
@@ -161,7 +162,7 @@
                         status: 'waiting',
                         last_seen: new Date().toISOString()
                     }).eq('id', userId);
-                    window.location.href = `queue.html?role=${role}&identity=${identity}&topic=${encodeURIComponent(topic)}`;
+                    window.location.href = `queue.html?role=${role}&identity=${identity}&topic=${encodeURIComponent(topic)}${support ? '&support=' + support : ''}`;
                     return;
                 }
 
@@ -247,7 +248,7 @@
 
                             <p class="text-center mt-6 text-sm text-ink-500">
                                 ยังไม่มีบัญชี?{' '}
-                                <a href={`signup.html?redirect=${encodeURIComponent(redirect)}${role ? '&role=' + role + '&identity=' + identity + '&topic=' + encodeURIComponent(topic) : ''}`} class="text-primary-600 hover:text-primary-700 font-medium">
+                                <a href={`signup.html?redirect=${encodeURIComponent(redirect)}${role ? '&role=' + role + '&identity=' + identity + '&topic=' + encodeURIComponent(topic) + (support ? '&support=' + support : '') : ''}`} class="text-primary-600 hover:text-primary-700 font-medium">
                                     สร้างบัญชี
                                 </a>
                             </p>

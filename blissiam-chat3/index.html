@@ -111,6 +111,12 @@
             { id: 'health', label: 'สุขภาพจิต 🧠', desc: 'เหนื่อยล้า ต้องการกำลังใจเยียวยา' }
         ];
 
+        const SUPPORT_TYPES = [
+            { id: 'listen',  emoji: '👂', label: 'แค่อยากให้ฟัง', desc: 'ไม่ต้องแนะนำ ขอแค่มีคนรับฟัง' },
+            { id: 'advice',  emoji: '💡', label: 'อยากได้คำแนะนำ', desc: 'อยากได้มุมมอง/ทางออกด้วย' },
+            { id: 'company', emoji: '🫂', label: 'อยากมีคนอยู่เป็นเพื่อน', desc: 'ไม่ต้องพิมพ์เยอะ ขอแค่ไม่เหงา' },
+        ];
+
         function DotLogo({ size = 28, animated = false }) {
             return (
                 <svg width={size} height={size} viewBox="0 0 28 28" fill="none" class={animated ? 'dot-pulse' : ''}>
@@ -143,6 +149,7 @@
             const [selectedTopic, setSelectedTopic] = useState('general');
             const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
             const [moodRole, setMoodRole] = useState(null); // เปิด mood check-in ก่อนเข้าคิว (#4)
+            const [selectedSupport, setSelectedSupport] = useState('listen'); // #2 แบบที่อยากให้ช่วย
 
             useEffect(() => {
                 checkUser();
@@ -195,7 +202,7 @@
 
             function startWithRole(role) {
                 if (!user) {
-                    window.location.href = `login.html?redirect=queue.html&role=${role}&identity=${identityMode}&topic=${selectedTopic}`;
+                    window.location.href = `login.html?redirect=queue.html&role=${role}&identity=${identityMode}&topic=${selectedTopic}&support=${selectedSupport}`;
                     return;
                 }
                 setMoodRole(role); // เปิด mood check-in ก่อน แล้วค่อยเข้าคิว
@@ -212,7 +219,7 @@
                         status: 'waiting',
                         last_seen: new Date().toISOString()
                     }).eq('id', user.id);
-                    window.location.href = `queue.html?role=${role}&identity=${identityMode}&topic=${selectedTopic}`;
+                    window.location.href = `queue.html?role=${role}&identity=${identityMode}&topic=${selectedTopic}&support=${selectedSupport}`;
                 } catch (err) {
                     alert('เกิดข้อผิดพลาด: ' + err.message);
                     setStarting(false);
@@ -344,13 +351,33 @@
                                             </button>
                                         </div>
                                     </div>
+
+                                    {/* 3. อยากให้ช่วยแบบไหน (#2) */}
+                                    <div class="border-t border-line pt-6">
+                                        <div class="flex items-center justify-between mb-3">
+                                            <h3 class="font-bold text-base text-ink-900 flex items-center gap-2.5">
+                                                <span class="w-6 h-6 rounded-full bg-primary-500 text-white text-xs font-bold flex items-center justify-center shrink-0">3</span>
+                                                อยากให้ช่วยแบบไหน
+                                            </h3>
+                                            <span class="text-xs text-primary-600 font-medium hidden sm:inline">จับคู่คนที่ต้องการแบบเดียวกันก่อน</span>
+                                        </div>
+                                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                            {SUPPORT_TYPES.map(s => (
+                                                <button key={s.id} onClick={() => setSelectedSupport(s.id)}
+                                                    class={`text-left p-4 rounded-2xl border-2 transition ${selectedSupport === s.id ? 'border-primary-500 bg-primary-50/30' : 'border-line hover:border-ink-200'}`}>
+                                                    <div class="font-semibold text-sm text-ink-900 mb-0.5">{s.emoji} {s.label}</div>
+                                                    <div class="text-xs text-ink-500">{s.desc}</div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
                                 </div>
                             )}
 
                             {/* Role Cards Area */}
                             <div class="flex items-end justify-between mb-6">
                                 <h2 class="text-2xl font-extrabold flex items-center gap-2.5">
-                                    {!isAdmin && <span class="w-6 h-6 rounded-full bg-primary-500 text-white text-xs font-bold flex items-center justify-center shrink-0">3</span>}
+                                    {!isAdmin && <span class="w-6 h-6 rounded-full bg-primary-500 text-white text-xs font-bold flex items-center justify-center shrink-0">4</span>}
                                     {isAdmin ? 'ระบบจัดการหลังบ้าน' : 'เริ่มต้นจับคู่พูดคุยได้เลย'}
                                 </h2>
                             </div>

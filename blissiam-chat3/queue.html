@@ -242,6 +242,7 @@
             const selectedRole = urlParams.get('role') || 'venter';
             const selectedIdentity = urlParams.get('identity') === 'revealed' ? 'revealed' : 'anonymous';
             const selectedTopic = urlParams.get('topic') || 'general';
+            const selectedSupport = ['listen','advice','company'].includes(urlParams.get('support')) ? urlParams.get('support') : null;
 
             useEffect(() => {
                 window.BlissiamTheme?.loadAndApplyTheme();
@@ -325,15 +326,21 @@
                         .eq('user_id', session.user.id)
                         .eq('status', 'waiting');
 
-                    const { error: queueError } = await supabase
-                        .from('queue')
-                        .insert({
-                            user_id: session.user.id,
-                            role: selectedRole,
-                            identity_mode: selectedIdentity,
-                            topic: selectedTopic,
-                            status: 'waiting'
-                        });
+                    const queuePayload = {
+                        user_id: session.user.id,
+                        role: selectedRole,
+                        identity_mode: selectedIdentity,
+                        topic: selectedTopic,
+                        status: 'waiting'
+                    };
+                    if (selectedSupport) queuePayload.support_type = selectedSupport;
+
+                    let { error: queueError } = await supabase.from('queue').insert(queuePayload);
+                    // ถ้ายังไม่ได้รัน SQL (คอลัมน์ support_type ยังไม่มี) ให้ลองใหม่โดยไม่ใส่
+                    if (queueError && selectedSupport && /support_type/i.test(queueError.message || '')) {
+                        delete queuePayload.support_type;
+                        ({ error: queueError } = await supabase.from('queue').insert(queuePayload));
+                    }
 
                     if (queueError) throw queueError;
                     setQueueStatus('waiting');

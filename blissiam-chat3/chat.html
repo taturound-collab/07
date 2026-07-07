@@ -115,6 +115,12 @@
         const NomGIMood = window.NomGIMood || { MOODS: [], commitAfter: () => {}, setPending: () => {} };
         const MOODS = NomGIMood.MOODS || [];
 
+        const SUPPORT_LABELS = {
+            listen:  { emoji: '👂', label: 'อยากให้แค่ฟัง' },
+            advice:  { emoji: '💡', label: 'อยากได้คำแนะนำ' },
+            company: { emoji: '🫂', label: 'อยากมีคนอยู่เป็นเพื่อน' },
+        };
+
         function playMessageSound() {
             try {
                 const Ctx = window.AudioContext || window.webkitAudioContext;
@@ -514,6 +520,16 @@
                             </button>
                         </div>
                     </header>
+
+                    {/* แถบบอกความต้องการของคู่สนทนา (#2) — โชว์เมื่อมีข้อมูล */}
+                    {room.support_type && SUPPORT_LABELS[room.support_type] && (
+                        <div class="shrink-0 flex justify-center py-1.5 glass border-b border-line/60 z-10">
+                            <span class="text-xs text-ink-500 flex items-center gap-1.5">
+                                <span>{SUPPORT_LABELS[room.support_type].emoji}</span>
+                                วันนี้เขา{SUPPORT_LABELS[room.support_type].label}
+                            </span>
+                        </div>
+                    )}
 
                     {/* ได้รับไออุ่นจากคู่สนทนา (โหมดเงียบ) */}
                     {warmthToast && (
