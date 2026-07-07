@@ -65,10 +65,23 @@
         .glass-dark { background: color-mix(in srgb, var(--color-surface) 75%, transparent); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
         @keyframes wiggle { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(-8deg); } 75% { transform: rotate(8deg); } }
         .wiggle-hover:hover { animation: wiggle 0.4s ease-in-out; }
+        /* พิธีกรรมปิดจบ: เปลวเทียน + ดาวลอย */
+        @keyframes flameFlicker { 0%,100% { transform: scale(1) rotate(-1deg); opacity: 0.95; } 50% { transform: scale(1.12) rotate(2deg); opacity: 1; } }
+        .flame { transform-origin: bottom center; animation: flameFlicker 0.9s ease-in-out infinite; }
+        @keyframes floatUp { 0% { transform: translateY(0) scale(0.6); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(-70px) scale(1); opacity: 0; } }
+        .float-star { animation: floatUp 2.4s ease-out forwards; }
+        @keyframes warmthPop { 0% { transform: scale(0.4); opacity: 0; } 30% { transform: scale(1.15); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+        .warmth-pop { animation: warmthPop 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+        @keyframes toastIn { from { transform: translateY(-12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .toast-in { animation: toastIn 0.3s ease-out forwards; }
+        @keyframes heartBeat { 0%,100% { transform: scale(1); } 25% { transform: scale(1.25); } 50% { transform: scale(0.95); } }
+        .heart-beat { animation: heartBeat 0.7s ease-in-out; }
     </style>
     <script src="theme.js"></script>
     <script src="chat-backgrounds.js"></script>
     <script src="chat-memes.js"></script>
+    <script src="kudos-tree.js"></script>
+    <script src="mood.js"></script>
 </head>
 <body class="h-screen text-ink-900">
     <div id="root" class="h-full"></div>
@@ -95,6 +108,12 @@
 
         const EMOJIS = ['😀','😂','🥺','❤️','👍','🙏','✨','😭','🥰','😅','🔥','👀','💪','🫂','🎉','😊','🤗','💯','🌟','🎈'];
         const REPORT_REASONS = ['พูดจาไม่เหมาะสม', 'คุกคาม / ข่มขู่', 'สแปม / โฆษณา', 'อื่นๆ'];
+
+        // Guard: ต้นไม้น้ำใจ + mood (กัน crash ถ้าไฟล์โหลดไม่สำเร็จ)
+        const kudosPlantSvg = (window.NomGIKudos && window.NomGIKudos.plantSvg) || (() => '');
+        const kudosStage = (window.NomGIKudos && window.NomGIKudos.stage) || (() => ({ level: 0, label: '' }));
+        const NomGIMood = window.NomGIMood || { MOODS: [], commitAfter: () => {}, setPending: () => {} };
+        const MOODS = NomGIMood.MOODS || [];
 
         function playMessageSound() {
             try {
@@ -176,6 +195,13 @@
             const [soundEnabled, setSoundEnabled] = useState(() => localStorage.getItem('blissiam_sound') !== 'off');
             const [deletingId, setDeletingId] = useState(null);
             const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
+            // พิธีกรรมปิดจบ (#3) + mood หลังคุย (#4)
+            const [endStep, setEndStep] = useState('ask');       // 'ask' | 'mood' | 'farewell'
+            const [afterMood, setAfterMood] = useState(null);
+            // โหมดเงียบ/อยู่เป็นเพื่อน (#1)
+            const [warmthToast, setWarmthToast] = useState(false);  // ได้รับไออุ่นจากคู่สนทนา
+            const [warmthCooldown, setWarmthCooldown] = useState(0);
+            const [nowTs, setNowTs] = useState(Date.now());
 
             function toggleDarkMode() {
                 const resolved = window.BlissiamTheme?.toggleColorScheme();
@@ -216,6 +242,19 @@
                 const iv = setInterval(beat, 25000);
                 return () => clearInterval(iv);
             }, [user]);
+
+            // together-timer: อัปเดตเวลาทุก 20 วิ สำหรับ "อยู่ด้วยกันมา X นาที"
+            useEffect(() => {
+                const iv = setInterval(() => setNowTs(Date.now()), 20000);
+                return () => clearInterval(iv);
+            }, []);
+
+            // นับถอยหลัง cooldown ปุ่มส่งไออุ่น
+            useEffect(() => {
+                if (warmthCooldown <= 0) return;
+                const t = setInterval(() => setWarmthCooldown(c => Math.max(0, c - 1)), 1000);
+                return () => clearInterval(t);
+            }, [warmthCooldown > 0]);
 
             useEffect(() => {
                 if (showMediaMenu && mediaTab === 'giphy' && giphyMemes.length === 0 && GIPHY_KEY) fetchGiphy();
@@ -288,13 +327,32 @@
                             setMessages(prev => prev.filter(m => m.id !== payload.old.id));
                         }).subscribe();
 
-                    supabase.channel('typing-' + roomId).on('broadcast', { event: 'typing' }, (payload) => {
-                        if (payload.payload.senderId !== session.user.id) {
-                            setPartnerTyping(true);
-                            setTimeout(() => setPartnerTyping(false), 3000);
-                        }
-                    }).subscribe();
+                    supabase.channel('typing-' + roomId)
+                        .on('broadcast', { event: 'typing' }, (payload) => {
+                            if (payload.payload.senderId !== session.user.id) {
+                                setPartnerTyping(true);
+                                setTimeout(() => setPartnerTyping(false), 3000);
+                            }
+                        })
+                        .on('broadcast', { event: 'presence-ping' }, (payload) => {
+                            // ได้รับ "ไออุ่น" จากคู่สนทนา (โหมดเงียบ — สื่อสารโดยไม่ต้องพิมพ์)
+                            if (payload.payload.senderId !== session.user.id) {
+                                setWarmthToast(true);
+                                if (localStorage.getItem('blissiam_sound') !== 'off') playMessageSound();
+                                setTimeout(() => setWarmthToast(false), 2600);
+                            }
+                        })
+                        .subscribe();
                 } catch (err) { alert(err.message); }
+            }
+
+            // ส่ง "ไออุ่น" ให้คู่สนทนา (โหมดเงียบ/อยู่เป็นเพื่อน)
+            function sendWarmth() {
+                if (warmthCooldown > 0 || !user) return;
+                supabase.channel('typing-' + roomId).send({
+                    type: 'broadcast', event: 'presence-ping', payload: { senderId: user.id }
+                });
+                setWarmthCooldown(6);
             }
 
             async function sendMessage(content, type = 'text') {
@@ -369,8 +427,29 @@
                 window.location.href = 'index.html';
             }
 
+            // เปิดพิธีกรรมปิดจบ (รีเซ็ตสเต็ป)
+            function openFarewell() {
+                setEndStep('ask'); setAfterMood(null); setShowMediaMenu(false); setShowEndConfirm(true);
+            }
+            // เลือก mood หลังคุย -> บันทึก -> ไปสเต็ปอำลา
+            function chooseAfterMood(score) {
+                setAfterMood(score);
+                try { NomGIMood.commitAfter(score); } catch (e) {}
+                setEndStep('farewell');
+            }
+
             const partnerName = partnerIdentity?.real_name || partner?.display_name || 'คู่สนทนา';
             const partnerSub = partnerIdentity?.school || 'พื้นที่ปลอดภัย · สนทนาส่วนตัว';
+
+            // "อยู่ด้วยกันมา X นาที" จาก room.created_at (โหมดเงียบ #1)
+            const togetherLabel = (() => {
+                if (!room?.created_at) return '';
+                const mins = Math.max(0, Math.floor((nowTs - new Date(room.created_at).getTime()) / 60000));
+                if (mins < 1) return 'เพิ่งเริ่มอยู่ด้วยกัน';
+                if (mins < 60) return `อยู่ด้วยกันมา ${mins} นาที`;
+                const h = Math.floor(mins / 60), m = mins % 60;
+                return `อยู่ด้วยกันมา ${h} ชม.${m ? ' ' + m + ' นาที' : ''}`;
+            })();
 
             if (!room || !profile) return (
                 <div class="h-full flex flex-col items-center justify-center gap-4" style={bgStyle}>
@@ -405,11 +484,16 @@
                                         </span>
                                     </div>
                                 ) : (
-                                    <div class="text-xs text-ink-400 truncate">{partnerSub}</div>
+                                    <div class="text-xs text-ink-400 truncate flex items-center gap-1">
+                                        <span class="text-primary-500">🕊️</span>{togetherLabel || partnerSub}
+                                    </div>
                                 )}
                             </div>
                         </button>
                         <div class="flex items-center gap-1 shrink-0">
+                            <IconBtn onClick={sendWarmth} active={warmthCooldown === 0} title="ส่งไออุ่นให้คู่สนทนา (ไม่ต้องพิมพ์)">
+                                <span class={warmthCooldown === 0 ? '' : 'opacity-40'} style={{ fontSize: '18px' }}>🫂</span>
+                            </IconBtn>
                             <DarkModeToggle isDark={isDark} onToggle={toggleDarkMode} />
                             <IconBtn onClick={() => { setShowBgPicker(true); setShowMediaMenu(false); }} title="เปลี่ยนพื้นหลัง">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
@@ -424,12 +508,22 @@
                             <IconBtn onClick={() => setShowReportModal(true)} title="รายงาน">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
                             </IconBtn>
-                            <button type="button" onClick={() => setShowEndConfirm(true)}
+                            <button type="button" onClick={openFarewell}
                                 class="ml-1 px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition">
                                 จบแชท
                             </button>
                         </div>
                     </header>
+
+                    {/* ได้รับไออุ่นจากคู่สนทนา (โหมดเงียบ) */}
+                    {warmthToast && (
+                        <div class="absolute top-20 left-1/2 -translate-x-1/2 z-30 toast-in pointer-events-none">
+                            <div class="glass shadow-float border border-white/60 rounded-full px-5 py-2.5 flex items-center gap-2">
+                                <span class="text-2xl heart-beat">🫂</span>
+                                <span class="text-sm font-medium text-ink-700">คู่สนทนาส่งไออุ่นถึงคุณ</span>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Messages */}
                     <div class="flex-1 overflow-y-auto px-4 py-5 scrollbar-hide" onClick={() => { setShowMediaMenu(false); }}>
@@ -647,15 +741,18 @@
                                 ) : (
                                     <p class="text-sm text-ink-400 text-center mb-4">{partnerSub}</p>
                                 )}
-                                <div class="bg-amber-50 border border-amber-100 rounded-2xl p-4 flex items-center justify-between gap-3">
-                                    <div>
-                                        <div class="text-sm font-bold text-amber-900">แต้มความใจดี</div>
-                                        <div class="text-xs text-amber-700">{partner.kudos_count || 0} ครั้ง</div>
+                                <div class="bg-primary-50 border border-primary-100 rounded-2xl p-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="shrink-0 w-16 h-16" dangerouslySetInnerHTML={{ __html: kudosPlantSvg(partner.kudos_count || 0, 64) }}></div>
+                                        <div class="min-w-0 flex-1">
+                                            <div class="text-sm font-bold text-primary-700">ต้นไม้น้ำใจ</div>
+                                            <div class="text-xs text-primary-600">{kudosStage(partner.kudos_count || 0).label} · น้ำใจ {partner.kudos_count || 0}</div>
+                                        </div>
+                                        <button type="button" onClick={giveKudos} disabled={kudosGiven}
+                                            class={`px-4 py-2 rounded-xl text-xs font-semibold transition shrink-0 ${kudosGiven ? 'bg-paper-100 text-ink-400' : 'bg-primary-500 text-white hover:bg-primary-600'}`}>
+                                            {kudosGiven ? 'รดน้ำแล้ว ✓' : 'รดน้ำ 💧'}
+                                        </button>
                                     </div>
-                                    <button type="button" onClick={giveKudos} disabled={kudosGiven}
-                                        class={`px-4 py-2 rounded-xl text-xs font-semibold transition ${kudosGiven ? 'bg-paper-100 text-ink-400' : 'bg-amber-200 text-amber-900 hover:bg-amber-300'}`}>
-                                        {kudosGiven ? 'ให้แล้ว ✓' : 'ให้แต้ม 🌟'}
-                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -680,18 +777,65 @@
                         </div>
                     )}
 
-                    {/* End confirm */}
+                    {/* พิธีกรรมปิดจบ (3 สเต็ป) */}
                     {showEndConfirm && (
                         <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-                            <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowEndConfirm(false)}></div>
-                            <div class="relative bg-white rounded-3xl p-6 max-w-sm w-full shadow-float text-center">
-                                <div class="text-4xl mb-3">👋</div>
-                                <h3 class="text-lg font-bold mb-2">จบการสนทนา?</h3>
-                                <p class="text-sm text-ink-400 mb-5">คุณสามารถกลับมาคุยใหม่ได้ทุกเมื่อ</p>
-                                <div class="grid grid-cols-2 gap-2">
-                                    <button type="button" onClick={() => setShowEndConfirm(false)} class="py-2.5 rounded-xl border font-medium text-sm">อยู่ต่อ</button>
-                                    <button type="button" onClick={triggerEndChat} class="py-2.5 rounded-xl bg-red-500 text-white font-medium text-sm">จบเลย</button>
-                                </div>
+                            <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => endStep !== 'farewell' && setShowEndConfirm(false)}></div>
+                            <div class="relative bg-surface rounded-3xl p-7 max-w-sm w-full shadow-float text-center border border-line">
+
+                                {endStep === 'ask' && (
+                                    <>
+                                        <div class="text-4xl mb-3">🕯️</div>
+                                        <h3 class="text-lg font-bold mb-1 text-ink-900">ก่อนจากกันวันนี้</h3>
+                                        <p class="text-sm text-ink-400 mb-5">ขอบคุณที่เปิดใจให้กัน · อยากส่งน้ำใจให้คู่สนทนาไหม?</p>
+                                        <button type="button" onClick={giveKudos} disabled={kudosGiven}
+                                            class={`w-full py-3 rounded-2xl font-semibold text-sm mb-2 transition ${kudosGiven ? 'bg-primary-50 text-primary-600' : 'bg-gradient-to-br from-secondary-400 to-secondary-600 text-white hover:brightness-105'}`}>
+                                            {kudosGiven ? 'ส่งดาวขอบคุณแล้ว ⭐' : 'ส่งดาวขอบคุณ ⭐'}
+                                        </button>
+                                        <div class="grid grid-cols-2 gap-2 mt-2">
+                                            <button type="button" onClick={() => setShowEndConfirm(false)} class="py-2.5 rounded-xl border border-line font-medium text-sm text-ink-700 hover:bg-paper-100 transition">อยู่คุยต่อ</button>
+                                            <button type="button" onClick={() => setEndStep('mood')} class="py-2.5 rounded-xl bg-ink-900 text-white font-medium text-sm hover:bg-primary-600 transition">ไปต่อ →</button>
+                                        </div>
+                                    </>
+                                )}
+
+                                {endStep === 'mood' && (
+                                    <>
+                                        <div class="text-3xl mb-2">🌈</div>
+                                        <h3 class="text-lg font-bold mb-1 text-ink-900">หลังได้คุยวันนี้ รู้สึกยังไงบ้าง?</h3>
+                                        <p class="text-xs text-ink-400 mb-5">เก็บเป็นบันทึกส่วนตัวของคุณเท่านั้น ไม่มีใครเห็น</p>
+                                        <div class="flex justify-between gap-1 mb-5">
+                                            {MOODS.map(m => (
+                                                <button key={m.score} type="button" onClick={() => chooseAfterMood(m.score)}
+                                                    class="flex-1 flex flex-col items-center gap-1 py-2 rounded-2xl hover:bg-paper-100 transition active:scale-90">
+                                                    <span class="text-3xl">{m.emoji}</span>
+                                                    <span class="text-[10px] text-ink-400">{m.label}</span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <button type="button" onClick={() => setEndStep('farewell')} class="text-xs text-ink-400 hover:text-primary-600 transition">ข้ามขั้นตอนนี้</button>
+                                    </>
+                                )}
+
+                                {endStep === 'farewell' && (
+                                    <>
+                                        <div class="relative flex justify-center mb-3" style={{ height: '76px' }}>
+                                            {/* ดาวลอยขึ้น */}
+                                            {[0,1,2,3,4].map(i => (
+                                                <span key={i} class="absolute text-xl float-star" style={{ left: (18 + i * 16) + '%', bottom: '8px', animationDelay: (i * 0.35) + 's' }}>⭐</span>
+                                            ))}
+                                            {/* เทียน */}
+                                            <div class="relative flex flex-col items-center" style={{ zIndex: 2 }}>
+                                                <span class="text-3xl flame">🕯️</span>
+                                            </div>
+                                        </div>
+                                        <h3 class="text-lg font-bold mb-1 text-ink-900 warmth-pop">ขอบคุณที่แบ่งปันน้ำใจกันวันนี้</h3>
+                                        <p class="text-sm text-ink-400 mb-6">{togetherLabel || 'พื้นที่นี้จะอยู่ตรงนี้เสมอ'} · เดินทางปลอดภัยนะ 🕊️</p>
+                                        <button type="button" onClick={triggerEndChat} class="btn-farewell w-full py-3 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 text-white font-semibold text-sm hover:brightness-105 transition">
+                                            ปิดบทสนทนาอย่างอบอุ่น
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         </div>
                     )}

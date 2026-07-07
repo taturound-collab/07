@@ -55,12 +55,75 @@
         .avatar-ring { background: linear-gradient(135deg, var(--color-primary-500), var(--color-secondary-500, var(--color-primary-600))); padding: 4px; }
     </style>
     <script src="theme.js"></script>
+    <script src="kudos-tree.js"></script>
+    <script src="mood.js"></script>
 </head>
 <body class="min-h-screen text-ink-900">
     <div id="root"></div>
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
         const supabase = window.supabaseClient;
+
+        const kudosPlantSvg = (window.NomGIKudos && window.NomGIKudos.plantSvg) || (() => '');
+        const kudosStage = (window.NomGIKudos && window.NomGIKudos.stage) || (() => ({ level: 0, label: '' }));
+        const NomGIMood = window.NomGIMood || { history: () => [], stats: () => ({ total: 0, improvedPct: 0 }), moodOf: () => ({ emoji: '', color: '#ccc' }) };
+
+        // การ์ด "ต้นไม้น้ำใจ" — โชว์ kudos ของเราเป็นต้นไม้ที่โต
+        function KudosTreeCard({ count }) {
+            const s = kudosStage(count || 0);
+            return (
+                <div class="card-playful bg-surface p-6 flex items-center gap-5">
+                    <div class="shrink-0 w-28 h-28" dangerouslySetInnerHTML={{ __html: kudosPlantSvg(count || 0, 112) }}></div>
+                    <div class="min-w-0">
+                        <div class="text-xs font-semibold uppercase tracking-wide text-primary-600">ต้นไม้น้ำใจของฉัน</div>
+                        <div class="text-2xl font-extrabold text-ink-900 mt-1">{s.label}</div>
+                        <div class="text-sm text-ink-500 mt-0.5">ได้รับน้ำใจมาแล้ว {count || 0} ครั้ง</div>
+                        <div class="text-xs text-ink-400 mt-2">ยิ่งรับฟัง-แบ่งปันมาก ต้นไม้ยิ่งเติบโตและออกดอก 🌸</div>
+                    </div>
+                </div>
+            );
+        }
+
+        // การ์ด "เส้นทางใจของฉัน" — กราฟ mood ก่อน/หลังคุย (ส่วนตัว จาก localStorage)
+        function MoodJourneyCard() {
+            const history = NomGIMood.history().filter(e => e.after != null);
+            const stats = NomGIMood.stats();
+            if (!history.length) {
+                return (
+                    <div class="card-playful bg-surface p-6">
+                        <div class="text-xs font-semibold uppercase tracking-wide text-primary-600 mb-1">เส้นทางใจของฉัน</div>
+                        <p class="text-sm text-ink-400 mt-2">ยังไม่มีบันทึกความรู้สึก — หลังคุยจบครั้งถัดไป ลองบอกความรู้สึกดูนะ แล้วกราฟจะค่อยๆ ปรากฏที่นี่ (เห็นแค่คุณคนเดียว)</p>
+                    </div>
+                );
+            }
+            const recent = history.slice(-14);
+            const W = 300, H = 90, pad = 6;
+            const stepX = recent.length > 1 ? (W - pad * 2) / (recent.length - 1) : 0;
+            const y = v => H - pad - ((v - 1) / 4) * (H - pad * 2);
+            const pts = recent.map((e, i) => [pad + i * stepX, y(e.after)]);
+            const path = pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+            return (
+                <div class="card-playful bg-surface p-6">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="text-xs font-semibold uppercase tracking-wide text-primary-600">เส้นทางใจของฉัน</div>
+                        <div class="text-xs text-ink-400">ส่วนตัว · {stats.total} ครั้ง</div>
+                    </div>
+                    {stats.total > 0 && (
+                        <p class="text-sm text-ink-700 mb-3">
+                            หลังได้ระบาย/รับฟัง <span class="font-bold text-primary-600">รู้สึกดีขึ้น {stats.improvedPct}%</span> ของครั้งที่บันทึก 🌤️
+                        </p>
+                    )}
+                    <svg viewBox={`0 0 ${W} ${H}`} class="w-full" style={{ height: '90px' }}>
+                        <line x1={pad} y1={y(3)} x2={W-pad} y2={y(3)} stroke="var(--color-line)" stroke-width="1" stroke-dasharray="3 4"/>
+                        <path d={path} fill="none" stroke="var(--color-primary-500)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        {pts.map((p, i) => (
+                            <circle key={i} cx={p[0]} cy={p[1]} r="3.5" fill={NomGIMood.moodOf(recent[i].after).color}/>
+                        ))}
+                    </svg>
+                    <div class="flex justify-between text-[10px] text-ink-300 mt-1"><span>เก่าสุด</span><span>ล่าสุด</span></div>
+                </div>
+            );
+        }
 
         function DarkModeToggle({ isDark, onToggle }) {
             return (
@@ -95,7 +158,8 @@
             const [email, setEmail] = useState('');
             const [igUsername, setIgUsername] = useState('');
             const [avatarUrl, setAvatarUrl] = useState('');
-            
+            const [kudosCount, setKudosCount] = useState(0);
+
             const fileInputRef = useRef(null);
 
             useEffect(() => {
@@ -118,6 +182,7 @@
                     setSchool(profileData.school || '');
                     setIgUsername(profileData.ig_username || '');
                     setAvatarUrl(profileData.avatar_url || '');
+                    setKudosCount(profileData.kudos_count || 0);
                 }
                 setLoading(false);
             }
@@ -183,9 +248,13 @@
                         </div>
                     </nav>
 
-                    <div class="max-w-2xl mx-auto px-6 py-10 relative z-10">
-                        {error && <div class="bg-red-50 text-red-600 px-4 py-3 rounded-xl mb-4 text-sm">{error}</div>}
-                        {success && <div class="bg-primary-50 text-primary-700 px-4 py-3 rounded-xl mb-4 text-sm">{success}</div>}
+                    <div class="max-w-2xl mx-auto px-6 py-10 relative z-10 space-y-6">
+                        {error && <div class="bg-red-50 text-red-600 px-4 py-3 rounded-xl text-sm">{error}</div>}
+                        {success && <div class="bg-primary-50 text-primary-700 px-4 py-3 rounded-xl text-sm">{success}</div>}
+
+                        {/* ต้นไม้น้ำใจ (#5) + เส้นทางใจ (#4) */}
+                        <KudosTreeCard count={kudosCount} />
+                        <MoodJourneyCard />
 
                         <form onSubmit={handleSave} class="card-playful bg-surface p-8 space-y-6">
                             {/* ส่วนอัปโหลดรูป */}

@@ -56,6 +56,7 @@
         }
     </style>
     <script src="theme.js"></script>
+    <script src="mood.js"></script>
     <style>
         body { font-family: 'Kanit', sans-serif; background-color: var(--color-paper-50); background-image: radial-gradient(circle at 15% 10%, var(--color-primary-50) 0%, transparent 45%), radial-gradient(circle at 85% 90%, var(--color-secondary-50) 0%, transparent 45%); background-attachment: fixed; transition: background-color 0.3s ease; }
         .watermark { font-size: 13rem; font-weight: 800; color: var(--color-ink-900); opacity: 0.045; letter-spacing: -0.02em; white-space: nowrap; user-select: none; }
@@ -141,6 +142,7 @@
             const [identityMode, setIdentityMode] = useState('anonymous');
             const [selectedTopic, setSelectedTopic] = useState('general');
             const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
+            const [moodRole, setMoodRole] = useState(null); // เปิด mood check-in ก่อนเข้าคิว (#4)
 
             useEffect(() => {
                 checkUser();
@@ -191,11 +193,18 @@
                 setIsDark(resolved === 'dark');
             }
 
-            async function startWithRole(role) {
+            function startWithRole(role) {
                 if (!user) {
                     window.location.href = `login.html?redirect=queue.html&role=${role}&identity=${identityMode}&topic=${selectedTopic}`;
                     return;
                 }
+                setMoodRole(role); // เปิด mood check-in ก่อน แล้วค่อยเข้าคิว
+            }
+
+            // เลือกความรู้สึกก่อนเข้าคิว (บันทึกส่วนตัว) แล้วเข้าคิว — ข้ามได้
+            async function proceedToQueue(role, moodScore) {
+                if (moodScore) { try { window.NomGIMood?.setPending(moodScore); } catch (e) {} }
+                setMoodRole(null);
                 setStarting(true);
                 try {
                     await supabase.from('profiles').update({
@@ -397,6 +406,30 @@
                     <footer class="bg-paper-50 border-t border-line py-8 px-6 text-center">
                         <p class="text-sm text-ink-300">© 2026 NOMGI · พื้นที่แบ่งปันน้ำใจสร้างด้วยความห่วงใย</p>
                     </footer>
+
+                    {/* Mood check-in ก่อนเข้าคิว (#4) */}
+                    {moodRole && (
+                        <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                            <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setMoodRole(null)}></div>
+                            <div class="relative bg-surface rounded-3xl p-7 max-w-sm w-full shadow-float text-center border border-line">
+                                <div class="text-3xl mb-2">🌤️</div>
+                                <h3 class="text-lg font-bold text-ink-900 mb-1">ตอนนี้รู้สึกยังไงบ้าง?</h3>
+                                <p class="text-xs text-ink-400 mb-5">บันทึกส่วนตัวก่อนเริ่มคุย เห็นแค่คุณคนเดียว — ไว้ดูว่าการได้ระบายช่วยไหม</p>
+                                <div class="flex justify-between gap-1 mb-4">
+                                    {(window.NomGIMood?.MOODS || []).map(m => (
+                                        <button key={m.score} type="button" onClick={() => proceedToQueue(moodRole, m.score)}
+                                            class="flex-1 flex flex-col items-center gap-1 py-2 rounded-2xl hover:bg-paper-100 transition active:scale-90">
+                                            <span class="text-3xl">{m.emoji}</span>
+                                            <span class="text-[10px] text-ink-400">{m.label}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                                <button type="button" onClick={() => proceedToQueue(moodRole, null)} class="text-xs text-ink-400 hover:text-primary-600 transition">
+                                    ข้าม เริ่มคุยเลย →
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         }
