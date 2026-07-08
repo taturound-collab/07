@@ -1,0 +1,16 @@
+{
+  "name": "NomGI — พื้นที่แบ่งปันน้ำใจ",
+  "short_name": "NomGI",
+  "description": "พื้นที่ปลอดภัยสำหรับรับฟังและระบาย ไม่ระบุตัวตนก็ได้",
+  "start_url": "index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fdfcfa",
+  "theme_color": "#4D7355",
+  "lang": "th",
+  "icons": [
+    { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

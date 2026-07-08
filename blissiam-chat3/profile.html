@@ -55,6 +55,7 @@
         .avatar-ring { background: linear-gradient(135deg, var(--color-primary-500), var(--color-secondary-500, var(--color-primary-600))); padding: 4px; }
     </style>
     <script src="theme.js"></script>
+    <script src="pwa.js"></script>
     <script src="kudos-tree.js"></script>
     <script src="mood.js"></script>
 </head>
@@ -66,20 +67,37 @@
 
         const kudosPlantSvg = (window.NomGIKudos && window.NomGIKudos.plantSvg) || (() => '');
         const kudosStage = (window.NomGIKudos && window.NomGIKudos.stage) || (() => ({ level: 0, label: '' }));
-        const NomGIMood = window.NomGIMood || { history: () => [], stats: () => ({ total: 0, improvedPct: 0 }), moodOf: () => ({ emoji: '', color: '#ccc' }) };
+        const kudosBadge = (window.NomGIKudos && window.NomGIKudos.badge) || (() => ({ current: { icon: '', name: '' }, next: null, remaining: 0 }));
+        const NomGIMood = window.NomGIMood || { history: () => [], stats: () => ({ total: 0, improvedPct: 0 }), moodOf: () => ({ emoji: '', color: '#ccc' }), streak: () => 0 };
 
-        // การ์ด "ต้นไม้น้ำใจ" — โชว์ kudos ของเราเป็นต้นไม้ที่โต
+        // การ์ด "ต้นไม้น้ำใจ" — โชว์ kudos ของเราเป็นต้นไม้ที่โต + ตราน้ำใจ (#9)
         function KudosTreeCard({ count }) {
             const s = kudosStage(count || 0);
+            const b = kudosBadge(count || 0);
             return (
-                <div class="card-playful bg-surface p-6 flex items-center gap-5">
-                    <div class="shrink-0 w-28 h-28" dangerouslySetInnerHTML={{ __html: kudosPlantSvg(count || 0, 112) }}></div>
-                    <div class="min-w-0">
-                        <div class="text-xs font-semibold uppercase tracking-wide text-primary-600">ต้นไม้น้ำใจของฉัน</div>
-                        <div class="text-2xl font-extrabold text-ink-900 mt-1">{s.label}</div>
-                        <div class="text-sm text-ink-500 mt-0.5">ได้รับน้ำใจมาแล้ว {count || 0} ครั้ง</div>
-                        <div class="text-xs text-ink-400 mt-2">ยิ่งรับฟัง-แบ่งปันมาก ต้นไม้ยิ่งเติบโตและออกดอก 🌸</div>
+                <div class="card-playful bg-surface p-6">
+                    <div class="flex items-center gap-5">
+                        <div class="shrink-0 w-28 h-28" dangerouslySetInnerHTML={{ __html: kudosPlantSvg(count || 0, 112) }}></div>
+                        <div class="min-w-0">
+                            <div class="text-xs font-semibold uppercase tracking-wide text-primary-600">ต้นไม้น้ำใจของฉัน</div>
+                            <div class="text-2xl font-extrabold text-ink-900 mt-1">{s.label}</div>
+                            <div class="text-sm text-ink-500 mt-0.5">ได้รับน้ำใจมาแล้ว {count || 0} ครั้ง</div>
+                            <div class="inline-flex items-center gap-1.5 mt-2 px-3 py-1 rounded-full bg-primary-50 text-primary-700 text-xs font-semibold">
+                                <span class="text-base">{b.current.icon}</span> {b.current.name}
+                            </div>
+                        </div>
                     </div>
+                    {b.next && (
+                        <div class="mt-4 pt-4 border-t border-line">
+                            <div class="flex items-center justify-between text-xs text-ink-500 mb-1.5">
+                                <span>ตราถัดไป: {b.next.icon} {b.next.name}</span>
+                                <span>อีก {b.remaining} น้ำใจ</span>
+                            </div>
+                            <div class="h-2 bg-paper-100 rounded-full overflow-hidden">
+                                <div class="h-full bg-primary-500 rounded-full transition-all" style={{ width: Math.min(100, Math.round(((count||0) - b.current.min) / Math.max(1, b.next.min - b.current.min) * 100)) + '%' }}></div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         }
@@ -106,7 +124,10 @@
                 <div class="card-playful bg-surface p-6">
                     <div class="flex items-center justify-between mb-3">
                         <div class="text-xs font-semibold uppercase tracking-wide text-primary-600">เส้นทางใจของฉัน</div>
-                        <div class="text-xs text-ink-400">ส่วนตัว · {stats.total} ครั้ง</div>
+                        <div class="flex items-center gap-2">
+                            {NomGIMood.streak() > 0 && <span class="text-xs font-semibold text-primary-600">🔥 {NomGIMood.streak()} วันติด</span>}
+                            <span class="text-xs text-ink-400">ส่วนตัว · {stats.total} ครั้ง</span>
+                        </div>
                     </div>
                     {stats.total > 0 && (
                         <p class="text-sm text-ink-700 mb-3">

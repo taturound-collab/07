@@ -79,6 +79,26 @@
         return `<svg viewBox="0 0 200 200" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${s.label}">${parts}</svg>`;
     }
 
-    window.NomGIKudos = { plantSvg, stage };
+    // #9 ตราน้ำใจ (badges) ตามจำนวน kudos สะสม
+    const BADGES = [
+        { min: 0,  icon: '🌱', name: 'ผู้เริ่มต้น' },
+        { min: 3,  icon: '🍃', name: 'ผู้รับฟัง' },
+        { min: 8,  icon: '🌿', name: 'ผู้ห่วงใย' },
+        { min: 20, icon: '🌳', name: 'ผู้ให้กำลังใจ' },
+        { min: 50, icon: '🌸', name: 'ต้นไม้แห่งน้ำใจ' },
+        { min: 100,icon: '🏆', name: 'ผู้แบ่งปันน้ำใจตัวจริง' },
+    ];
+    // คืน badge ปัจจุบัน + อันถัดไป (เหลืออีกกี่แต้ม)
+    function badge(count) {
+        const c = Math.max(0, count | 0);
+        let cur = BADGES[0], next = null;
+        for (let i = 0; i < BADGES.length; i++) {
+            if (c >= BADGES[i].min) cur = BADGES[i];
+            else { next = BADGES[i]; break; }
+        }
+        return { current: cur, next, remaining: next ? next.min - c : 0 };
+    }
+
+    window.NomGIKudos = { plantSvg, stage, badge, BADGES };
 
 })();

@@ -27,13 +27,51 @@
     function read() {
         try {
             const raw = localStorage.getItem(KEY);
-            if (!raw) return { pending: null, entries: [] };
+            if (!raw) return { pending: null, entries: [], daily: [] };
             const d = JSON.parse(raw);
-            return { pending: d.pending || null, entries: Array.isArray(d.entries) ? d.entries : [] };
+            return {
+                pending: d.pending || null,
+                entries: Array.isArray(d.entries) ? d.entries : [],
+                daily: Array.isArray(d.daily) ? d.daily : [],
+            };
         } catch (e) {
-            return { pending: null, entries: [] };
+            return { pending: null, entries: [], daily: [] };
         }
     }
+
+    // ----- #7 เช็คอินรายวัน + streak -----
+    function ymd(dt) {
+        const d = dt || new Date();
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+    function checkedInToday() {
+        const d = read();
+        return d.daily.some(x => x.date === ymd());
+    }
+    // เช็คอินความรู้สึกวันนี้ (ครั้งเดียวต่อวัน) — คืน streak ปัจจุบัน
+    function dailyCheckIn(score) {
+        const d = read();
+        const today = ymd();
+        if (!d.daily.some(x => x.date === today)) {
+            d.daily.push({ date: today, score: clamp(score) });
+            if (d.daily.length > 400) d.daily = d.daily.slice(-400);
+            write(d);
+        }
+        return streak();
+    }
+    // จำนวนวันติดต่อกันที่เช็คอิน (นับถึงวันนี้หรือเมื่อวาน)
+    function streak() {
+        const d = read();
+        const set = new Set(d.daily.map(x => x.date));
+        if (!set.size) return 0;
+        let count = 0;
+        let cur = new Date();
+        // ถ้าวันนี้ยังไม่เช็คอิน แต่เมื่อวานเช็ค ให้เริ่มนับจากเมื่อวาน (ยังไม่ขาด)
+        if (!set.has(ymd(cur))) cur.setDate(cur.getDate() - 1);
+        while (set.has(ymd(cur))) { count++; cur.setDate(cur.getDate() - 1); }
+        return count;
+    }
+    function dailyHistory() { return read().daily; }
 
     function write(d) {
         try { localStorage.setItem(KEY, JSON.stringify(d)); } catch (e) {}
@@ -83,6 +121,7 @@
 
     function moodOf(score) { return MOODS[clamp(score) - 1]; }
 
-    window.NomGIMood = { MOODS, setPending, getPending, commitAfter, history, stats, moodOf };
+    window.NomGIMood = { MOODS, setPending, getPending, commitAfter, history, stats, moodOf,
+        dailyCheckIn, checkedInToday, streak, dailyHistory };
 
 })();
