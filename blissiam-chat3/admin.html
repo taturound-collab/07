@@ -134,6 +134,9 @@
             });
             const [topicBreakdown, setTopicBreakdown] = useState({});
             const [messagesByDay, setMessagesByDay] = useState([]);
+            const [moodByDay, setMoodByDay] = useState([]);
+            const [moodSummary, setMoodSummary] = useState({ total: 0, avg: 0 });
+            const [ratingSummary, setRatingSummary] = useState({ total: 0, avg: 0 });
             const [queue, setQueue] = useState([]);
             const [rooms, setRooms] = useState([]);
             const [reports, setReports] = useState([]);
@@ -276,6 +279,27 @@
                     if (bucket) bucket.count++;
                 });
                 setMessagesByDay(dayBuckets);
+
+                // #11 mood รวมของชุมชน (ไม่ระบุตัวตน) ย้อนหลัง 7 วัน + คะแนนเฉลี่ย
+                try {
+                    const { data: pings } = await supabase.from('mood_pings').select('score, created_at').gte('created_at', sevenDaysAgo.toISOString());
+                    const moodBuckets = dayBuckets.map(b => ({ date: b.date, label: b.label, sum: 0, n: 0 }));
+                    (pings || []).forEach(p => {
+                        const d = new Date(p.created_at);
+                        const bk = moodBuckets.find(b => b.date.toDateString() === d.toDateString());
+                        if (bk) { bk.sum += p.score; bk.n++; }
+                    });
+                    setMoodByDay(moodBuckets.map(b => ({ label: b.label, avg: b.n ? b.sum / b.n : 0, n: b.n })));
+                    const total = (pings || []).length;
+                    const avg = total ? (pings.reduce((s, p) => s + p.score, 0) / total) : 0;
+                    setMoodSummary({ total, avg });
+                } catch (e) {}
+                try {
+                    const { data: rs } = await supabase.from('ratings').select('stars').gte('created_at', sevenDaysAgo.toISOString());
+                    const total = (rs || []).length;
+                    const avg = total ? (rs.reduce((s, r) => s + r.stars, 0) / total) : 0;
+                    setRatingSummary({ total, avg });
+                } catch (e) {}
             }
 
             // ระบบแบน/ปลดแบนผู้ใช้
@@ -446,6 +470,35 @@
                                     ) : (
                                         <BarChart data={messagesByDay} />
                                     )}
+                                </div>
+
+                                {/* #11 สุขภาพใจของชุมชน (ไม่ระบุตัวตน) + คะแนนการพูดคุย */}
+                                <div class="grid sm:grid-cols-3 gap-4 mb-6">
+                                    <div class="stat-card-playful bg-surface p-5">
+                                        <div class="text-3xl mb-1">{moodSummary.avg >= 4 ? '😊' : moodSummary.avg >= 3 ? '🙂' : moodSummary.avg >= 2 ? '😐' : moodSummary.total ? '😔' : '🌫️'}</div>
+                                        <div class="text-2xl font-extrabold text-ink-900">{moodSummary.total ? moodSummary.avg.toFixed(1) : '–'}<span class="text-sm text-ink-400 font-normal"> / 5</span></div>
+                                        <div class="text-sm text-ink-500 mt-1">อารมณ์เฉลี่ยของชุมชน (7 วัน)</div>
+                                        <div class="text-xs text-ink-300 mt-0.5">จากเช็คอิน {moodSummary.total} ครั้ง · ไม่ระบุตัวตน</div>
+                                    </div>
+                                    <div class="stat-card-playful bg-surface p-5">
+                                        <div class="text-3xl mb-1">⭐</div>
+                                        <div class="text-2xl font-extrabold text-ink-900">{ratingSummary.total ? ratingSummary.avg.toFixed(1) : '–'}<span class="text-sm text-ink-400 font-normal"> / 5</span></div>
+                                        <div class="text-sm text-ink-500 mt-1">คะแนนการพูดคุยเฉลี่ย (7 วัน)</div>
+                                        <div class="text-xs text-ink-300 mt-0.5">จาก {ratingSummary.total} การให้คะแนน</div>
+                                    </div>
+                                    <div class="stat-card-playful bg-surface p-5">
+                                        <div class="text-xs font-semibold text-ink-500 mb-2">แนวโน้มอารมณ์ชุมชน</div>
+                                        <div class="flex items-end gap-1.5 h-16">
+                                            {moodByDay.map((d, i) => (
+                                                <div key={i} class="flex-1 flex flex-col items-center gap-1" title={d.n ? d.avg.toFixed(1) : 'ไม่มีข้อมูล'}>
+                                                    <div class="w-full bg-paper-100 rounded flex items-end" style={{ height: '44px' }}>
+                                                        <div class="w-full bg-primary-500 rounded" style={{ height: (d.n ? (d.avg / 5 * 100) : 0) + '%' }}></div>
+                                                    </div>
+                                                    <span class="text-[9px] text-ink-400">{d.label}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <div class="grid lg:grid-cols-2 gap-6">

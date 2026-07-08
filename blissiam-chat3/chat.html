@@ -234,6 +234,7 @@
             const [endStep, setEndStep] = useState('ask');       // 'ask' | 'mood' | 'farewell'
             const [afterMood, setAfterMood] = useState(null);
             const [reflectNote, setReflectNote] = useState('');
+            const [ratingGiven, setRatingGiven] = useState(0);
             // โหมดเงียบ/อยู่เป็นเพื่อน (#1)
             const [warmthToast, setWarmthToast] = useState(false);  // ได้รับไออุ่นจากคู่สนทนา
             const [warmthCooldown, setWarmthCooldown] = useState(0);
@@ -465,6 +466,23 @@
                 if (error) { alert('ส่งรายงานไม่สำเร็จ: ' + error.message); return; }
                 setShowReportModal(false); setReportDetails('');
                 alert('ส่งรายงานแล้ว ทีมงานจะตรวจสอบโดยเร็วที่สุด');
+            }
+
+            // #2 บล็อกผู้ใช้นี้ (ไม่ถูกจับคู่ซ้ำ) แล้วจบแชท
+            async function blockPartner() {
+                if (!partner || !user) return;
+                if (!confirm('บล็อกคู่สนทนานี้? จะไม่ถูกจับคู่กันอีก และบทสนทนานี้จะจบลง')) return;
+                const partnerId = room.venter_id === user.id ? room.listener_id : room.venter_id;
+                try { await supabase.from('blocks').insert({ blocker_id: user.id, blocked_id: partnerId }); } catch (e) {}
+                triggerEndChat();
+            }
+
+            // #10 ให้คะแนนการพูดคุย (เก็บลง ratings)
+            async function submitRating(stars) {
+                setRatingGiven(stars);
+                if (!partner || !user) return;
+                const partnerId = room.venter_id === user.id ? room.listener_id : room.venter_id;
+                try { await supabase.from('ratings').insert({ room_id: roomId, rater_id: user.id, rated_id: partnerId, stars }); } catch (e) {}
             }
 
             async function triggerEndChat() {
@@ -841,6 +859,9 @@
                                     <button type="button" onClick={() => setShowReportModal(false)} class="py-2.5 rounded-xl border text-sm font-medium">ยกเลิก</button>
                                     <button type="button" onClick={submitReport} class="py-2.5 rounded-xl bg-red-500 text-white text-sm font-medium">ส่งรายงาน</button>
                                 </div>
+                                <button type="button" onClick={blockPartner} class="w-full mt-3 py-2.5 rounded-xl border border-red-200 text-red-600 text-sm font-medium hover:bg-red-50 transition">
+                                    🚫 บล็อกและไม่จับคู่ซ้ำ
+                                </button>
                             </div>
                         </div>
                     )}
@@ -937,9 +958,16 @@
                                         <h3 class="text-lg font-bold mb-1 text-ink-900">ก่อนจากกันวันนี้</h3>
                                         <p class="text-sm text-ink-400 mb-5">ขอบคุณที่เปิดใจให้กัน · อยากส่งน้ำใจให้คู่สนทนาไหม?</p>
                                         <button type="button" onClick={giveKudos} disabled={kudosGiven}
-                                            class={`w-full py-3 rounded-2xl font-semibold text-sm mb-2 transition ${kudosGiven ? 'bg-primary-50 text-primary-600' : 'bg-gradient-to-br from-secondary-400 to-secondary-600 text-white hover:brightness-105'}`}>
+                                            class={`w-full py-3 rounded-2xl font-semibold text-sm mb-3 transition ${kudosGiven ? 'bg-primary-50 text-primary-600' : 'bg-gradient-to-br from-secondary-400 to-secondary-600 text-white hover:brightness-105'}`}>
                                             {kudosGiven ? 'ส่งดาวขอบคุณแล้ว ⭐' : 'ส่งดาวขอบคุณ ⭐'}
                                         </button>
+                                        <div class="mb-1 text-xs text-ink-400">ให้คะแนนการพูดคุยครั้งนี้ (ไม่บังคับ)</div>
+                                        <div class="flex justify-center gap-1 mb-3">
+                                            {[1,2,3,4,5].map(n => (
+                                                <button key={n} type="button" onClick={() => submitRating(n)}
+                                                    class={`text-2xl transition active:scale-90 ${n <= ratingGiven ? '' : 'grayscale opacity-40 hover:opacity-70'}`}>⭐</button>
+                                            ))}
+                                        </div>
                                         <div class="grid grid-cols-2 gap-2 mt-2">
                                             <button type="button" onClick={() => setShowEndConfirm(false)} class="py-2.5 rounded-xl border border-line font-medium text-sm text-ink-700 hover:bg-paper-100 transition">อยู่คุยต่อ</button>
                                             <button type="button" onClick={() => setEndStep('mood')} class="py-2.5 rounded-xl bg-ink-900 text-white font-medium text-sm hover:bg-primary-600 transition">ไปต่อ →</button>

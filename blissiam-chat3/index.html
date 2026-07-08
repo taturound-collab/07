@@ -150,6 +150,8 @@
             function pick(score) {
                 const s = Mood.dailyCheckIn(score);
                 setStreak(s); setDone(true);
+                // ส่ง mood แบบไม่ระบุตัวตนเข้ากองรวมของชุมชน (#11) — ไม่มี user_id
+                try { window.supabaseClient?.from('mood_pings').insert({ score }).then(() => {}, () => {}); } catch (e) {}
             }
             return (
                 <div class="mb-6 bg-gradient-to-br from-primary-50 to-surface border border-line rounded-3xl p-5 sm:p-6">
