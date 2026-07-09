@@ -27,15 +27,16 @@
     function read() {
         try {
             const raw = localStorage.getItem(KEY);
-            if (!raw) return { pending: null, entries: [], daily: [] };
+            if (!raw) return { pending: null, entries: [], daily: [], gratitude: [] };
             const d = JSON.parse(raw);
             return {
                 pending: d.pending || null,
                 entries: Array.isArray(d.entries) ? d.entries : [],
                 daily: Array.isArray(d.daily) ? d.daily : [],
+                gratitude: Array.isArray(d.gratitude) ? d.gratitude : [],
             };
         } catch (e) {
-            return { pending: null, entries: [], daily: [] };
+            return { pending: null, entries: [], daily: [], gratitude: [] };
         }
     }
 
@@ -72,6 +73,38 @@
         return count;
     }
     function dailyHistory() { return read().daily; }
+
+    // ----- สรุปรายสัปดาห์ (7 วันล่าสุด) -----
+    function weeklyStats() {
+        const d = read();
+        const days = [];
+        for (let i = 6; i >= 0; i--) { const c = new Date(); c.setDate(c.getDate() - i); days.push(ymd(c)); }
+        const daySet = new Set(days);
+        const dailyThisWeek = d.daily.filter(x => daySet.has(x.date));
+        const checkins = dailyThisWeek.length;
+        const avgDaily = checkins ? (dailyThisWeek.reduce((s, x) => s + x.score, 0) / checkins) : 0;
+        // เทียบครึ่งสัปดาห์แรกกับหลัง ดูแนวโน้ม
+        const chatWeek = d.entries.filter(e => e.after != null && daySet.has((e.at || '').slice(0, 10)));
+        const improvedChats = chatWeek.filter(e => e.before != null && e.after > e.before).length;
+        const gratWeek = d.gratitude.filter(g => daySet.has((g.at || '').slice(0, 10))).length;
+        return {
+            checkins, avgDaily: Math.round(avgDaily * 10) / 10,
+            chatCount: chatWeek.length, improvedChats, gratitudeCount: gratWeek,
+            streak: streak(),
+        };
+    }
+
+    // ----- สมุดขอบคุณ / คำถามประจำวัน -----
+    function addGratitude(text) {
+        const t = (text || '').toString().trim().slice(0, 300);
+        if (!t) return;
+        const d = read();
+        d.gratitude.push({ text: t, at: new Date().toISOString(), date: ymd() });
+        if (d.gratitude.length > 400) d.gratitude = d.gratitude.slice(-400);
+        write(d);
+    }
+    function gratitudeToday() { const d = read(); return d.gratitude.some(g => g.date === ymd()); }
+    function gratitudeList() { return read().gratitude; }
 
     function write(d) {
         try { localStorage.setItem(KEY, JSON.stringify(d)); } catch (e) {}
@@ -122,6 +155,7 @@
     function moodOf(score) { return MOODS[clamp(score) - 1]; }
 
     window.NomGIMood = { MOODS, setPending, getPending, commitAfter, history, stats, moodOf,
-        dailyCheckIn, checkedInToday, streak, dailyHistory };
+        dailyCheckIn, checkedInToday, streak, dailyHistory,
+        weeklyStats, addGratitude, gratitudeToday, gratitudeList };
 
 })();

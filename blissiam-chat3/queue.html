@@ -196,6 +196,59 @@
             );
         }
 
+        // แบบฝึกหายใจ 4-7-8 ระหว่างรอคิว (เข้า 4 · กลั้น 7 · ออก 8)
+        const BREATH_PHASES = [
+            { key: 'inhale', label: 'หายใจเข้า', secs: 4, scale: 1 },
+            { key: 'hold',   label: 'กลั้นไว้',  secs: 7, scale: 1 },
+            { key: 'exhale', label: 'หายใจออก', secs: 8, scale: 0.5 },
+        ];
+        function BreathingExercise() {
+            const [on, setOn] = React.useState(false);
+            const [idx, setIdx] = React.useState(0);
+            const [count, setCount] = React.useState(4);
+            React.useEffect(() => {
+                if (!on) { setIdx(0); return; }
+                let t1, t2;
+                function run(k) {
+                    setIdx(k);
+                    const ph = BREATH_PHASES[k];
+                    let c = ph.secs; setCount(c);
+                    t2 = setInterval(() => { c--; setCount(c > 0 ? c : 0); }, 1000);
+                    t1 = setTimeout(() => { clearInterval(t2); run((k + 1) % BREATH_PHASES.length); }, ph.secs * 1000);
+                }
+                run(0);
+                return () => { clearTimeout(t1); clearInterval(t2); };
+            }, [on]);
+            const ph = BREATH_PHASES[idx];
+            return (
+                <div class="card-playful bg-surface overflow-hidden mt-4 p-5 text-center">
+                    {!on ? (
+                        <>
+                            <p class="text-sm text-ink-500 mb-3">ระหว่างรอ ลองหายใจคลายเครียดด้วยจังหวะ 4-7-8 ดูไหม? 🧘</p>
+                            <button type="button" onClick={() => setOn(true)}
+                                class="px-5 py-2.5 rounded-full bg-primary-500 text-white text-sm font-semibold hover:bg-primary-600 transition">
+                                เริ่มฝึกหายใจ
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            <div class="relative flex items-center justify-center mx-auto" style={{ width: '160px', height: '160px' }}>
+                                <div class="absolute rounded-full bg-primary-100" style={{ width: '150px', height: '150px' }}></div>
+                                <div class="absolute rounded-full bg-gradient-to-br from-primary-400 to-primary-600"
+                                    style={{ width: '120px', height: '120px', transform: `scale(${ph.scale})`, transition: `transform ${ph.secs}s ease-in-out` }}></div>
+                                <div class="relative text-white">
+                                    <div class="text-base font-bold">{ph.label}</div>
+                                    <div class="text-3xl font-extrabold tabular-nums">{count}</div>
+                                </div>
+                            </div>
+                            <button type="button" onClick={() => setOn(false)}
+                                class="mt-4 text-xs text-ink-400 hover:text-red-500 transition">หยุดฝึก</button>
+                        </>
+                    )}
+                </div>
+            );
+        }
+
         function StepIndicator({ status }) {
             const steps = [
                 { key: 'joining', label: 'เข้าคิว' },
@@ -480,6 +533,7 @@
                         </div>
 
                         {queueStatus === 'waiting' && <WaitingCompanion waitTime={waitTime} />}
+                        {queueStatus === 'waiting' && <BreathingExercise />}
                     </div>
                 </div>
             );

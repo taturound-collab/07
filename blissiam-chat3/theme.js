@@ -167,9 +167,46 @@ async function loadAndApplyTheme() {
     }
 }
 
+// ----- โหมดช่วยการเข้าถึง (ขนาดฟอนต์ + ลดการเคลื่อนไหว) เก็บ localStorage -----
+const A11Y_FONT_KEY = 'nomgi_font_scale';   // 0.9 | 1 | 1.15 | 1.3
+const A11Y_MOTION_KEY = 'nomgi_reduce_motion'; // '1' | '0'
+
+function getFontScale() {
+    const v = parseFloat(localStorage.getItem(A11Y_FONT_KEY));
+    return (v >= 0.8 && v <= 1.6) ? v : 1;
+}
+function getReduceMotion() { return localStorage.getItem(A11Y_MOTION_KEY) === '1'; }
+
+function applyAccessibility() {
+    const root = document.documentElement;
+    // เลื่อนขนาดฟอนต์ทั้งเว็บผ่าน font-size ของ <html> (rem ปรับตาม แต่ tailwind ใช้ px เป็นหลัก
+    //  จึงใช้ zoom-like ผ่าน font-size + ตัวคูณบน body ด้วย)
+    root.style.fontSize = (getFontScale() * 100) + '%';
+    root.classList.toggle('reduce-motion', getReduceMotion());
+}
+function setFontScale(scale) {
+    localStorage.setItem(A11Y_FONT_KEY, String(scale));
+    applyAccessibility();
+}
+function setReduceMotion(on) {
+    localStorage.setItem(A11Y_MOTION_KEY, on ? '1' : '0');
+    applyAccessibility();
+}
+
+// ฉีด CSS สำหรับ reduce-motion + ปรับ scale ของ tailwind text ผ่าน :root em
+(function injectA11yCss() {
+    if (document.getElementById('nomgi-a11y-css')) return;
+    const s = document.createElement('style');
+    s.id = 'nomgi-a11y-css';
+    s.textContent = 'html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }';
+    (document.head || document.documentElement).appendChild(s);
+})();
+applyAccessibility();
+
 // ใช้ค่าเริ่มต้นทันทีก่อน (กัน flash สีผิด) แล้วค่อยอัปเดตจาก DB ทับ
 applyTheme(DEFAULT_THEME_KEY, DEFAULT_FONT_KEY);
 window.BlissiamTheme = {
     THEME_PRESETS, FONT_SETS, applyTheme, loadAndApplyTheme,
-    COLOR_SCHEMES, applyColorScheme, getPreferredColorScheme, toggleColorScheme
+    COLOR_SCHEMES, applyColorScheme, getPreferredColorScheme, toggleColorScheme,
+    getFontScale, getReduceMotion, setFontScale, setReduceMotion, applyAccessibility
 };

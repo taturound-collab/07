@@ -191,6 +191,77 @@
             );
         }
 
+        // สมุดขอบคุณ / คำถามประจำวัน — "วันนี้มีอะไรดีๆ 1 อย่าง?"
+        function GratitudeToday() {
+            const Mood = window.NomGIMood;
+            const [done, setDone] = useState(() => { try { return Mood ? Mood.gratitudeToday() : true; } catch(e){ return true; } });
+            const [text, setText] = useState('');
+            if (!Mood) return null;
+            function save() {
+                if (!text.trim()) return;
+                Mood.addGratitude(text); setDone(true); setText('');
+            }
+            return (
+                <div class="mb-6 bg-surface border border-line rounded-3xl p-5 sm:p-6">
+                    <h3 class="font-bold text-base text-ink-900 mb-1">วันนี้มีอะไรดีๆ 1 อย่าง? 🌷</h3>
+                    {done ? (
+                        <p class="text-sm text-ink-500 mt-1">บันทึกความขอบคุณของวันนี้แล้ว · ดูย้อนหลังได้ในโปรไฟล์</p>
+                    ) : (
+                        <>
+                            <p class="text-xs text-ink-400 mb-3">จดสิ่งเล็กๆ ที่ทำให้ยิ้มได้วันนี้ (ส่วนตัว เห็นแค่คุณ)</p>
+                            <div class="flex gap-2">
+                                <input type="text" value={text} onChange={e => setText(e.target.value.slice(0,300))}
+                                    onKeyDown={e => { if (e.key === 'Enter') save(); }}
+                                    placeholder="เช่น ได้กินของอร่อย, มีคนทักทาย..."
+                                    class="flex-1 bg-paper-50 border border-line rounded-2xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30 placeholder:text-ink-300" />
+                                <button type="button" onClick={save} disabled={!text.trim()}
+                                    class="px-4 rounded-2xl bg-primary-500 text-white text-sm font-semibold disabled:opacity-40 hover:bg-primary-600 transition">บันทึก</button>
+                            </div>
+                        </>
+                    )}
+                </div>
+            );
+        }
+
+        // Onboarding ครั้งแรก — 3 สไลด์
+        const ONBOARD_SLIDES = [
+            { icon: '🎭', title: 'เลือกได้ว่าจะเปิดเผยตัวตนไหม', desc: 'คุยแบบไม่ระบุตัวตน (ใช้ชื่อสมมติ) หรือระบุตัวตนก็ได้ — เลือกก่อนจับคู่ทุกครั้ง' },
+            { icon: '👥', title: 'คุย 1:1 หรือเข้าวงกลมแบ่งปัน', desc: 'จับคู่คุยส่วนตัว หรือเข้าห้องกลุ่มเล็กๆ ตามหัวข้อที่สนใจ' },
+            { icon: '🌳', title: 'ยิ่งแบ่งปันน้ำใจ ต้นไม้ยิ่งโต', desc: 'ทุกครั้งที่รับฟัง-ให้กำลังใจกัน จะได้น้ำใจสะสม ต้นไม้ในโปรไฟล์จะเติบโตและออกดอก' },
+        ];
+        function Onboarding() {
+            const [show, setShow] = useState(() => { try { return !localStorage.getItem('nomgi_onboarded'); } catch(e){ return false; } });
+            const [i, setI] = useState(0);
+            if (!show) return null;
+            const s = ONBOARD_SLIDES[i];
+            const last = i === ONBOARD_SLIDES.length - 1;
+            function close() { try { localStorage.setItem('nomgi_onboarded', '1'); } catch(e){} setShow(false); }
+            return (
+                <div class="fixed inset-0 z-[80] flex items-end sm:items-center justify-center p-4">
+                    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+                    <div class="relative w-full sm:max-w-md bg-surface rounded-3xl shadow-2xl border border-line overflow-hidden">
+                        <div class="p-8 text-center">
+                            <div class="text-5xl mb-4">{s.icon}</div>
+                            <h3 class="text-xl font-extrabold text-ink-900 mb-2">{s.title}</h3>
+                            <p class="text-sm text-ink-500 leading-relaxed">{s.desc}</p>
+                            <div class="flex justify-center gap-1.5 my-5">
+                                {ONBOARD_SLIDES.map((_, k) => (
+                                    <span key={k} class={`h-2 rounded-full transition-all ${k === i ? 'w-6 bg-primary-500' : 'w-2 bg-paper-200'}`}></span>
+                                ))}
+                            </div>
+                            <div class="flex gap-2">
+                                <button type="button" onClick={close} class="flex-1 py-3 rounded-2xl border border-line text-sm font-medium text-ink-500 hover:bg-paper-100 transition">ข้าม</button>
+                                <button type="button" onClick={() => last ? close() : setI(i + 1)}
+                                    class="flex-1 py-3 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 text-white text-sm font-semibold hover:brightness-105 transition">
+                                    {last ? 'เริ่มเลย!' : 'ถัดไป →'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
         function App() {
             const [user, setUser] = useState(null);
             const [profile, setProfile] = useState(null);
@@ -301,6 +372,7 @@
 
             return (
                 <div class="relative min-h-screen">
+                    <Onboarding />
                     {/* Navbar */}
                     <nav class="sticky top-0 w-full z-50 bg-paper-50 border-b border-line px-6 py-4">
                         <div class="max-w-6xl mx-auto flex justify-between items-center">
@@ -361,6 +433,7 @@
                     <section class="px-6 pb-20">
                         <div class="max-w-6xl mx-auto">
                             {!isAdmin && <DailyCheckIn />}
+                            {!isAdmin && <GratitudeToday />}
                             {!isAdmin && (
                                 <div class="mb-8 bg-surface border border-line rounded-3xl p-6 sm:p-8 shadow-sm">
                                     {/* 1. เลือกหัวข้อสนทนา */}
