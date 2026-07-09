@@ -44,10 +44,12 @@ EXCEPTION WHEN duplicate_object THEN NULL; WHEN others THEN NULL; END $$;
 -- ---------- แท็กความถนัดของผู้รับฟัง ----------
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS specialties TEXT[];
 
--- อัปเดต view สาธารณะให้มี specialties (ยังไม่มี real_name/school เหมือนเดิม)
+-- อัปเดต view สาธารณะให้มี specialties
+-- หมายเหตุ: CREATE OR REPLACE VIEW เพิ่มคอลัมน์ได้เฉพาะ "ต่อท้าย" เท่านั้น
+-- ห้ามแทรก/สลับตำแหน่งคอลัมน์เดิม (ไม่งั้น error 42P16) จึงวาง specialties ไว้ท้ายสุด
 CREATE OR REPLACE VIEW public_profiles AS
 SELECT id, display_name, avatar_color, avatar_url, ig_username, kudos_count,
-       status, role_preference, specialties, created_at, last_seen
+       status, role_preference, created_at, last_seen, specialties
 FROM profiles
 WHERE is_banned = FALSE;
 GRANT SELECT ON public_profiles TO authenticated;
