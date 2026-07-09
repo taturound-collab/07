@@ -116,6 +116,22 @@
             const [submitting, setSubmitting] = useState(false);
             const [error, setError] = useState(null);
             const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
+            const [bannedUserId, setBannedUserId] = useState(null);
+            const [appealText, setAppealText] = useState('');
+            const [appealSent, setAppealSent] = useState(false);
+            const [appealing, setAppealing] = useState(false);
+
+            async function submitAppeal() {
+                if (!appealText.trim() || !bannedUserId) return;
+                setAppealing(true);
+                try {
+                    const { error } = await supabase.from('ban_appeals').insert({ user_id: bannedUserId, message: appealText.trim() });
+                    if (error) throw error;
+                    setAppealSent(true);
+                    await supabase.auth.signOut();
+                } catch (err) { setError('ส่งคำอุทธรณ์ไม่สำเร็จ: ' + err.message); }
+                setAppealing(false);
+            }
 
             function toggleDarkMode() {
                 const resolved = window.BlissiamTheme?.toggleColorScheme();
@@ -150,8 +166,8 @@
                 }
 
                 if (profile?.is_banned) {
-                    await supabase.auth.signOut();
-                    setError('บัญชีนี้ถูกระงับ กรุณาติดต่อผู้ดูแลระบบ');
+                    // ไม่ signOut ทันที เพื่อให้ผู้ใช้ยื่นอุทธรณ์ได้ (RLS ต้องมี session)
+                    setBannedUserId(userId);
                     setSubmitting(false);
                     setLoading(false);
                     return;
@@ -189,6 +205,37 @@
 
             if (loading) return (
                 <DotLogo size={40} animated={true} />
+            );
+
+            if (bannedUserId) return (
+                <>
+                    <div class="blob w-72 h-72 bg-red-300 opacity-20 -top-10 -left-16"></div>
+                    <div class="w-full max-w-md relative z-10">
+                        <div class="card-playful bg-surface p-8 text-center">
+                            <div class="text-4xl mb-3">🚫</div>
+                            <h1 class="text-xl font-bold text-ink-900 mb-1">บัญชีนี้ถูกระงับ</h1>
+                            {appealSent ? (
+                                <>
+                                    <p class="text-sm text-ink-500 mt-2 mb-6">ส่งคำอุทธรณ์เรียบร้อยแล้ว · ทีมงานจะพิจารณาโดยเร็วที่สุด 🙏</p>
+                                    <a href="index.html" class="btn-playful inline-block px-6 py-3 text-white font-semibold">กลับหน้าแรก</a>
+                                </>
+                            ) : (
+                                <>
+                                    <p class="text-sm text-ink-500 mt-2 mb-4">ถ้าคิดว่าเป็นความเข้าใจผิด ยื่นคำอุทธรณ์ถึงทีมงานได้ที่นี่</p>
+                                    <textarea value={appealText} onChange={e => setAppealText(e.target.value.slice(0, 1000))} rows="4"
+                                        placeholder="อธิบายเหตุผลของคุณ..."
+                                        class="w-full bg-paper-50 border border-line rounded-2xl px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary-500/30 mb-3" />
+                                    {error && <div class="text-red-600 text-sm mb-3">{error}</div>}
+                                    <button type="button" onClick={submitAppeal} disabled={appealing || !appealText.trim()}
+                                        class="btn-playful w-full text-white py-3 font-semibold disabled:opacity-50">
+                                        {appealing ? 'กำลังส่ง...' : 'ยื่นคำอุทธรณ์'}
+                                    </button>
+                                    <a href="index.html" class="block mt-4 text-sm text-ink-400 hover:text-primary-600 transition">← กลับหน้าแรก</a>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </>
             );
 
             return (

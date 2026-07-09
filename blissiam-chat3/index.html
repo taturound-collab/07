@@ -262,6 +262,49 @@
             );
         }
 
+        // วงกลมแบ่งปันแบบมีเวลานัด — ทุกคืนวันอาทิตย์ 20:00–22:00 (client-side)
+        function scheduledCircleInfo() {
+            const now = new Date();
+            const day = now.getDay();   // 0 = อาทิตย์
+            const hour = now.getHours();
+            const open = (day === 0 && hour >= 20 && hour < 22);
+            const next = new Date(now);
+            next.setHours(20, 0, 0, 0);
+            let add = (7 - day) % 7;
+            if (day === 0 && hour >= 22) add = 7;
+            next.setDate(now.getDate() + add);
+            return { open, topic: 'health', next };
+        }
+        function ScheduledCircle({ onJoin, starting }) {
+            const [, setTick] = useState(0);
+            useEffect(() => { const iv = setInterval(() => setTick(t => t + 1), 30000); return () => clearInterval(iv); }, []);
+            const info = scheduledCircleInfo();
+            const days = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัส','ศุกร์','เสาร์'];
+            const nextText = info.next.toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'short' }) + ' เวลา 20:00 น.';
+            return (
+                <div class={`mt-4 rounded-3xl overflow-hidden border ${info.open ? 'border-primary-400' : 'border-line'}`}
+                    style={{ background: info.open ? 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-700))' : 'var(--color-surface)' }}>
+                    <div class="p-5 sm:p-6 flex items-center gap-4">
+                        <div class={`w-14 h-14 rounded-2xl flex items-center justify-center text-3xl shrink-0 ${info.open ? 'bg-white/20' : 'bg-primary-50'}`}>🌙</div>
+                        <div class="min-w-0 flex-1">
+                            <div class={`font-extrabold text-base ${info.open ? 'text-white' : 'text-ink-900'}`}>วงกลมสุขภาพใจ · คืนวันอาทิตย์</div>
+                            {info.open ? (
+                                <div class="text-sm text-white/90">เปิดอยู่ตอนนี้! มาคุยเรื่องสุขภาพจิตเป็นกลุ่มกัน 🌿</div>
+                            ) : (
+                                <div class="text-sm text-ink-500">รอบถัดไป: {nextText}</div>
+                            )}
+                        </div>
+                        {info.open && (
+                            <button onClick={() => onJoin(info.topic)} disabled={starting}
+                                class="shrink-0 px-4 py-2.5 rounded-full bg-white text-primary-600 text-sm font-bold hover:brightness-95 transition disabled:opacity-50">
+                                เข้าร่วม
+                            </button>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
         function App() {
             const [user, setUser] = useState(null);
             const [profile, setProfile] = useState(null);
@@ -342,6 +385,16 @@
                     alert('เข้าวงกลมไม่สำเร็จ: ' + (err.message || err) + '\n\n(ถ้าเพิ่งเพิ่มฟีเจอร์นี้ ต้องรันไฟล์ supabase-group-rooms.sql ใน Supabase ก่อน)');
                     setStarting(false);
                 }
+            }
+
+            async function joinScheduledCircle(topic) {
+                if (!user) { window.location.href = 'login.html?redirect=index.html'; return; }
+                setStarting(true);
+                try {
+                    const { data, error } = await supabase.rpc('join_group', { p_topic: topic });
+                    if (error) throw error;
+                    window.location.href = 'group.html?g=' + data;
+                } catch (err) { alert('เข้าวงกลมไม่สำเร็จ: ' + (err.message || err)); setStarting(false); }
             }
 
             // เลือกความรู้สึกก่อนเข้าคิว (บันทึกส่วนตัว) แล้วเข้าคิว — ข้ามได้
@@ -580,6 +633,7 @@
                                     </div>
                                 </button>
                             )}
+                            {!isAdmin && <ScheduledCircle onJoin={joinScheduledCircle} starting={starting} />}
                         </div>
                     </section>
 

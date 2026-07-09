@@ -144,6 +144,7 @@
             const [reportFilter, setReportFilter] = useState('pending');
             const [reportSearch, setReportSearch] = useState('');
             const [users, setUsers] = useState([]);
+            const [appeals, setAppeals] = useState([]);
             const [loading, setLoading] = useState(true);
             const [selectedThemeKey, setSelectedThemeKey] = useState('sage');
             const [selectedFontKey, setSelectedFontKey] = useState('kanit');
@@ -263,6 +264,16 @@
                 const { data: usersData } = await supabase.from('profiles').select('*').order('last_seen', { ascending: false }).limit(50);
                 setUsers(usersData || []);
 
+                // Batch D: คำอุทธรณ์การแบน
+                try {
+                    const { data: appealsData } = await supabase
+                        .from('ban_appeals')
+                        .select('*, user:user_id(display_name, is_banned)')
+                        .order('created_at', { ascending: false })
+                        .limit(50);
+                    setAppeals(appealsData || []);
+                } catch (e) { /* ตาราง ban_appeals ยังไม่ถูกสร้าง (ยังไม่ได้รัน SQL) */ }
+
                 // กราฟข้อความย้อนหลัง 7 วัน
                 const sevenDaysAgo = new Date(todayStart);
                 sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
@@ -333,6 +344,28 @@
             async function dismissReport(reportId) {
                 await supabase.from('reports').update({ status: 'dismissed', resolved_at: new Date().toISOString(), resolved_by: user.id }).eq('id', reportId);
                 loadData();
+            }
+
+            // Batch D: อนุมัติคำอุทธรณ์ = ปลดแบนผู้ใช้ด้วย
+            async function approveAppeal(appeal) {
+                if (!confirm('อนุมัติคำอุทธรณ์และปลดแบนผู้ใช้นี้?')) return;
+                try {
+                    await supabase.from('ban_appeals').update({
+                        status: 'approved', reviewed_at: new Date().toISOString(), reviewed_by: user.id
+                    }).eq('id', appeal.id);
+                    await supabase.from('profiles').update({ is_banned: false }).eq('id', appeal.user_id);
+                    loadData();
+                } catch (err) { alert('Error: ' + err.message); }
+            }
+
+            async function dismissAppeal(appealId) {
+                if (!confirm('ปฏิเสธคำอุทธรณ์นี้? (ผู้ใช้ยังคงถูกแบน)')) return;
+                try {
+                    await supabase.from('ban_appeals').update({
+                        status: 'dismissed', reviewed_at: new Date().toISOString(), reviewed_by: user.id
+                    }).eq('id', appealId);
+                    loadData();
+                } catch (err) { alert('Error: ' + err.message); }
             }
 
             async function closeRoom(roomId) {
@@ -704,6 +737,42 @@
                         {activeTab === 'users' && (
                             <div class="fade-in">
                                 <h1 class="text-2xl font-bold text-ink-900 mb-6">ระบบจัดการผู้ใช้</h1>
+
+                                {/* Batch D: คำอุทธรณ์การแบน */}
+                                {(() => {
+                                    const pendingAppeals = appeals.filter(a => a.status === 'pending');
+                                    if (pendingAppeals.length === 0) return null;
+                                    return (
+                                        <div class="mb-8">
+                                            <h2 class="text-lg font-bold text-ink-900 mb-3 flex items-center gap-2">
+                                                📨 คำอุทธรณ์การแบน
+                                                <span class="px-2 py-0.5 bg-red-100 text-red-600 rounded-full text-xs font-bold">{pendingAppeals.length}</span>
+                                            </h2>
+                                            <div class="space-y-3">
+                                                {pendingAppeals.map(a => (
+                                                    <div key={a.id} class="bg-surface rounded-2xl border border-line p-5">
+                                                        <div class="flex items-start justify-between gap-4 mb-2">
+                                                            <div class="font-semibold text-ink-900">{a.user?.display_name || 'ผู้ใช้'}</div>
+                                                            <div class="text-xs text-ink-300 whitespace-nowrap">{new Date(a.created_at).toLocaleString('th-TH')}</div>
+                                                        </div>
+                                                        <p class="text-sm text-ink-500 whitespace-pre-wrap bg-paper-50 rounded-xl p-3 mb-3">{a.message}</p>
+                                                        <div class="flex gap-2 justify-end">
+                                                            <button onClick={() => dismissAppeal(a.id)}
+                                                                class="px-4 py-1.5 rounded-xl text-xs font-medium bg-paper-100 text-ink-500 border border-line hover:bg-paper-50 transition">
+                                                                ปฏิเสธ
+                                                            </button>
+                                                            <button onClick={() => approveAppeal(a)}
+                                                                class="px-4 py-1.5 rounded-xl text-xs font-medium bg-green-50 text-green-600 border border-green-200 hover:bg-green-100 transition">
+                                                                อนุมัติ + ปลดแบน
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
+
                                 <div class="bg-surface rounded-2xl border border-line overflow-hidden">
                                     <table class="w-full">
                                         <thead class="bg-paper-50">

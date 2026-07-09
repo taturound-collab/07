@@ -115,6 +115,9 @@
         const isRiskyText = _safety.isRisky || (() => false);
         const HOTLINES = _safety.HOTLINES || [];
 
+        const QUICK_REACTIONS = ['❤️', '👍', '🫂', '😂', '🙏'];
+        const SPECIALTY_LABEL = { general: 'เรื่องทั่วไป 💬', study: 'การเรียน 📚', love: 'ความรัก ❤️', work: 'การทำงาน 💼', family: 'ครอบครัว 🏠', health: 'สุขภาพจิต 🧠' };
+
         // #4 ประโยคเปิดบทสนทนา (สำหรับคนที่ไม่รู้จะเริ่มยังไง)
         const ICE_BREAKERS = [
             'สวัสดีนะ วันนี้เป็นยังไงบ้าง? 🌿',
@@ -208,6 +211,8 @@
             const [partnerIdentity, setPartnerIdentity] = useState(null);
             const [partnerTyping, setPartnerTyping] = useState(false);
             const [showEndConfirm, setShowEndConfirm] = useState(false);
+            const [reactions, setReactions] = useState([]); // [{message_id, user_id, emoji}]
+            const [reactBarFor, setReactBarFor] = useState(null); // message id ที่กำลังเปิดแถบ react
             const [showCrisis, setShowCrisis] = useState(false);
             const [crisisDismissed, setCrisisDismissed] = useState(false);
             const [showGuidelines, setShowGuidelines] = useState(() => { try { return !localStorage.getItem('nomgi_guidelines_ok'); } catch (e) { return false; } });
@@ -357,6 +362,13 @@
                     const { data: msgData } = await supabase.from('messages').select('*').eq('room_id', roomId).order('created_at', { ascending: true });
                     setMessages(msgData || []);
 
+                    // โหลด reactions ของข้อความในห้องนี้
+                    const msgIds = (msgData || []).map(m => m.id);
+                    if (msgIds.length) {
+                        const { data: reactData } = await supabase.from('message_reactions').select('message_id, user_id, emoji').in('message_id', msgIds);
+                        setReactions(reactData || []);
+                    }
+
                     const { data: kudosRow } = await supabase.from('room_kudos').select('giver_id').eq('room_id', roomId).eq('giver_id', session.user.id).maybeSingle();
                     if (kudosRow) setKudosGiven(true);
 
@@ -372,6 +384,14 @@
                         })
                         .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages', filter: 'room_id=eq.' + roomId }, (payload) => {
                             setMessages(prev => prev.filter(m => m.id !== payload.old.id));
+                        })
+                        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'message_reactions' }, (payload) => {
+                            const r = payload.new;
+                            setReactions(prev => prev.some(x => x.message_id === r.message_id && x.user_id === r.user_id && x.emoji === r.emoji) ? prev : [...prev, { message_id: r.message_id, user_id: r.user_id, emoji: r.emoji }]);
+                        })
+                        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'message_reactions' }, (payload) => {
+                            const r = payload.old;
+                            setReactions(prev => prev.filter(x => !(x.message_id === r.message_id && x.user_id === r.user_id && x.emoji === r.emoji)));
                         }).subscribe();
 
                     supabase.channel('typing-' + roomId)
@@ -448,6 +468,20 @@
                 if (error) alert('ลบไม่สำเร็จ: ' + error.message);
                 else setMessages(prev => prev.filter(m => m.id !== msgId));
                 setDeletingId(null);
+            }
+
+            // สลับ reaction ของเราบนข้อความ (มีอยู่แล้ว = เอาออก, ไม่มี = ใส่)
+            async function toggleReaction(msgId, emoji) {
+                setReactBarFor(null);
+                if (!user) return;
+                const mine = reactions.some(r => r.message_id === msgId && r.user_id === user.id && r.emoji === emoji);
+                if (mine) {
+                    setReactions(prev => prev.filter(r => !(r.message_id === msgId && r.user_id === user.id && r.emoji === emoji)));
+                    await supabase.from('message_reactions').delete().eq('message_id', msgId).eq('user_id', user.id).eq('emoji', emoji);
+                } else {
+                    setReactions(prev => [...prev, { message_id: msgId, user_id: user.id, emoji }]);
+                    await supabase.from('message_reactions').insert({ message_id: msgId, user_id: user.id, emoji });
+                }
             }
 
             function toggleSound() {
@@ -668,7 +702,32 @@
                                                     <span class="whitespace-pre-wrap break-words">{msg.content}</span>
                                                 </div>
                                             )}
-                                            <span class="text-[10px] text-ink-300 mt-1 px-1">{formatTime(msg.created_at)}</span>
+                                            {(() => {
+                                                const rs = reactions.filter(r => r.message_id === msg.id);
+                                                const groups = {};
+                                                rs.forEach(r => { groups[r.emoji] = groups[r.emoji] || { count: 0, mine: false }; groups[r.emoji].count++; if (r.user_id === user.id) groups[r.emoji].mine = true; });
+                                                const entries = Object.entries(groups);
+                                                return (
+                                                    <div class={`flex items-center gap-1 mt-1 flex-wrap ${isMine ? 'flex-row-reverse' : ''}`}>
+                                                        {entries.map(([em, g]) => (
+                                                            <button key={em} type="button" onClick={() => toggleReaction(msg.id, em)}
+                                                                class={`text-xs px-1.5 py-0.5 rounded-full border transition ${g.mine ? 'bg-primary-50 border-primary-300 text-primary-700' : 'bg-surface border-line text-ink-500'}`}>
+                                                                {em}{g.count > 1 ? ' ' + g.count : ''}
+                                                            </button>
+                                                        ))}
+                                                        <button type="button" onClick={() => setReactBarFor(reactBarFor === msg.id ? null : msg.id)}
+                                                            class="opacity-0 group-hover:opacity-100 text-xs text-ink-300 hover:text-primary-600 px-1 transition">＋😊</button>
+                                                        <span class="text-[10px] text-ink-300 px-1">{formatTime(msg.created_at)}</span>
+                                                    </div>
+                                                );
+                                            })()}
+                                            {reactBarFor === msg.id && (
+                                                <div class={`flex gap-1.5 mt-1 bg-surface border border-line rounded-full px-2.5 py-1.5 shadow-float ${isMine ? 'self-end' : 'self-start'}`}>
+                                                    {QUICK_REACTIONS.map(em => (
+                                                        <button key={em} type="button" onClick={() => toggleReaction(msg.id, em)} class="text-lg hover:scale-125 transition active:scale-95">{em}</button>
+                                                    ))}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </React.Fragment>
@@ -840,6 +899,16 @@
                                         </button>
                                     </div>
                                 </div>
+                                {Array.isArray(partner.specialties) && partner.specialties.length > 0 && (
+                                    <div class="mt-4">
+                                        <div class="text-xs font-semibold text-ink-500 mb-2">ถนัดรับฟังเรื่อง</div>
+                                        <div class="flex flex-wrap gap-1.5 justify-center">
+                                            {partner.specialties.map(s => (
+                                                <span key={s} class="px-2.5 py-1 rounded-full bg-paper-100 text-ink-600 text-xs border border-line">{SPECIALTY_LABEL[s] || s}</span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
