@@ -36,6 +36,17 @@
         return RISK_PATTERNS.some(p => t.indexOf(p) !== -1);
     }
 
+    // หมวดคร่าวๆ ของความเสี่ยง (สำหรับ auto-flag ให้ admin) — ไม่เก็บข้อความเต็ม
+    const SELF_HARM = ['ทำร้ายตัวเอง','กรีดข้อมือ','กรีดแขน','ทำร้ายร่างกายตัวเอง','กินยาเกินขนาด','กินยาตาย',
+        'self harm','self-harm','cut myself','overdose'];
+    function category(text) {
+        const t = normalize(text);
+        if (!t) return null;
+        if (!isRisky(t)) return null;
+        if (SELF_HARM.some(p => t.indexOf(p) !== -1)) return 'ทำร้ายตัวเอง';
+        return 'สัญญาณคิดสั้น/อยากจบชีวิต';
+    }
+
     // สายด่วนช่วยเหลือในไทย
     const HOTLINES = [
         { name: 'สายด่วนสุขภาพจิต กรมสุขภาพจิต', phone: '1323', note: 'ฟรี ตลอด 24 ชม.', href: 'tel:1323' },
@@ -43,6 +54,6 @@
         { name: 'ฉุกเฉินทางการแพทย์', phone: '1669', note: 'เหตุฉุกเฉิน เสี่ยงอันตรายถึงชีวิต', href: 'tel:1669' },
     ];
 
-    window.NomGISafety = { isRisky, HOTLINES, RISK_PATTERNS };
+    window.NomGISafety = { isRisky, category, HOTLINES, RISK_PATTERNS };
 
 })();

@@ -306,6 +306,113 @@
             );
         }
 
+        // Reconnect — คำเชิญกลับมาคุย + คู่ที่บันทึกกันทั้งสองฝ่าย
+        function ReconnectCard({ user }) {
+            const [invites, setInvites] = useState([]);      // คำเชิญที่คนอื่นส่งมาหาเรา (pending)
+            const [mutuals, setMutuals] = useState([]);      // คู่ที่บันทึกกันทั้งสองฝ่าย
+            const [sent, setSent] = useState({});            // partner_id -> true (ส่งคำเชิญแล้ว)
+            const [busy, setBusy] = useState(false);
+
+            async function load() {
+                try {
+                    const { data: inv } = await supabase.from('reconnect_invites')
+                        .select('id, from_id, created_at').eq('to_id', user.id).eq('status', 'pending')
+                        .order('created_at', { ascending: false });
+                    // เติมชื่อผู้ส่ง
+                    let list = inv || [];
+                    if (list.length) {
+                        const ids = [...new Set(list.map(i => i.from_id))];
+                        const { data: profs } = await supabase.from('public_profiles').select('id, display_name').in('id', ids);
+                        const nameMap = {}; (profs || []).forEach(p => { nameMap[p.id] = p.display_name; });
+                        list = list.map(i => ({ ...i, name: nameMap[i.from_id] || 'คู่สนทนา' }));
+                    }
+                    setInvites(list);
+                    const { data: mut } = await supabase.rpc('my_reconnectable');
+                    setMutuals(mut || []);
+                    // ถ้าคำเชิญที่เราส่งถูกตอบรับแล้ว -> เข้าห้องเลย
+                    const { data: acc } = await supabase.from('reconnect_invites')
+                        .select('room_id').eq('from_id', user.id).eq('status', 'accepted')
+                        .not('room_id', 'is', null).order('responded_at', { ascending: false }).limit(1);
+                    if (acc && acc[0] && acc[0].room_id) { window.location.href = 'chat.html?room=' + acc[0].room_id; }
+                } catch (e) { /* ยังไม่ได้รัน batch-f.sql */ }
+            }
+            useEffect(() => {
+                if (!user) return;
+                load();
+                const t = setInterval(load, 6000);
+                return () => clearInterval(t);
+            }, [user]);
+
+            async function accept(id) {
+                setBusy(true);
+                try {
+                    const { data, error } = await supabase.rpc('accept_reconnect', { p_invite: id });
+                    if (!error && data) { window.location.href = 'chat.html?room=' + data; return; }
+                } catch (e) {}
+                setBusy(false); load();
+            }
+            async function decline(id) {
+                try { await supabase.rpc('respond_reconnect', { p_invite: id, p_action: 'decline' }); } catch (e) {}
+                setInvites(prev => prev.filter(i => i.id !== id));
+            }
+            async function invite(partnerId) {
+                setSent(prev => ({ ...prev, [partnerId]: true }));
+                try { await supabase.rpc('request_reconnect', { p_partner: partnerId }); } catch (e) {}
+            }
+            function isOnline(m) { return m.status === 'online' || m.status === 'waiting'; }
+
+            if (invites.length === 0 && mutuals.length === 0) return null;
+            return (
+                <div class="mb-8 bg-surface border border-line rounded-3xl p-6 shadow-sm">
+                    <h3 class="font-bold text-base text-ink-900 flex items-center gap-2 mb-1">🔖 กลับมาคุยกับคนเดิม</h3>
+                    <p class="text-xs text-ink-400 mb-4">คู่ที่คุณกับเขาต่างบันทึกกันไว้ · ชวนกลับมาคุยกันใหม่ได้เมื่อทั้งคู่พร้อม</p>
+
+                    {invites.length > 0 && (
+                        <div class="space-y-2 mb-4">
+                            {invites.map(i => (
+                                <div key={i.id} class="flex items-center justify-between gap-3 bg-primary-50 border border-primary-100 rounded-2xl px-4 py-3">
+                                    <div class="text-sm text-ink-800"><b>{i.name}</b> อยากกลับมาคุยกับคุณ 💬</div>
+                                    <div class="flex gap-2 shrink-0">
+                                        <button type="button" onClick={() => decline(i.id)} class="px-3 py-1.5 rounded-full text-xs text-ink-500 border border-line hover:bg-paper-100 transition">ไว้ก่อน</button>
+                                        <button type="button" onClick={() => accept(i.id)} disabled={busy} class="px-4 py-1.5 rounded-full text-xs font-semibold bg-primary-500 text-white hover:bg-primary-600 transition disabled:opacity-50">รับเลย</button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {mutuals.length > 0 && (
+                        <div class="flex flex-wrap gap-2">
+                            {mutuals.map(m => (
+                                <button key={m.partner_id} type="button" onClick={() => invite(m.partner_id)} disabled={sent[m.partner_id]}
+                                    class="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-line bg-paper-50 hover:border-primary-300 transition text-sm disabled:opacity-60">
+                                    <span class={`w-2 h-2 rounded-full ${isOnline(m) ? 'bg-green-500' : 'bg-ink-200'}`}></span>
+                                    <span class="text-ink-700 font-medium">{m.display_name}</span>
+                                    <span class="text-xs text-primary-600">{sent[m.partner_id] ? 'ส่งคำเชิญแล้ว' : 'ชวนคุย'}</span>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        // ลิงก์ไปกำแพงให้กำลังใจ
+        function WallLink() {
+            return (
+                <a href="wall.html" class="block mb-8 bg-gradient-to-br from-secondary-50 to-primary-50 border border-line rounded-3xl p-5 shadow-sm hover:shadow-md transition group">
+                    <div class="flex items-center gap-4">
+                        <div class="text-3xl">💛</div>
+                        <div class="flex-1 min-w-0">
+                            <div class="font-bold text-ink-900">กำแพงให้กำลังใจ</div>
+                            <div class="text-sm text-ink-500">ทิ้งข้อความให้กำลังใจสั้นๆ แบบไม่เปิดเผยตัว · หรือมากดหัวใจให้คนอื่น</div>
+                        </div>
+                        <div class="text-primary-500 group-hover:translate-x-1 transition">›</div>
+                    </div>
+                </a>
+            );
+        }
+
         function App() {
             const [user, setUser] = useState(null);
             const [profile, setProfile] = useState(null);
@@ -488,6 +595,8 @@
                         <div class="max-w-6xl mx-auto">
                             {!isAdmin && <DailyCheckIn />}
                             {!isAdmin && <GratitudeToday />}
+                            {!isAdmin && user && <ReconnectCard user={user} />}
+                            {!isAdmin && <WallLink />}
                             {!isAdmin && (
                                 <div class="mb-8 bg-surface border border-line rounded-3xl p-6 sm:p-8 shadow-sm">
                                     {/* 1. เลือกหัวข้อสนทนา */}

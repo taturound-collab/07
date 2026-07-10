@@ -160,6 +160,15 @@
                 setInput('');
                 const { error } = await supabase.from('messages').insert({ group_room_id: gid, sender_id: user.id, content: body, message_type: 'text' });
                 if (error) { alert('ส่งไม่สำเร็จ: ' + error.message); setInput(body); }
+                // Auto-flag คำเสี่ยง เข้าคิว admin เงียบๆ
+                if (!error && _safety.category) {
+                    const cat = _safety.category(body);
+                    if (cat) {
+                        try { await supabase.from('safety_flags').insert({
+                            user_id: user.id, context: 'group', category: cat, excerpt: body.slice(0, 140)
+                        }); } catch (e) {}
+                    }
+                }
             }
 
             async function leaveGroup() {

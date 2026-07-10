@@ -118,6 +118,8 @@
 
         const QUICK_REACTIONS = ['❤️', '👍', '🫂', '😂', '🙏'];
         const SPECIALTY_LABEL = { general: 'เรื่องทั่วไป 💬', study: 'การเรียน 📚', love: 'ความรัก ❤️', work: 'การทำงาน 💼', family: 'ครอบครัว 🏠', health: 'สุขภาพจิต 🧠' };
+        // เหรียญ "ผู้ฟังที่ไว้ใจได้" — รีวิว ≥3 ครั้ง และเฉลี่ย ≥4.3 ดาว
+        function isTrustedListener(p) { return p && (p.rating_count || 0) >= 3 && Number(p.rating_avg || 0) >= 4.3; }
 
         // #4 ประโยคเปิดบทสนทนา (สำหรับคนที่ไม่รู้จะเริ่มยังไง)
         const ICE_BREAKERS = [
@@ -216,6 +218,8 @@
             const [reactBarFor, setReactBarFor] = useState(null); // message id ที่กำลังเปิดแถบ react
             const [showCrisis, setShowCrisis] = useState(false);
             const [crisisDismissed, setCrisisDismissed] = useState(false);
+            const [heavySession, setHeavySession] = useState(false);   // เจอเรื่องหนักในห้องนี้ (สำหรับ debrief ผู้ฟัง)
+            const [restedToday, setRestedToday] = useState(false);
             const [showGuidelines, setShowGuidelines] = useState(() => { try { return !localStorage.getItem('nomgi_guidelines_ok'); } catch (e) { return false; } });
             const [showHelper, setShowHelper] = useState(false);
             const [showProfileModal, setShowProfileModal] = useState(false);
@@ -241,6 +245,7 @@
             const [afterMood, setAfterMood] = useState(null);
             const [reflectNote, setReflectNote] = useState('');
             const [ratingGiven, setRatingGiven] = useState(0);
+            const [savedPartner, setSavedPartner] = useState(false);   // บันทึกคู่คุยไว้ reconnect
             // โหมดเงียบ/อยู่เป็นเพื่อน (#1)
             const [warmthToast, setWarmthToast] = useState(false);  // ได้รับไออุ่นจากคู่สนทนา
             const [warmthCooldown, setWarmthCooldown] = useState(0);
@@ -281,6 +286,7 @@
                 const recent = messages.slice(-6);
                 if (recent.some(m => !m.is_system && !isMemeMessage(m) && isRiskyText(m.content))) {
                     setShowCrisis(true);
+                    setHeavySession(true);
                 }
             }, [messages, crisisDismissed]);
 
@@ -447,6 +453,16 @@
                     alert('ส่งไม่สำเร็จ: ' + error.message + '\n\nถ้าเป็นข้อความมีม ให้รัน SQL เพิ่มคอลัมน์ message_type ใน Supabase');
                     if (type === 'text') setInput(content);
                 }
+                // Auto-flag: ถ้าข้อความของเราเข้าข่ายสัญญาณเสี่ยง แจ้งเข้าคิว admin เงียบๆ (นอกจากการ์ดสายด่วนที่แสดงอยู่แล้ว)
+                if (!error && type === 'text' && _safety.category) {
+                    const cat = _safety.category(body);
+                    if (cat) {
+                        try { await supabase.from('safety_flags').insert({
+                            user_id: user.id, room_id: roomId, context: 'chat',
+                            category: cat, excerpt: body.slice(0, 140)
+                        }); } catch (e) {}
+                    }
+                }
                 setSendingMeme(false);
             }
 
@@ -518,6 +534,19 @@
                 if (!partner || !user) return;
                 const partnerId = room.venter_id === user.id ? room.listener_id : room.venter_id;
                 try { await supabase.from('ratings').insert({ room_id: roomId, rater_id: user.id, rated_id: partnerId, stars }); } catch (e) {}
+            }
+
+            // Reconnect: บันทึกคู่คุยนี้ไว้ (ถ้าอีกฝ่ายก็บันทึก จะกลับมาชวนคุยกันใหม่ได้)
+            async function toggleSavePartner() {
+                if (!partner || !user) return;
+                const partnerId = room.venter_id === user.id ? room.listener_id : room.venter_id;
+                if (savedPartner) {
+                    setSavedPartner(false);
+                    try { await supabase.from('saved_partners').delete().eq('user_id', user.id).eq('partner_id', partnerId); } catch (e) {}
+                } else {
+                    setSavedPartner(true);
+                    try { await supabase.from('saved_partners').insert({ user_id: user.id, partner_id: partnerId, room_id: roomId }); } catch (e) {}
+                }
             }
 
             async function triggerEndChat() {
@@ -887,6 +916,13 @@
                                 ) : (
                                     <p class="text-sm text-ink-400 text-center mb-4">{partnerSub}</p>
                                 )}
+                                {isTrustedListener(partner) && (
+                                    <div class="flex justify-center mb-4 -mt-1">
+                                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-semibold border border-amber-200">
+                                            🌟 ผู้ฟังที่ไว้ใจได้ · {Number(partner.rating_avg).toFixed(1)} ({partner.rating_count})
+                                        </span>
+                                    </div>
+                                )}
                                 <div class="bg-primary-50 border border-primary-100 rounded-2xl p-4">
                                     <div class="flex items-center gap-3">
                                         <div class="shrink-0 w-16 h-16" dangerouslySetInnerHTML={{ __html: kudosPlantSvg(partner.kudos_count || 0, 64) }}></div>
@@ -1077,6 +1113,23 @@
                                         </div>
                                         <h3 class="text-lg font-bold mb-1 text-ink-900 warmth-pop">ขอบคุณที่แบ่งปันน้ำใจกันวันนี้</h3>
                                         <p class="text-sm text-ink-400 mb-4">{togetherLabel || 'พื้นที่นี้จะอยู่ตรงนี้เสมอ'} · เดินทางปลอดภัยนะ 🕊️</p>
+                                        <button type="button" onClick={toggleSavePartner}
+                                            class={`w-full py-2.5 rounded-2xl text-sm font-medium mb-3 border transition ${savedPartner ? 'bg-primary-50 text-primary-600 border-primary-200' : 'bg-surface text-ink-600 border-line hover:border-primary-300'}`}>
+                                            {savedPartner ? 'บันทึกคู่คุยคนนี้ไว้แล้ว 🔖' : 'บันทึกคู่คุยคนนี้ไว้ 🔖'}
+                                        </button>
+                                        {savedPartner && <p class="text-[11px] text-ink-400 mb-3 -mt-1">ถ้าอีกฝ่ายบันทึกคุณด้วย จะชวนกลับมาคุยกันใหม่ได้จากหน้าแรก</p>}
+                                        {heavySession && room && user && room.listener_id === user.id && (
+                                            <div class="bg-secondary-50 border border-secondary-100 rounded-2xl p-4 mb-3 text-left">
+                                                <div class="text-sm font-semibold text-secondary-600 mb-1">🫂 ดูแลใจตัวเองด้วยนะ</div>
+                                                <p class="text-xs text-ink-500 mb-2">วันนี้คุณรับฟังเรื่องที่หนักพอสมควร ขอบคุณที่อยู่ตรงนั้นให้เขา · การรับฟังเรื่องหนักใช้พลังใจเยอะ ลองหายใจลึกๆ ดื่มน้ำ แล้วให้เวลาตัวเองสักครู่</p>
+                                                {restedToday ? (
+                                                    <span class="text-xs text-primary-600 font-medium">ตั้งค่าพักวันนี้แล้ว 🌿</span>
+                                                ) : (
+                                                    <button type="button" onClick={() => { const e = new Date(); e.setHours(23,59,59,0); try { localStorage.setItem('nomgi_rest_until', String(e.getTime())); } catch(x){} setRestedToday(true); }}
+                                                        class="text-xs text-secondary-600 font-medium hover:underline">พักการรับฟังวันนี้ →</button>
+                                                )}
+                                            </div>
+                                        )}
                                         <textarea value={reflectNote} onChange={e => setReflectNote(e.target.value.slice(0, 500))} rows="2"
                                             placeholder="จดสิ่งที่ได้เรียนรู้/รู้สึกวันนี้ (ไม่บังคับ · เก็บเป็นของคุณคนเดียว)"
                                             class="w-full text-sm bg-paper-50 border border-line rounded-2xl px-4 py-3 mb-4 resize-none focus:outline-none focus:ring-2 focus:ring-primary-500/30 placeholder:text-ink-300" />

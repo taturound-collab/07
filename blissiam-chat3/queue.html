@@ -356,7 +356,17 @@
             const [queueStatus, setQueueStatus] = useState('joining');
             const [waitTime, setWaitTime] = useState(0);
             const [error, setError] = useState(null);
+            const [burnout, setBurnout] = useState(null);   // กันผู้ฟังหมดไฟ: {reason, count}
+            const bypassRef = React.useRef(false);
             const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
+
+            const LISTEN_LIMIT = 5;  // จำนวนครั้งรับฟังต่อวันก่อนชวนพัก (soft)
+            function proceedAnyway() { bypassRef.current = true; setBurnout(null); setQueueStatus('joining'); init(); }
+            function restToday() {
+                const end = new Date(); end.setHours(23, 59, 59, 0);
+                try { localStorage.setItem('nomgi_rest_until', String(end.getTime())); } catch (e) {}
+                window.location.href = 'index.html';
+            }
 
             function toggleDarkMode() {
                 const resolved = window.BlissiamTheme?.toggleColorScheme();
@@ -412,6 +422,21 @@
                         return;
                     }
                     setUser(session.user);
+
+                    // กันผู้ฟังหมดไฟ: ถ้ารับฟังในฐานะ listener บ่อยเกินไปวันนี้ หรือกำลังพักอยู่ → ชวนพัก (นุ่มนวล ไม่บังคับ)
+                    if (selectedRole === 'listener' && !bypassRef.current) {
+                        let restUntil = 0;
+                        try { restUntil = Number(localStorage.getItem('nomgi_rest_until') || 0); } catch (e) {}
+                        if (Date.now() < restUntil) { setBurnout({ reason: 'rest' }); setQueueStatus('gate'); return; }
+                        const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+                        try {
+                            const { count } = await supabase.from('rooms')
+                                .select('id', { count: 'exact', head: true })
+                                .eq('listener_id', session.user.id)
+                                .gte('created_at', todayStart.toISOString());
+                            if ((count || 0) >= LISTEN_LIMIT) { setBurnout({ reason: 'limit', count }); setQueueStatus('gate'); return; }
+                        } catch (e) { /* ถ้าเช็คไม่ได้ ก็ปล่อยผ่าน */ }
+                    }
 
                     // หาห้องที่ยัง active ของเรา — แต่ต้องเช็คว่าคู่สนทนายังอยู่จริงก่อน
                     // ไม่งั้นจะโดนโยนกลับเข้าห้องร้างที่อีกฝ่ายปิดแท็บหนีไปแล้ว
@@ -554,7 +579,7 @@
                     </div>
 
                     <div class="relative z-10 max-w-md w-full">
-                        {queueStatus !== 'joining' && <StepIndicator status={queueStatus} />}
+                        {queueStatus !== 'joining' && queueStatus !== 'gate' && <StepIndicator status={queueStatus} />}
                         <div class="card-playful bg-surface p-10 text-center">
                             {queueStatus === 'joining' && (
                                 <div>
@@ -562,6 +587,22 @@
                                         <DotLogo size={36} animated={true} />
                                     </div>
                                     <h2 class="text-xl font-bold text-ink-900">กำลังเตรียมพื้นที่แชท...</h2>
+                                </div>
+                            )}
+
+                            {queueStatus === 'gate' && (
+                                <div class="fade-in">
+                                    <div class="text-4xl mb-3">🫖</div>
+                                    <h2 class="text-xl font-bold text-ink-900 mb-1">พักสักหน่อยไหม?</h2>
+                                    <p class="text-sm text-ink-500 mb-5">
+                                        {burnout?.reason === 'rest'
+                                            ? 'วันนี้คุณเลือกพักการรับฟังไว้ · การดูแลใจตัวเองสำคัญไม่แพ้การดูแลคนอื่นนะ'
+                                            : `วันนี้คุณรับฟังมาแล้ว ${burnout?.count || LISTEN_LIMIT} ครั้ง เก่งมากเลย 💚 การรับฟังเรื่องหนักๆ ใช้พลังใจเยอะ ลองพักเติมพลังก่อนไหม?`}
+                                    </p>
+                                    <div class="flex flex-col gap-2">
+                                        <button onClick={restToday} class="w-full py-3 rounded-2xl bg-primary-500 text-white font-semibold text-sm hover:bg-primary-600 transition">พักวันนี้ · กลับหน้าแรก</button>
+                                        <button onClick={proceedAnyway} class="w-full py-2.5 rounded-2xl border border-line text-ink-600 font-medium text-sm hover:bg-paper-100 transition">ยังไหว รับฟังต่อ</button>
+                                    </div>
                                 </div>
                             )}
 

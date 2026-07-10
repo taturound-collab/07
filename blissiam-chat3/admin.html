@@ -145,6 +145,8 @@
             const [reportSearch, setReportSearch] = useState('');
             const [users, setUsers] = useState([]);
             const [appeals, setAppeals] = useState([]);
+            const [safetyFlags, setSafetyFlags] = useState([]);
+            const [wallFlagged, setWallFlagged] = useState([]);
             const [loading, setLoading] = useState(true);
             const [selectedThemeKey, setSelectedThemeKey] = useState('sage');
             const [selectedFontKey, setSelectedFontKey] = useState('kanit');
@@ -274,6 +276,26 @@
                     setAppeals(appealsData || []);
                 } catch (e) { /* ตาราง ban_appeals ยังไม่ถูกสร้าง (ยังไม่ได้รัน SQL) */ }
 
+                // Batch F: สัญญาณเสี่ยงอัตโนมัติ (auto-flag)
+                try {
+                    const { data: flagData } = await supabase
+                        .from('safety_flags')
+                        .select('*, user:user_id(display_name)')
+                        .eq('status', 'new')
+                        .order('created_at', { ascending: false }).limit(50);
+                    setSafetyFlags(flagData || []);
+                } catch (e) { /* ยังไม่ได้รัน batch-f.sql */ }
+
+                // Batch F: กำแพงกำลังใจที่ต้องตรวจ (pending) + ที่ซ่อนไว้
+                try {
+                    const { data: wallData } = await supabase
+                        .from('wall_posts')
+                        .select('*, user:user_id(display_name)')
+                        .in('status', ['pending', 'hidden'])
+                        .order('created_at', { ascending: false }).limit(50);
+                    setWallFlagged(wallData || []);
+                } catch (e) { /* ยังไม่ได้รัน batch-f.sql */ }
+
                 // กราฟข้อความย้อนหลัง 7 วัน
                 const sevenDaysAgo = new Date(todayStart);
                 sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
@@ -364,6 +386,24 @@
                     await supabase.from('ban_appeals').update({
                         status: 'dismissed', reviewed_at: new Date().toISOString(), reviewed_by: user.id
                     }).eq('id', appealId);
+                    loadData();
+                } catch (err) { alert('Error: ' + err.message); }
+            }
+
+            // Batch F: จัดการสัญญาณเสี่ยง
+            async function reviewFlag(flagId) {
+                try {
+                    await supabase.from('safety_flags').update({
+                        status: 'reviewed', reviewed_at: new Date().toISOString(), reviewed_by: user.id
+                    }).eq('id', flagId);
+                    loadData();
+                } catch (err) { alert('Error: ' + err.message); }
+            }
+
+            // Batch F: จัดการกำแพงกำลังใจ
+            async function setWallStatus(postId, status) {
+                try {
+                    await supabase.from('wall_posts').update({ status }).eq('id', postId);
                     loadData();
                 } catch (err) { alert('Error: ' + err.message); }
             }
@@ -737,6 +777,68 @@
                         {activeTab === 'users' && (
                             <div class="fade-in">
                                 <h1 class="text-2xl font-bold text-ink-900 mb-6">ระบบจัดการผู้ใช้</h1>
+
+                                {/* Batch F: สัญญาณเสี่ยงอัตโนมัติ */}
+                                {safetyFlags.length > 0 && (
+                                    <div class="mb-8">
+                                        <h2 class="text-lg font-bold text-ink-900 mb-3 flex items-center gap-2">
+                                            🚨 สัญญาณเสี่ยง (ตรวจจับอัตโนมัติ)
+                                            <span class="px-2 py-0.5 bg-red-100 text-red-600 rounded-full text-xs font-bold">{safetyFlags.length}</span>
+                                        </h2>
+                                        <div class="space-y-3">
+                                            {safetyFlags.map(f => (
+                                                <div key={f.id} class="bg-surface rounded-2xl border border-red-100 p-5">
+                                                    <div class="flex items-start justify-between gap-4 mb-2">
+                                                        <div>
+                                                            <span class="font-semibold text-ink-900">{f.user?.display_name || 'ผู้ใช้'}</span>
+                                                            <span class="ml-2 text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-200">{f.category}</span>
+                                                            <span class="ml-2 text-xs text-ink-300">{f.context === 'group' ? 'ห้องกลุ่ม' : 'แชท 1:1'}</span>
+                                                        </div>
+                                                        <div class="text-xs text-ink-300 whitespace-nowrap">{new Date(f.created_at).toLocaleString('th-TH')}</div>
+                                                    </div>
+                                                    {f.excerpt && <p class="text-sm text-ink-500 bg-paper-50 rounded-xl p-3 mb-3 whitespace-pre-wrap">“{f.excerpt}”</p>}
+                                                    <div class="flex justify-end">
+                                                        <button onClick={() => reviewFlag(f.id)}
+                                                            class="px-4 py-1.5 rounded-xl text-xs font-medium bg-green-50 text-green-600 border border-green-200 hover:bg-green-100 transition">
+                                                            ตรวจแล้ว
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Batch F: กำแพงกำลังใจ — รอตรวจ/ซ่อน */}
+                                {wallFlagged.length > 0 && (
+                                    <div class="mb-8">
+                                        <h2 class="text-lg font-bold text-ink-900 mb-3 flex items-center gap-2">
+                                            💛 กำแพงกำลังใจ — รอตรวจ/ซ่อน
+                                            <span class="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-bold">{wallFlagged.length}</span>
+                                        </h2>
+                                        <div class="space-y-3">
+                                            {wallFlagged.map(w => (
+                                                <div key={w.id} class="bg-surface rounded-2xl border border-line p-5">
+                                                    <div class="flex items-start justify-between gap-4 mb-2">
+                                                        <span class="text-xs px-2 py-0.5 rounded-full bg-paper-100 text-ink-500 border border-line">{w.status === 'pending' ? 'รอตรวจ' : 'ซ่อนอยู่'}</span>
+                                                        <div class="text-xs text-ink-300 whitespace-nowrap">{new Date(w.created_at).toLocaleString('th-TH')}</div>
+                                                    </div>
+                                                    <p class="text-sm text-ink-700 bg-paper-50 rounded-xl p-3 mb-3 whitespace-pre-wrap">{w.text}</p>
+                                                    <div class="flex gap-2 justify-end">
+                                                        {w.status !== 'approved' && (
+                                                            <button onClick={() => setWallStatus(w.id, 'approved')}
+                                                                class="px-4 py-1.5 rounded-xl text-xs font-medium bg-green-50 text-green-600 border border-green-200 hover:bg-green-100 transition">อนุมัติ</button>
+                                                        )}
+                                                        {w.status !== 'hidden' && (
+                                                            <button onClick={() => setWallStatus(w.id, 'hidden')}
+                                                                class="px-4 py-1.5 rounded-xl text-xs font-medium bg-paper-100 text-ink-500 border border-line hover:bg-paper-50 transition">ซ่อน</button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Batch D: คำอุทธรณ์การแบน */}
                                 {(() => {
