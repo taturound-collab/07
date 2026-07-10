@@ -53,6 +53,8 @@
         .btn-playful:active:not(:disabled) { transform: translateY(0) scale(0.98); }
         .card-playful { border-radius: 2rem; box-shadow: 0 20px 45px -20px var(--color-primary-500); border: 1px solid color-mix(in srgb, var(--color-primary-500) 15%, var(--color-line)); }
         .avatar-ring { background: linear-gradient(135deg, var(--color-primary-500), var(--color-secondary-500, var(--color-primary-600))); padding: 4px; }
+        /* การ์ดที่อยู่ในหมวดพับได้ — ตัด chrome ของการ์ดออก กันการ์ดซ้อนการ์ด */
+        .section-fold .card-playful { border: 0; box-shadow: none; background: transparent; border-radius: 0; padding: 0.25rem 0 0; }
     </style>
     <script src="theme.js"></script>
     <script src="pwa.js"></script>
@@ -352,6 +354,23 @@
             );
         }
 
+        // หมวดพับได้ — ใช้ <details> ได้คีย์บอร์ด/สกรีนรีดเดอร์ฟรี ลดความยาวหน้าบนมือถือ
+        function Section({ icon, title, hint, children, defaultOpen = false }) {
+            return (
+                <details open={defaultOpen} class="section-fold group rounded-3xl border border-line bg-surface overflow-hidden">
+                    <summary class="flex items-center gap-3 px-5 py-4 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden hover:bg-paper-50 transition">
+                        <span class="text-xl leading-none">{icon}</span>
+                        <span class="flex-1 min-w-0">
+                            <span class="block font-bold text-sm text-ink-900">{title}</span>
+                            {hint && <span class="block text-xs text-ink-500 mt-0.5">{hint}</span>}
+                        </span>
+                        <svg class="w-4 h-4 text-ink-400 transition-transform group-open:rotate-180 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </summary>
+                    <div class="px-5 pb-5 pt-1 space-y-4 border-t border-line/60">{children}</div>
+                </details>
+            );
+        }
+
         function DarkModeToggle({ isDark, onToggle }) {
             return (
                 <button type="button" onClick={onToggle} title={isDark ? 'สลับเป็นโหมดสว่าง' : 'สลับเป็นโหมดมืด'}
@@ -488,12 +507,20 @@
 
                         {/* ต้นไม้น้ำใจ (#5) + เส้นทางใจ (#4) */}
                         <KudosTreeCard count={kudosCount} ratingAvg={ratingAvg} ratingCount={ratingCount} />
-                        <WeeklySummaryCard />
-                        <MoodJourneyCard />
-                        <GratitudeListCard />
+
+                        {/* หมวดพับได้ — ลดความยาวหน้า ให้ฟอร์มโปรไฟล์เข้าถึงง่ายขึ้น */}
+                        <Section icon="📊" title="สัปดาห์นี้ของฉัน" hint="สรุปสัปดาห์ · เส้นทางใจ · สมุดขอบคุณ (ส่วนตัว เห็นแค่คุณ)">
+                            <WeeklySummaryCard />
+                            <MoodJourneyCard />
+                            <GratitudeListCard />
+                        </Section>
+
                         <SafetyPlanCard />
-                        <AccessibilityCard />
-                        <DataCard />
+
+                        <Section icon="⚙️" title="การตั้งค่าและข้อมูลของฉัน" hint="การช่วยการเข้าถึง · ส่งออก/ลบข้อมูล">
+                            <AccessibilityCard />
+                            <DataCard />
+                        </Section>
 
                         <form onSubmit={handleSave} class="card-playful bg-surface p-8 space-y-6">
                             {/* ส่วนอัปโหลดรูป */}

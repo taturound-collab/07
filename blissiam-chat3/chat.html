@@ -726,7 +726,7 @@
                                                         onError={(e) => { e.target.src = 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22120%22><rect fill=%22%23f0f0f0%22 width=%22200%22 height=%22120%22/><text x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22 font-size=%2214%22>โหลดรูปไม่ได้</text></svg>'; }} />
                                                 </div>
                                             ) : (
-                                                <div class={`px-4 py-2.5 rounded-2xl shadow-bubble text-sm leading-relaxed transition-transform ${isMine
+                                                <div class={`px-4 py-2.5 rounded-2xl shadow-bubble text-[15px] leading-relaxed transition-transform ${isMine
                                                     ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white rounded-br-md'
                                                     : 'glass text-ink-900 rounded-bl-md border border-white/60'}`}>
                                                     <span class="whitespace-pre-wrap break-words">{msg.content}</span>
@@ -745,9 +745,11 @@
                                                                 {em}{g.count > 1 ? ' ' + g.count : ''}
                                                             </button>
                                                         ))}
+                                                        {/* มือถือไม่มี hover — ให้ปุ่ม react มองเห็นจางๆ เสมอ, เดสก์ท็อปค่อยโผล่ตอน hover */}
                                                         <button type="button" onClick={() => setReactBarFor(reactBarFor === msg.id ? null : msg.id)}
-                                                            class="opacity-0 group-hover:opacity-100 text-xs text-ink-300 hover:text-primary-600 px-1 transition">＋😊</button>
-                                                        <span class="text-[10px] text-ink-300 px-1">{formatTime(msg.created_at)}</span>
+                                                            aria-label="เพิ่มรีแอคชัน"
+                                                            class="opacity-60 sm:opacity-0 sm:group-hover:opacity-100 text-xs text-ink-400 hover:text-primary-600 px-1.5 py-0.5 transition">＋😊</button>
+                                                        <span class="text-[10px] text-ink-400 px-1">{formatTime(msg.created_at)}</span>
                                                     </div>
                                                 );
                                             })()}
@@ -850,7 +852,7 @@
                                     supabase.channel('typing-' + roomId).send({ type: 'broadcast', event: 'typing', payload: { senderId: user.id } });
                                 }}
                                 placeholder="พิมพ์ข้อความ..."
-                                class="flex-1 bg-transparent text-sm focus:outline-none placeholder:text-ink-300 min-w-0" />
+                                class="flex-1 bg-transparent text-base focus:outline-none placeholder:text-ink-400 min-w-0" />
                             <button type="submit" disabled={!input.trim()}
                                 class="w-11 h-11 rounded-xl bg-primary-500 text-white flex items-center justify-center shrink-0 disabled:opacity-40 hover:bg-primary-600 active:scale-90 transition-all duration-150 shadow-bubble">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>

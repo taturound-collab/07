@@ -166,8 +166,15 @@
                 // ส่ง mood แบบไม่ระบุตัวตนเข้ากองรวมของชุมชน (#11) — ไม่มี user_id
                 try { window.supabaseClient?.from('mood_pings').insert({ score }).then(() => {}, () => {}); } catch (e) {}
             }
+            // เช็คอินแล้ว → เหลือแถวบางๆ ไม่แย่งพื้นที่จากงานหลักของหน้า
+            if (done) return (
+                <div class="mb-3 flex items-center justify-between bg-surface/80 border border-line rounded-2xl px-4 py-2.5">
+                    <span class="text-sm text-ink-500">🌤️ เช็คอินวันนี้แล้ว · พรุ่งนี้แวะมาใหม่นะ</span>
+                    {streak > 0 && <span class="text-xs font-bold text-primary-600 shrink-0">🔥 {streak} วันติด</span>}
+                </div>
+            );
             return (
-                <div class="mb-6 bg-gradient-to-br from-primary-50 to-surface border border-line rounded-3xl p-5 sm:p-6">
+                <div class="mb-4 bg-gradient-to-br from-primary-50 to-surface border border-line rounded-3xl p-5 sm:p-6">
                     <div class="flex items-center justify-between mb-1">
                         <h3 class="font-bold text-base text-ink-900">เช็คอินความรู้สึกวันนี้ 🌤️</h3>
                         {streak > 0 && <span class="text-sm font-bold text-primary-600 flex items-center gap-1">🔥 {streak} วันติด</span>}
@@ -202,6 +209,12 @@
                 if (!text.trim()) return;
                 Mood.addGratitude(text); setDone(true); setText('');
             }
+            // บันทึกแล้ว → เหลือแถวบางๆ
+            if (done) return (
+                <div class="mb-6 bg-surface/80 border border-line rounded-2xl px-4 py-2.5">
+                    <span class="text-sm text-ink-500">🌷 บันทึกความขอบคุณวันนี้แล้ว · ดูย้อนหลังได้ในโปรไฟล์</span>
+                </div>
+            );
             return (
                 <div class="mb-6 bg-surface border border-line rounded-3xl p-5 sm:p-6">
                     <h3 class="font-bold text-base text-ink-900 mb-1">วันนี้มีอะไรดีๆ 1 อย่าง? 🌷</h3>
@@ -598,64 +611,60 @@
                             {!isAdmin && user && <ReconnectCard user={user} />}
                             {!isAdmin && <WallLink />}
                             {!isAdmin && (
-                                <div class="mb-8 bg-surface border border-line rounded-3xl p-6 sm:p-8 shadow-sm">
-                                    {/* 1. เลือกหัวข้อสนทนา */}
-                                    <div class="mb-6">
+                                <div class="mb-8 bg-surface border border-line rounded-3xl p-5 sm:p-7 shadow-sm">
+                                    {/* 1. เลือกหัวข้อสนทนา — ชิปกะทัดรัด อ่านคำอธิบายของอันที่เลือกด้านล่าง */}
+                                    <div class="mb-5">
                                         <div class="flex items-center justify-between mb-3">
                                             <h3 class="font-bold text-base text-ink-900 flex items-center gap-2.5">
                                                 <span class="w-6 h-6 rounded-full bg-primary-500 text-white text-xs font-bold flex items-center justify-center shrink-0">1</span>
-                                                เลือกเรื่องราวที่คุณสนใจหรืออยากพูดคุย
+                                                อยากคุยเรื่องอะไร
                                             </h3>
                                             <span class="text-xs text-primary-600 font-medium hidden sm:inline">ระบบจะจับคู่ตามเรื่องที่เลือก</span>
                                         </div>
-                                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                        <div class="flex flex-wrap gap-2">
                                             {TOPICS.map(t => (
                                                 <button
                                                     key={t.id}
                                                     onClick={() => setSelectedTopic(t.id)}
-                                                    class={`text-left p-4 rounded-2xl border-2 transition ${selectedTopic === t.id ? 'border-primary-500 bg-primary-50/30' : 'border-line hover:border-ink-200'}`}
+                                                    aria-pressed={selectedTopic === t.id}
+                                                    class={`px-3.5 py-2 rounded-full border text-sm transition ${selectedTopic === t.id ? 'border-primary-500 bg-primary-50 text-primary-700 font-semibold' : 'border-line text-ink-700 hover:border-ink-300'}`}
                                                 >
-                                                    <div class="font-semibold text-sm text-ink-900 mb-0.5">{t.label}</div>
-                                                    <div class="text-xs text-ink-500">{t.desc}</div>
+                                                    {t.label}
                                                 </button>
                                             ))}
                                         </div>
+                                        <p class="text-xs text-ink-500 mt-2 min-h-[1rem]">{(TOPICS.find(t => t.id === selectedTopic) || {}).desc}</p>
                                     </div>
 
                                     {/* 2. เลือกโหมดระบุตัวตน */}
-                                    <div class="border-t border-line pt-6">
+                                    <div class="border-t border-line pt-5 pb-5">
                                         <div class="flex items-center justify-between mb-3">
                                             <h3 class="font-bold text-base text-ink-900 flex items-center gap-2.5">
                                                 <span class="w-6 h-6 rounded-full bg-primary-500 text-white text-xs font-bold flex items-center justify-center shrink-0">2</span>
-                                                เลือกโหมดการแสดงตัวตน
+                                                การแสดงตัวตน
                                             </h3>
                                         </div>
-                                        <div class="grid grid-cols-2 gap-4">
+                                        <div class="grid grid-cols-2 gap-3">
                                             <button
                                                 onClick={() => setIdentityMode('anonymous')}
-                                                class={`text-left p-4 rounded-2xl border-2 transition ${identityMode === 'anonymous' ? 'border-ink-900 bg-paper-100' : 'border-line hover:border-ink-200'}`}
+                                                aria-pressed={identityMode === 'anonymous'}
+                                                class={`text-left px-4 py-3 rounded-2xl border transition ${identityMode === 'anonymous' ? 'border-primary-500 bg-primary-50' : 'border-line hover:border-ink-300'}`}
                                             >
-                                                <div class="flex items-center gap-2 mb-1">
-                                                    <span class={`w-2 h-2 rounded-full ${identityMode === 'anonymous' ? 'bg-ink-900' : 'bg-ink-200'}`}></span>
-                                                    <span class="font-semibold text-sm">ไม่ระบุตัวตน</span>
-                                                </div>
-                                                <p class="text-xs text-ink-500">คู่สนทนาจะเห็นเพียงชื่อสมมติทั่วไป</p>
+                                                <span class={`font-semibold text-sm ${identityMode === 'anonymous' ? 'text-primary-700' : 'text-ink-700'}`}>🎭 ไม่ระบุตัวตน</span>
                                             </button>
                                             <button
                                                 onClick={() => setIdentityMode('revealed')}
-                                                class={`text-left p-4 rounded-2xl border-2 transition ${identityMode === 'revealed' ? 'border-primary-500 bg-primary-50/30' : 'border-line hover:border-ink-200'}`}
+                                                aria-pressed={identityMode === 'revealed'}
+                                                class={`text-left px-4 py-3 rounded-2xl border transition ${identityMode === 'revealed' ? 'border-primary-500 bg-primary-50' : 'border-line hover:border-ink-300'}`}
                                             >
-                                                <div class="flex items-center gap-2 mb-1">
-                                                    <span class={`w-2 h-2 rounded-full ${identityMode === 'revealed' ? 'bg-primary-500' : 'bg-ink-200'}`}></span>
-                                                    <span class="font-semibold text-sm">ระบุตัวตน</span>
-                                                </div>
-                                                <p class="text-xs text-ink-500">คู่สนทนาเห็นชื่อจริงและชื่อสถานศึกษา</p>
+                                                <span class={`font-semibold text-sm ${identityMode === 'revealed' ? 'text-primary-700' : 'text-ink-700'}`}>🙂 ระบุตัวตน</span>
                                             </button>
                                         </div>
+                                        <p class="text-xs text-ink-500 mt-2 min-h-[1rem]">{identityMode === 'anonymous' ? 'คู่สนทนาจะเห็นเพียงชื่อสมมติ · ปลอดภัยและเป็นค่าเริ่มต้น' : 'คู่สนทนาจะเห็นชื่อจริงและชื่อสถานศึกษาของคุณ'}</p>
                                     </div>
 
-                                    {/* 3. อยากให้ช่วยแบบไหน (#2) */}
-                                    <div class="border-t border-line pt-6">
+                                    {/* 3. อยากให้ช่วยแบบไหน (#2) — ชิปกะทัดรัด */}
+                                    <div class="border-t border-line pt-5">
                                         <div class="flex items-center justify-between mb-3">
                                             <h3 class="font-bold text-base text-ink-900 flex items-center gap-2.5">
                                                 <span class="w-6 h-6 rounded-full bg-primary-500 text-white text-xs font-bold flex items-center justify-center shrink-0">3</span>
@@ -663,15 +672,16 @@
                                             </h3>
                                             <span class="text-xs text-primary-600 font-medium hidden sm:inline">จับคู่คนที่ต้องการแบบเดียวกันก่อน</span>
                                         </div>
-                                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                        <div class="flex flex-wrap gap-2">
                                             {SUPPORT_TYPES.map(s => (
                                                 <button key={s.id} onClick={() => setSelectedSupport(s.id)}
-                                                    class={`text-left p-4 rounded-2xl border-2 transition ${selectedSupport === s.id ? 'border-primary-500 bg-primary-50/30' : 'border-line hover:border-ink-200'}`}>
-                                                    <div class="font-semibold text-sm text-ink-900 mb-0.5">{s.emoji} {s.label}</div>
-                                                    <div class="text-xs text-ink-500">{s.desc}</div>
+                                                    aria-pressed={selectedSupport === s.id}
+                                                    class={`px-3.5 py-2 rounded-full border text-sm transition ${selectedSupport === s.id ? 'border-primary-500 bg-primary-50 text-primary-700 font-semibold' : 'border-line text-ink-700 hover:border-ink-300'}`}>
+                                                    {s.emoji} {s.label}
                                                 </button>
                                             ))}
                                         </div>
+                                        <p class="text-xs text-ink-500 mt-2 min-h-[1rem]">{(SUPPORT_TYPES.find(s => s.id === selectedSupport) || {}).desc}</p>
                                     </div>
                                 </div>
                             )}
