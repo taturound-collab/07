@@ -57,6 +57,7 @@
     </style>
     <script src="theme.js"></script>
     <script src="pwa.js"></script>
+    <script src="panic.js"></script>
     <style>
         body { font-family: 'Kanit', sans-serif; background-color: var(--color-paper-50); background-image: radial-gradient(circle at 15% 10%, var(--color-primary-50) 0%, transparent 45%), radial-gradient(circle at 85% 90%, var(--color-secondary-50) 0%, transparent 45%); background-attachment: fixed; transition: background-color 0.3s ease; }
         .dot-pulse circle { animation: dotPulse 1.4s ease-in-out infinite; }
@@ -202,12 +203,10 @@
             { key: 'hold',   label: 'กลั้นไว้',  secs: 7, scale: 1 },
             { key: 'exhale', label: 'หายใจออก', secs: 8, scale: 0.5 },
         ];
-        function BreathingExercise() {
-            const [on, setOn] = React.useState(false);
+        function BreathingExercise({ onBack }) {
             const [idx, setIdx] = React.useState(0);
             const [count, setCount] = React.useState(4);
             React.useEffect(() => {
-                if (!on) { setIdx(0); return; }
                 let t1, t2;
                 function run(k) {
                     setIdx(k);
@@ -218,32 +217,104 @@
                 }
                 run(0);
                 return () => { clearTimeout(t1); clearInterval(t2); };
-            }, [on]);
+            }, []);
             const ph = BREATH_PHASES[idx];
             return (
-                <div class="card-playful bg-surface overflow-hidden mt-4 p-5 text-center">
-                    {!on ? (
-                        <>
-                            <p class="text-sm text-ink-500 mb-3">ระหว่างรอ ลองหายใจคลายเครียดด้วยจังหวะ 4-7-8 ดูไหม? 🧘</p>
-                            <button type="button" onClick={() => setOn(true)}
-                                class="px-5 py-2.5 rounded-full bg-primary-500 text-white text-sm font-semibold hover:bg-primary-600 transition">
-                                เริ่มฝึกหายใจ
+                <div class="text-center">
+                    <div class="relative flex items-center justify-center mx-auto" style={{ width: '160px', height: '160px' }}>
+                        <div class="absolute rounded-full bg-primary-100" style={{ width: '150px', height: '150px' }}></div>
+                        <div class="absolute rounded-full bg-gradient-to-br from-primary-400 to-primary-600"
+                            style={{ width: '120px', height: '120px', transform: `scale(${ph.scale})`, transition: `transform ${ph.secs}s ease-in-out` }}></div>
+                        <div class="relative text-white">
+                            <div class="text-base font-bold">{ph.label}</div>
+                            <div class="text-3xl font-extrabold tabular-nums">{count}</div>
+                        </div>
+                    </div>
+                    <button type="button" onClick={onBack}
+                        class="mt-4 text-xs text-ink-400 hover:text-red-500 transition">‹ เลือกใหม่</button>
+                </div>
+            );
+        }
+
+        // แบบฝึกดึงสติ 5-4-3-2-1 (grounding ผ่านประสาทสัมผัส) — พาใจกลับมาอยู่กับปัจจุบัน
+        const GROUND_STEPS = [
+            { n: 5, icon: '👀', sense: 'สิ่งที่คุณ มองเห็น', hint: 'มองรอบตัว ค่อยๆ นับทีละอย่าง' },
+            { n: 4, icon: '👂', sense: 'เสียงที่คุณ ได้ยิน', hint: 'ตั้งใจฟังเสียงรอบๆ ตัว' },
+            { n: 3, icon: '✋', sense: 'สิ่งที่คุณ สัมผัสได้', hint: 'รู้สึกถึงพื้น ผ้า หรือมือของคุณ' },
+            { n: 2, icon: '👃', sense: 'กลิ่นที่คุณ ได้กลิ่น', hint: 'หายใจเข้าช้าๆ ลองดมกลิ่นรอบตัว' },
+            { n: 1, icon: '🫶', sense: 'สิ่งดีๆ ในตัวคุณ', hint: 'บอกกับตัวเองว่า “ฉันปลอดภัยตอนนี้”' },
+        ];
+        function GroundingExercise({ onBack }) {
+            const [step, setStep] = React.useState(0);
+            const [ticked, setTicked] = React.useState(0);
+            const [done, setDone] = React.useState(false);
+            const s = GROUND_STEPS[step];
+            function tick(i) { if (i + 1 > ticked) setTicked(i + 1); }
+            function next() {
+                if (step < GROUND_STEPS.length - 1) { setStep(step + 1); setTicked(0); }
+                else setDone(true);
+            }
+            if (done) return (
+                <div class="text-center py-2">
+                    <div class="text-4xl mb-2">🌿</div>
+                    <p class="text-sm text-ink-600 font-medium mb-1">กลับมาอยู่กับปัจจุบันแล้วนะ</p>
+                    <p class="text-xs text-ink-400 mb-4">ค่อยๆ หายใจ คุณทำได้ดีมาก</p>
+                    <button type="button" onClick={onBack}
+                        class="text-xs text-ink-400 hover:text-primary-600 transition">‹ เลือกใหม่</button>
+                </div>
+            );
+            return (
+                <div class="text-center">
+                    <div class="flex items-center justify-center gap-1.5 mb-4">
+                        {GROUND_STEPS.map((_, i) => (
+                            <div key={i} class={`h-1.5 rounded-full transition-all ${i === step ? 'w-6 bg-primary-500' : i < step ? 'w-3 bg-primary-300' : 'w-3 bg-paper-200'}`}></div>
+                        ))}
+                    </div>
+                    <div class="text-4xl mb-1">{s.icon}</div>
+                    <div class="text-2xl font-extrabold text-primary-600 leading-none mb-1">{s.n}</div>
+                    <p class="text-sm font-semibold text-ink-700">{s.sense}</p>
+                    <p class="text-xs text-ink-400 mb-4">{s.hint}</p>
+                    <div class="flex items-center justify-center gap-2 mb-4">
+                        {Array.from({ length: s.n }).map((_, i) => (
+                            <button key={i} type="button" onClick={() => tick(i)}
+                                class={`w-8 h-8 rounded-full border-2 transition-all ${i < ticked ? 'bg-primary-500 border-primary-500 text-white' : 'border-paper-300 text-ink-300 hover:border-primary-300'}`}>
+                                {i < ticked ? '✓' : i + 1}
                             </button>
-                        </>
-                    ) : (
-                        <>
-                            <div class="relative flex items-center justify-center mx-auto" style={{ width: '160px', height: '160px' }}>
-                                <div class="absolute rounded-full bg-primary-100" style={{ width: '150px', height: '150px' }}></div>
-                                <div class="absolute rounded-full bg-gradient-to-br from-primary-400 to-primary-600"
-                                    style={{ width: '120px', height: '120px', transform: `scale(${ph.scale})`, transition: `transform ${ph.secs}s ease-in-out` }}></div>
-                                <div class="relative text-white">
-                                    <div class="text-base font-bold">{ph.label}</div>
-                                    <div class="text-3xl font-extrabold tabular-nums">{count}</div>
-                                </div>
+                        ))}
+                    </div>
+                    <button type="button" onClick={next} disabled={ticked < s.n}
+                        class="px-5 py-2 rounded-full bg-primary-500 text-white text-sm font-semibold hover:bg-primary-600 transition disabled:opacity-40">
+                        {step < GROUND_STEPS.length - 1 ? 'ถัดไป ›' : 'เสร็จแล้ว 🌿'}
+                    </button>
+                    <div><button type="button" onClick={onBack}
+                        class="mt-3 text-xs text-ink-400 hover:text-red-500 transition">‹ เลือกใหม่</button></div>
+                </div>
+            );
+        }
+
+        // การ์ดผ่อนคลายระหว่างรอ — เลือกระหว่างหายใจ 4-7-8 หรือดึงสติ 5-4-3-2-1
+        function CalmTools() {
+            const [mode, setMode] = React.useState(null);
+            return (
+                <div class="card-playful bg-surface overflow-hidden mt-4 p-5">
+                    {mode === null ? (
+                        <div class="text-center">
+                            <p class="text-sm text-ink-500 mb-4">ระหว่างรอ ลองพาใจให้สงบดูไหม? 🌸</p>
+                            <div class="flex flex-col sm:flex-row gap-2 justify-center">
+                                <button type="button" onClick={() => setMode('breath')}
+                                    class="px-4 py-2.5 rounded-full bg-primary-500 text-white text-sm font-semibold hover:bg-primary-600 transition">
+                                    🧘 หายใจ 4-7-8
+                                </button>
+                                <button type="button" onClick={() => setMode('ground')}
+                                    class="px-4 py-2.5 rounded-full bg-paper-100 text-ink-600 text-sm font-semibold border border-line hover:bg-paper-50 transition">
+                                    🌿 ดึงสติ 5-4-3-2-1
+                                </button>
                             </div>
-                            <button type="button" onClick={() => setOn(false)}
-                                class="mt-4 text-xs text-ink-400 hover:text-red-500 transition">หยุดฝึก</button>
-                        </>
+                        </div>
+                    ) : mode === 'breath' ? (
+                        <BreathingExercise onBack={() => setMode(null)} />
+                    ) : (
+                        <GroundingExercise onBack={() => setMode(null)} />
                     )}
                 </div>
             );
@@ -533,7 +604,7 @@
                         </div>
 
                         {queueStatus === 'waiting' && <WaitingCompanion waitTime={waitTime} />}
-                        {queueStatus === 'waiting' && <BreathingExercise />}
+                        {queueStatus === 'waiting' && <CalmTools />}
                     </div>
                 </div>
             );

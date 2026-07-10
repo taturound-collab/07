@@ -56,6 +56,7 @@
     </style>
     <script src="theme.js"></script>
     <script src="pwa.js"></script>
+    <script src="panic.js"></script>
     <script src="kudos-tree.js"></script>
     <script src="mood.js"></script>
 </head>
@@ -236,6 +237,113 @@
             );
         }
 
+        // แผนรับมือของฉัน (Safety Plan) — ส่วนตัวใน localStorage เท่านั้น
+        const SAFETY_KEY = 'nomgi_safety_plan';
+        const SAFETY_FIELDS = [
+            { k: 'signs',   label: 'สัญญาณเตือนของฉัน',            ph: 'เช่น นอนไม่หลับ เก็บตัว คิดวนซ้ำๆ...' },
+            { k: 'helps',   label: 'สิ่งที่ช่วยให้ดีขึ้น',          ph: 'เช่น ฟังเพลง เดินเล่น หายใจลึกๆ อาบน้ำอุ่น...' },
+            { k: 'people',  label: 'คนที่ทักหา/โทรหาได้',           ph: 'เช่น เพื่อนสนิท พี่ ครูที่ไว้ใจ...' },
+            { k: 'reasons', label: 'เหตุผลที่อยากผ่านมันไปให้ได้',   ph: 'สิ่งที่ยึดเหนี่ยว คนหรือความฝันที่รออยู่...' },
+        ];
+        function SafetyPlanCard() {
+            const [open, setOpen] = useState(false);
+            const [data, setData] = useState(() => { try { return JSON.parse(localStorage.getItem(SAFETY_KEY)) || {}; } catch (e) { return {}; } });
+            const [saved, setSaved] = useState(false);
+            const hasAny = SAFETY_FIELDS.some(f => (data[f.k] || '').trim());
+            function set(k, v) { setData(d => ({ ...d, [k]: v })); setSaved(false); }
+            function save() { try { localStorage.setItem(SAFETY_KEY, JSON.stringify(data)); } catch (e) {} setSaved(true); }
+            return (
+                <div class="card-playful bg-surface p-6">
+                    <div class="flex items-center justify-between mb-1">
+                        <div class="text-xs font-semibold uppercase tracking-wide text-primary-600">แผนรับมือของฉัน 🛟</div>
+                        {(hasAny || open) && (
+                            <button type="button" onClick={() => setOpen(o => !o)} class="text-xs text-ink-400 hover:text-primary-600 transition">{open ? 'เสร็จ' : 'แก้ไข'}</button>
+                        )}
+                    </div>
+                    <p class="text-xs text-ink-400 mb-4">การ์ดส่วนตัวไว้เปิดดูตอนใจไม่ดี · เก็บในเครื่องนี้เท่านั้น ไม่ส่งขึ้นเซิร์ฟเวอร์</p>
+                    {open ? (
+                        <div class="space-y-3">
+                            {SAFETY_FIELDS.map(f => (
+                                <div key={f.k}>
+                                    <label class="text-sm text-ink-700 font-medium">{f.label}</label>
+                                    <textarea value={data[f.k] || ''} onChange={e => set(f.k, e.target.value.slice(0, 600))} rows="2" placeholder={f.ph}
+                                        class="mt-1 w-full bg-paper-50 border border-line rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary-500/30" />
+                                </div>
+                            ))}
+                            <div class="flex items-center gap-3 pt-1">
+                                <button type="button" onClick={save} class="px-4 py-2 rounded-full bg-primary-500 text-white text-sm font-semibold hover:bg-primary-600 transition">บันทึก</button>
+                                {saved && <span class="text-xs text-primary-600">บันทึกแล้ว ✓</span>}
+                            </div>
+                            <div class="mt-2 pt-3 border-t border-line text-xs text-ink-500 space-y-1">
+                                <div class="font-semibold text-ink-600">สายด่วนช่วยเหลือ (24 ชม.)</div>
+                                <div>· สายด่วนสุขภาพจิต <b>1323</b></div>
+                                <div>· สมาคมสะมาริตันส์ <b>02-113-6789</b></div>
+                                <div>· เจ็บป่วยฉุกเฉิน <b>1669</b></div>
+                            </div>
+                        </div>
+                    ) : hasAny ? (
+                        <div class="space-y-3">
+                            {SAFETY_FIELDS.filter(f => (data[f.k] || '').trim()).map(f => (
+                                <div key={f.k}>
+                                    <div class="text-xs text-ink-400">{f.label}</div>
+                                    <div class="text-sm text-ink-700 whitespace-pre-wrap">{data[f.k]}</div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <button type="button" onClick={() => setOpen(true)} class="text-sm text-primary-600 hover:underline">+ เขียนแผนรับมือของฉัน</button>
+                    )}
+                </div>
+            );
+        }
+
+        // ข้อมูลของฉัน — ส่งออก / ลบ (ข้อมูลส่วนตัวใน localStorage)
+        function DataCard() {
+            const [msg, setMsg] = useState(null);
+            function collect() {
+                const o = {};
+                for (let i = 0; i < localStorage.length; i++) {
+                    const k = localStorage.key(i);
+                    if (k && k.indexOf('nomgi_') === 0) {
+                        try { o[k] = JSON.parse(localStorage.getItem(k)); } catch (e) { o[k] = localStorage.getItem(k); }
+                    }
+                }
+                return o;
+            }
+            function exportData() {
+                const payload = { app: 'NomGI', exportedAt: new Date().toISOString(), data: collect() };
+                const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = 'nomgi-my-data-' + new Date().toISOString().slice(0, 10) + '.json';
+                document.body.appendChild(a); a.click(); a.remove();
+                URL.revokeObjectURL(url);
+                setMsg('ดาวน์โหลดข้อมูลแล้ว ✓');
+            }
+            function wipe() {
+                if (!confirm('ลบข้อมูลส่วนตัวในเครื่องนี้ทั้งหมด?\n(บันทึกอารมณ์ · สมุดขอบคุณ · แผนรับมือ)\nกู้คืนไม่ได้')) return;
+                const keys = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const k = localStorage.key(i);
+                    if (k && k.indexOf('nomgi_') === 0) keys.push(k);
+                }
+                keys.forEach(k => localStorage.removeItem(k));
+                setMsg('ลบข้อมูลส่วนตัวแล้ว · กำลังรีเฟรช...');
+                setTimeout(() => location.reload(), 900);
+            }
+            return (
+                <div class="card-playful bg-surface p-6">
+                    <div class="text-xs font-semibold uppercase tracking-wide text-primary-600 mb-1">ข้อมูลของฉัน 🔒</div>
+                    <p class="text-xs text-ink-400 mb-4">บันทึกอารมณ์ สมุดขอบคุณ และแผนรับมือ เก็บไว้ในเครื่องนี้เท่านั้น เป็นของคุณคนเดียว</p>
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <button type="button" onClick={exportData} class="flex-1 px-4 py-2.5 rounded-xl border border-line text-sm font-semibold text-ink-700 hover:border-primary-400 hover:text-primary-600 transition">⬇ ส่งออกข้อมูล (.json)</button>
+                        <button type="button" onClick={wipe} class="flex-1 px-4 py-2.5 rounded-xl border border-red-200 text-sm font-semibold text-red-600 hover:bg-red-50 transition">🗑 ลบข้อมูลส่วนตัว</button>
+                    </div>
+                    {msg && <div class="text-xs text-primary-600 mt-3">{msg}</div>}
+                </div>
+            );
+        }
+
         function DarkModeToggle({ isDark, onToggle }) {
             return (
                 <button type="button" onClick={onToggle} title={isDark ? 'สลับเป็นโหมดสว่าง' : 'สลับเป็นโหมดมืด'}
@@ -371,7 +479,9 @@
                         <WeeklySummaryCard />
                         <MoodJourneyCard />
                         <GratitudeListCard />
+                        <SafetyPlanCard />
                         <AccessibilityCard />
+                        <DataCard />
 
                         <form onSubmit={handleSave} class="card-playful bg-surface p-8 space-y-6">
                             {/* ส่วนอัปโหลดรูป */}
