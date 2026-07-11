@@ -580,7 +580,7 @@
 
                     <div class="relative z-10 max-w-md w-full">
                         {queueStatus !== 'joining' && queueStatus !== 'gate' && <StepIndicator status={queueStatus} />}
-                        <div class="card-playful bg-surface p-10 text-center">
+                        <div class="card-playful bg-surface p-6 sm:p-8 text-center">
                             {queueStatus === 'joining' && (
                                 <div>
                                     <div class="flex justify-center mb-6">
@@ -622,13 +622,13 @@
                                         โหมด{selectedIdentity === 'revealed' ? 'ระบุตัวตน' : 'ไม่ระบุตัวตน'}
                                     </div>
 
-                                    <div class="bg-paper-100 border border-line rounded-2xl p-4 mb-6">
-                                        <div class="text-3xl font-mono font-bold text-primary-600">{formatTime(waitTime)}</div>
-                                        <div class="text-xs text-ink-400 mt-1">เวลารอสายคิว</div>
-                                    </div>
+                                    <p class="text-xs text-ink-400 mb-6 flex items-center justify-center gap-1.5">
+                                        <span class="w-1 h-1 rounded-full bg-primary-400 inline-block"></span>
+                                        รออยู่เป็นเพื่อนคุณมา {formatTime(waitTime)} นาที · ไม่ต้องรีบนะ
+                                    </p>
 
-                                    <button onClick={cancelQueue} class="text-ink-400 hover:text-red-500 transition text-sm underline">
-                                        ยกเลิกการรอคิว
+                                    <button onClick={cancelQueue} class="text-ink-400 hover:text-ink-600 transition text-sm">
+                                        ออกจากคิว
                                     </button>
                                 </div>
                             )}

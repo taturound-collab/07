@@ -66,6 +66,9 @@
             );
         }
 
+        // โทนอ่อนๆ หมุนเวียนให้การ์ดกำลังใจดูเหมือนโน้ตที่แปะบนกำแพง (ไม่ใช่ลิสต์ขาวซ้ำๆ)
+        const NOTE_TINTS = ['bg-primary-50', 'bg-secondary-50', 'bg-surface', 'bg-paper-100'];
+
         function App() {
             const [user, setUser] = useState(null);
             const [loading, setLoading] = useState(true);
@@ -156,7 +159,7 @@
                         <div class="card-playful bg-surface p-4">
                             <textarea value={text} onChange={e => setText(e.target.value.slice(0, 200))} rows="3"
                                 placeholder="เขียนกำลังใจถึงใครสักคนที่อาจต้องการมันวันนี้..."
-                                class="w-full bg-paper-50 border border-line rounded-2xl px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary-500/30" />
+                                class="w-full bg-paper-50 border border-line rounded-2xl px-4 py-3 text-base resize-none focus:outline-none focus:ring-2 focus:ring-primary-500/30 placeholder:text-ink-400" />
                             <div class="flex items-center justify-between mt-2">
                                 <span class="text-xs text-ink-300">{text.length}/200</span>
                                 <button type="button" onClick={post} disabled={!text.trim() || posting}
@@ -170,10 +173,10 @@
                         {visible.length === 0 ? (
                             <div class="text-center text-ink-300 text-sm py-10">ยังไม่มีข้อความ · เป็นคนแรกที่ทิ้งกำลังใจไว้ที่นี่ 🌱</div>
                         ) : (
-                            <div class="space-y-3">
-                                {visible.map(p => (
-                                    <div key={p.id} class="card-playful bg-surface p-4">
-                                        <p class="text-ink-800 text-[15px] leading-relaxed whitespace-pre-wrap">{p.text}</p>
+                            <div class="grid sm:grid-cols-2 gap-3">
+                                {visible.map((p, i) => (
+                                    <div key={p.id} class={`card-playful ${p.status === 'pending' ? 'bg-surface' : NOTE_TINTS[i % NOTE_TINTS.length]} p-4 flex flex-col`}>
+                                        <p class="text-ink-800 text-[15px] leading-relaxed whitespace-pre-wrap flex-1">{p.text}</p>
                                         <div class="flex items-center justify-between mt-3">
                                             <span class="text-[11px] text-ink-300">
                                                 {p.status === 'pending' ? 'รอทีมงานตรวจ · เห็นเฉพาะคุณ' : new Date(p.created_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })}

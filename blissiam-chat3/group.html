@@ -231,10 +231,10 @@
                                         <div class="w-8 h-8 rounded-xl shrink-0 flex items-center justify-center text-xs font-bold text-white mt-auto" style={{ backgroundColor: col }}>{nm.charAt(0)}</div>
                                         <div class={`max-w-[78%] flex flex-col ${mine ? 'items-end' : 'items-start'}`}>
                                             {!mine && <span class="text-[11px] font-medium mb-0.5 px-1" style={{ color: col }}>{nm}</span>}
-                                            <div class={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed shadow ${mine ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white rounded-br-md' : 'glass text-ink-900 rounded-bl-md border border-white/60'}`}>
+                                            <div class={`px-4 py-2.5 rounded-2xl text-[15px] leading-relaxed shadow ${mine ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white rounded-br-md' : 'glass text-ink-900 rounded-bl-md border border-white/60'}`}>
                                                 <span class="whitespace-pre-wrap break-words">{msg.content}</span>
                                             </div>
-                                            <span class="text-[10px] text-ink-300 mt-1 px-1">{formatTime(msg.created_at)}</span>
+                                            <span class="text-[10px] text-ink-400 mt-1 px-1">{formatTime(msg.created_at)}</span>
                                         </div>
                                     </div>
                                 );
@@ -256,7 +256,7 @@
                     <div class="shrink-0 z-20 px-4 pb-4 pt-2">
                         <form onSubmit={sendMessage} class="glass-dark rounded-2xl shadow-lg border border-white/70 p-2 flex gap-2 items-center max-w-2xl mx-auto">
                             <button type="button" onClick={() => setShowEmoji(!showEmoji)} class={`w-11 h-11 rounded-xl flex items-center justify-center text-xl transition ${showEmoji ? 'bg-primary-50 text-primary-600' : 'hover:bg-black/5'}`}>😊</button>
-                            <input type="text" value={input} onChange={e => setInput(e.target.value)} placeholder="พิมพ์ข้อความถึงทั้งวง..." class="flex-1 bg-transparent text-sm focus:outline-none placeholder:text-ink-300 min-w-0" />
+                            <input type="text" value={input} onChange={e => setInput(e.target.value)} placeholder="พิมพ์ข้อความถึงทั้งวง..." class="flex-1 bg-transparent text-base focus:outline-none placeholder:text-ink-400 min-w-0" />
                             <button type="submit" disabled={!input.trim()} class="w-11 h-11 rounded-xl bg-primary-500 text-white flex items-center justify-center shrink-0 disabled:opacity-40 hover:bg-primary-600 active:scale-90 transition">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
                             </button>

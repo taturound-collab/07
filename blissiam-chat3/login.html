@@ -240,19 +240,19 @@
 
             return (
                 <>
-                    <div class="blob w-72 h-72 bg-primary-300 opacity-30 -top-10 -left-16"></div>
-                    <div class="blob w-64 h-64 bg-secondary-300 opacity-30 -bottom-16 -right-10" style={{ animationDelay: '2s' }}></div>
+                    <div class="blob w-72 h-72 bg-primary-300 opacity-20 -top-10 -left-16"></div>
+                    <div class="blob w-64 h-64 bg-secondary-300 opacity-20 -bottom-16 -right-10" style={{ animationDelay: '2s' }}></div>
                     <div class="absolute top-6 right-6 z-20">
                         <DarkModeToggle isDark={isDark} onToggle={toggleDarkMode} />
                     </div>
                     <div class="w-full max-w-md relative z-10">
                         <div class="card-playful bg-surface p-8">
                             <div class="text-center mb-8">
-                                <div class="flex justify-center mb-4">
+                                <div class="flex justify-center mb-3">
                                     <DotLogo />
                                 </div>
-                                <div class="text-xl font-extrabold mb-2">NomGI</div>
-                                <h1 class="text-xl font-bold text-ink-900">ลงชื่อเข้าใช้ 👋</h1>
+                                <div class="text-xs font-semibold tracking-widest text-primary-600 uppercase mb-2">NomGI</div>
+                                <h1 class="text-2xl font-bold text-ink-900">ยินดีที่ได้เจอกันอีก 👋</h1>
                                 <p class="text-ink-500 text-sm mt-1">เข้าสู่พื้นที่แบ่งปันน้ำใจ</p>
                             </div>
 
@@ -270,7 +270,8 @@
                                         value={email}
                                         onChange={e => setEmail(e.target.value)}
                                         required
-                                        class="w-full bg-surface border border-line text-ink-900 placeholder-ink-300 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
+                                        autoComplete="email" inputMode="email"
+                                        class="w-full bg-surface border border-line text-ink-900 placeholder-ink-400 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
                                         placeholder="you@email.com"
                                     />
                                 </div>
@@ -281,7 +282,8 @@
                                         value={password}
                                         onChange={e => setPassword(e.target.value)}
                                         required
-                                        class="w-full bg-surface border border-line text-ink-900 placeholder-ink-300 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
+                                        autoComplete="current-password"
+                                        class="w-full bg-surface border border-line text-ink-900 placeholder-ink-400 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
                                         placeholder="••••••••"
                                     />
                                 </div>
@@ -305,6 +307,9 @@
                                 ← กลับหน้าแรก
                             </a>
                         </div>
+                        <p class="text-center text-xs text-ink-400 mt-4 flex items-center justify-center gap-1.5">
+                            <span aria-hidden="true">🔒</span> ปลอดภัย · คู่สนทนาไม่เห็นตัวตนจริงของคุณ เว้นแต่คุณเลือกเอง
+                        </p>
                     </div>
                 </>
             );

@@ -215,8 +215,8 @@
 
             return (
                 <>
-                    <div class="blob w-72 h-72 bg-primary-300 opacity-30 -top-10 -left-16"></div>
-                    <div class="blob w-64 h-64 bg-secondary-300 opacity-30 -bottom-16 -right-10" style={{ animationDelay: '2s' }}></div>
+                    <div class="blob w-72 h-72 bg-primary-300 opacity-20 -top-10 -left-16"></div>
+                    <div class="blob w-64 h-64 bg-secondary-300 opacity-20 -bottom-16 -right-10" style={{ animationDelay: '2s' }}></div>
                     <div class="absolute top-6 right-6 z-20">
                         <DarkModeToggle isDark={isDark} onToggle={toggleDarkMode} />
                     </div>
@@ -226,8 +226,8 @@
                             <div class="flex justify-center mb-4">
                                 <DotLogo />
                             </div>
-                            <div class="text-xl font-extrabold mb-2">NomGI</div>
-                            <h1 class="text-xl font-bold text-ink-900">สร้างบัญชี 🌱</h1>
+                            <div class="text-xs font-semibold tracking-widest text-primary-600 uppercase mb-2">NomGI</div>
+                            <h1 class="text-2xl font-bold text-ink-900">สร้างบัญชี 🌱</h1>
                             <p class="text-ink-500 text-sm mt-1">เริ่มต้นแบ่งปันน้ำใจกับเรา</p>
                         </div>
 
@@ -252,10 +252,10 @@
                                         onChange={e => setRealName(e.target.value)}
                                         required
                                         maxLength={60}
-                                        class="w-full bg-surface border border-line text-ink-900 placeholder-ink-300 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
+                                        class="w-full bg-surface border border-line text-ink-900 placeholder-ink-400 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
                                         placeholder="ชื่อ-นามสกุลจริง"
                                     />
-                                    <p class="text-xs text-ink-300 mt-1">ใช้เฉพาะเมื่อคุณเลือกโหมด "ระบุตัวตน" ตอนแชทเท่านั้น</p>
+                                    <p class="text-xs text-ink-400 mt-1">ใช้เฉพาะเมื่อคุณเลือกโหมด "ระบุตัวตน" ตอนแชทเท่านั้น</p>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-ink-700 mb-1">โรงเรียน / มหาวิทยาลัย</label>
@@ -265,7 +265,7 @@
                                         onChange={e => setSchool(e.target.value)}
                                         required
                                         maxLength={100}
-                                        class="w-full bg-surface border border-line text-ink-900 placeholder-ink-300 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
+                                        class="w-full bg-surface border border-line text-ink-900 placeholder-ink-400 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
                                         placeholder="เช่น โรงเรียนสวนกุหลาบวิทยาลัย หรือ จุฬาลงกรณ์มหาวิทยาลัย"
                                     />
                                 </div>
@@ -276,10 +276,10 @@
                                         value={displayName}
                                         onChange={e => setDisplayName(e.target.value)}
                                         maxLength={30}
-                                        class="w-full bg-surface border border-line text-ink-900 placeholder-ink-300 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
+                                        class="w-full bg-surface border border-line text-ink-900 placeholder-ink-400 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
                                         placeholder="เช่น สายลม (ไม่บังคับ)"
                                     />
-                                    <p class="text-xs text-ink-300 mt-1">ถ้าไม่กรอก ระบบจะตั้งชื่อให้อัตโนมัติ</p>
+                                    <p class="text-xs text-ink-400 mt-1">ถ้าไม่กรอก ระบบจะตั้งชื่อให้อัตโนมัติ</p>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-ink-700 mb-1">อีเมล</label>
@@ -288,7 +288,8 @@
                                         value={email}
                                         onChange={e => setEmail(e.target.value)}
                                         required
-                                        class="w-full bg-surface border border-line text-ink-900 placeholder-ink-300 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
+                                        autoComplete="email" inputMode="email"
+                                        class="w-full bg-surface border border-line text-ink-900 placeholder-ink-400 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
                                         placeholder="you@email.com"
                                     />
                                 </div>
@@ -300,7 +301,8 @@
                                         onChange={e => setPassword(e.target.value)}
                                         required
                                         minLength={6}
-                                        class="w-full bg-surface border border-line text-ink-900 placeholder-ink-300 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
+                                        autoComplete="new-password"
+                                        class="w-full bg-surface border border-line text-ink-900 placeholder-ink-400 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
                                         placeholder="อย่างน้อย 6 ตัวอักษร"
                                     />
                                 </div>
@@ -311,7 +313,7 @@
                                         value={confirmPassword}
                                         onChange={e => setConfirmPassword(e.target.value)}
                                         required
-                                        class="w-full bg-surface border border-line text-ink-900 placeholder-ink-300 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
+                                        class="w-full bg-surface border border-line text-ink-900 placeholder-ink-400 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
                                         placeholder="••••••••"
                                     />
                                 </div>
