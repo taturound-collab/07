@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NomGI — เอกสารภาพรวมระบบ</title>
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#EEF1EA; --surface:#FBFCFA; --surface-2:#F3F6EF;
+    --ink:#1D231C; --muted:#5E6657; --faint:#8A9182;
+    --line:#DCE2D4; --line-strong:#C7D0BC;
+    --sage:#4D7355; --sage-deep:#33492F; --sage-soft:#E3EADC;
+    --terra:#A8662A; --terra-soft:#F0E2D2;
+    --shadow:0 1px 2px rgba(29,35,28,.05),0 12px 30px -18px rgba(51,73,47,.35);
+    --thai:"Kanit","Noto Sans Thai","Leelawadee UI",system-ui,-apple-system,sans-serif;
+    --mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --maxw:820px;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#151913; --surface:#1D231B; --surface-2:#232A20;
+      --ink:#E9EDE3; --muted:#9DA793; --faint:#79836E;
+      --line:#2B3227; --line-strong:#3A432F;
+      --sage:#8FB081; --sage-deep:#B7CDAA; --sage-soft:#232C1F;
+      --terra:#D5924F; --terra-soft:#2E2519;
+      --shadow:0 1px 2px rgba(0,0,0,.3),0 14px 34px -18px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="light"]{
+    --bg:#EEF1EA; --surface:#FBFCFA; --surface-2:#F3F6EF;
+    --ink:#1D231C; --muted:#5E6657; --faint:#8A9182;
+    --line:#DCE2D4; --line-strong:#C7D0BC;
+    --sage:#4D7355; --sage-deep:#33492F; --sage-soft:#E3EADC;
+    --terra:#A8662A; --terra-soft:#F0E2D2;
+    --shadow:0 1px 2px rgba(29,35,28,.05),0 12px 30px -18px rgba(51,73,47,.35);
+  }
+  :root[data-theme="dark"]{
+    --bg:#151913; --surface:#1D231B; --surface-2:#232A20;
+    --ink:#E9EDE3; --muted:#9DA793; --faint:#79836E;
+    --line:#2B3227; --line-strong:#3A432F;
+    --sage:#8FB081; --sage-deep:#B7CDAA; --sage-soft:#232C1F;
+    --terra:#D5924F; --terra-soft:#2E2519;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 14px 34px -18px rgba(0,0,0,.6);
+  }
+
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:var(--thai);font-weight:400;line-height:1.72;
+    font-size:16.5px;letter-spacing:.005em;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+  a{color:inherit}
+
+  header.top{
+    position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);
+    backdrop-filter:blur(10px);border-bottom:1px solid var(--line);
+  }
+  .top .wrap{display:flex;align-items:center;justify-content:space-between;height:60px;gap:16px}
+  .brand{display:flex;align-items:center;gap:11px;font-weight:600;letter-spacing:.01em;text-decoration:none;color:inherit}
+  .brand .nm{font-size:16px}
+  .brand .sub{font-family:var(--mono);font-size:10.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.13em}
+  .top .right{display:flex;align-items:center;gap:10px}
+  .tbtn{
+    font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--muted);background:var(--surface);border:1px solid var(--line);
+    border-radius:999px;padding:7px 14px;cursor:pointer;transition:.18s;text-decoration:none;display:inline-block;
+  }
+  .tbtn:hover{border-color:var(--sage);color:var(--sage)}
+  .tbtn:focus-visible{outline:2px solid var(--sage);outline-offset:2px}
+
+  .dots{display:grid;grid-template-columns:repeat(3,1fr);gap:2.5px;flex:0 0 auto}
+  .dots i{width:5px;height:5px;border-radius:50%;background:var(--ink);display:block}
+  .dots i.c{background:var(--sage)}
+  .dots.lg i{width:9px;height:9px}
+  .dots.lg{gap:4px}
+
+  .hero{padding:74px 0 46px;border-bottom:1px solid var(--line)}
+  .hero .kicker{font-family:var(--mono);font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--sage);margin:0 0 22px;display:flex;align-items:center;gap:12px}
+  .hero h1{font-size:clamp(2.3rem,7vw,3.7rem);line-height:1.08;margin:0 0 18px;font-weight:600;letter-spacing:-.01em;text-wrap:balance}
+  .hero h1 .g{color:var(--sage)}
+  .hero .lead{font-size:clamp(1.05rem,2.4vw,1.28rem);color:var(--muted);max-width:60ch;margin:0}
+  .hero .meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:30px}
+  .chip{font-family:var(--mono);font-size:11.5px;letter-spacing:.04em;color:var(--muted);background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:6px 11px}
+  .chip b{color:var(--sage-deep);font-weight:600}
+
+  nav.toc{margin:34px 0 6px}
+  nav.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  nav.toc a{display:flex;gap:12px;align-items:baseline;background:var(--surface);padding:14px 16px;text-decoration:none;transition:.16s}
+  nav.toc a:hover{background:var(--sage-soft)}
+  nav.toc .n{font-family:var(--mono);font-size:12px;color:var(--sage);font-weight:600;letter-spacing:.05em}
+  nav.toc .t{font-weight:600;font-size:14.5px}
+  nav.toc .d{color:var(--faint);font-size:12.5px;display:block;margin-top:1px}
+
+  section{padding:52px 0;border-bottom:1px solid var(--line)}
+  .sechead{display:flex;align-items:center;gap:14px;margin:0 0 8px}
+  .sechead .dots{margin-top:2px}
+  h2{font-size:clamp(1.5rem,4vw,2rem);margin:0;font-weight:600;letter-spacing:-.01em;text-wrap:balance}
+  .secintro{color:var(--muted);margin:6px 0 30px;max-width:64ch}
+  h3{font-size:1.12rem;margin:34px 0 12px;font-weight:600}
+  h3:first-of-type{margin-top:8px}
+  p{margin:0 0 14px}
+  .lead-in{color:var(--muted)}
+  strong{color:var(--ink);font-weight:600}
+  code{font-family:var(--mono);font-size:.82em;background:var(--surface-2);border:1px solid var(--line);border-radius:5px;padding:1px 6px;color:var(--sage-deep)}
+
+  .grid{display:grid;gap:14px}
+  .grid.two{grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+  .grid.three{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 19px;box-shadow:var(--shadow)}
+  .card .ic{font-size:20px;line-height:1;margin-bottom:10px}
+  .card h4{margin:0 0 5px;font-size:15.5px;font-weight:600}
+  .card p{margin:0;font-size:13.6px;color:var(--muted);line-height:1.62}
+  .card .path{font-family:var(--mono);font-size:11px;color:var(--sage);margin-top:9px;display:inline-block;letter-spacing:.02em}
+
+  .tl{position:relative;margin-top:8px;padding-left:4px}
+  .batch{position:relative;padding:0 0 26px 30px;border-left:2px solid var(--line);margin-left:8px}
+  .batch:last-child{border-left-color:transparent;padding-bottom:4px}
+  .batch::before{content:"";position:absolute;left:-7px;top:3px;width:12px;height:12px;border-radius:50%;background:var(--sage);border:3px solid var(--bg)}
+  .batch .tag{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--sage-deep);background:var(--sage-soft);border-radius:6px;padding:2px 8px;font-weight:600}
+  .batch h4{margin:9px 0 6px;font-size:16px;font-weight:600}
+  .batch ul{margin:0;padding-left:18px}
+  .batch li{font-size:14px;color:var(--muted);margin-bottom:3px}
+  .batch li b{color:var(--ink);font-weight:600}
+
+  .tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow)}
+  table{border-collapse:collapse;width:100%;min-width:520px;font-size:13.5px}
+  thead th{text-align:left;background:var(--surface-2);color:var(--sage-deep);font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:11px 15px;border-bottom:1px solid var(--line-strong);font-weight:600}
+  tbody td{padding:11px 15px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--muted)}
+  tbody tr:last-child td{border-bottom:0}
+  tbody td:first-child{color:var(--ink)}
+  tbody code{white-space:nowrap}
+
+  .note{display:flex;gap:14px;background:var(--terra-soft);border:1px solid color-mix(in srgb,var(--terra) 30%,var(--line));border-radius:14px;padding:16px 18px;margin:22px 0}
+  .note .ic{font-size:19px;flex:0 0 auto}
+  .note p{margin:0;font-size:13.8px;color:var(--ink)}
+  .note b{color:var(--terra)}
+
+  .flow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-family:var(--mono);font-size:12.5px;color:var(--muted);background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:16px 0;line-height:2}
+  .flow b{color:var(--sage-deep);font-weight:600}
+  .flow .ar{color:var(--sage)}
+
+  footer{padding:44px 0 60px;text-align:center;color:var(--faint)}
+  footer .dots{display:inline-grid;margin-bottom:16px}
+  footer p{margin:4px 0;font-size:13px}
+  footer .mono{font-family:var(--mono);font-size:11px;letter-spacing:.05em}
+  footer a{color:var(--sage);text-decoration:none}
+
+  .anchor{scroll-margin-top:76px}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="index.html">
+      <span class="dots" aria-hidden="true"><i></i><i></i><i></i><i></i><i class="c"></i><i></i><i></i><i></i><i></i></span>
+      <span><span class="nm">NomGI</span> <span class="sub">System Overview</span></span>
+    </a>
+    <div class="right">
+      <a class="tbtn" href="index.html">← หน้าแรก</a>
+      <button class="tbtn" id="themeToggle" type="button" aria-label="สลับโหมดสว่าง/มืด">โหมด</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+
+    <div class="hero">
+      <p class="kicker"><span class="dots lg" aria-hidden="true"><i></i><i></i><i></i><i></i><i class="c"></i><i></i><i></i><i></i><i></i></span> เอกสารภาพรวมระบบ · ฉบับละเอียด</p>
+      <h1>NomGI — <span class="g">พื้นที่แบ่งปันน้ำใจ</span> ที่รับฟังกันแบบนิรนาม</h1>
+      <p class="lead">เว็บแอปแชท peer-support ภาษาไทย ที่จับคู่ “คนอยากระบาย” กับ “คนพร้อมรับฟัง” แบบไม่เปิดเผยตัวตน พร้อมเครื่องมือดูแลใจ ระบบความปลอดภัย และชุมชนให้กำลังใจ — ออกแบบให้รู้สึกอบอุ่น นุ่มนวล ปลอดภัย ตั้งแต่วินาทีที่เปิดหน้าเว็บ</p>
+      <div class="meta">
+        <span class="chip"><b>React 18</b> ผ่าน CDN + Babel</span>
+        <span class="chip">ไม่มี build step</span>
+        <span class="chip"><b>Supabase</b> · Postgres + RLS</span>
+        <span class="chip">Tailwind CDN</span>
+        <span class="chip"><b>PWA</b> ติดตั้งได้</span>
+        <span class="chip">Deploy บน Vercel</span>
+        <span class="chip">12 หน้า · 20+ ตาราง</span>
+      </div>
+    </div>
+
+    <nav class="toc" aria-label="สารบัญ">
+      <ol>
+        <li><a href="#overview"><span class="n">01</span><span><span class="t">ภาพรวม</span><span class="d">มันคืออะไร ใครใช้</span></span></a></li>
+        <li><a href="#arch"><span class="n">02</span><span><span class="t">สถาปัตยกรรม</span><span class="d">เทคโนโลยีและการทำงาน</span></span></a></li>
+        <li><a href="#pages"><span class="n">03</span><span><span class="t">หน้าเว็บทั้งหมด</span><span class="d">12 หน้า ทำอะไรบ้าง</span></span></a></li>
+        <li><a href="#timeline"><span class="n">04</span><span><span class="t">เส้นทางการพัฒนา</span><span class="d">ทุกฟีเจอร์ตามลำดับ</span></span></a></li>
+        <li><a href="#data"><span class="n">05</span><span><span class="t">ฐานข้อมูล</span><span class="d">ตารางและฟังก์ชัน</span></span></a></li>
+        <li><a href="#safety"><span class="n">06</span><span><span class="t">ความปลอดภัย</span><span class="d">และความเป็นส่วนตัว</span></span></a></li>
+      </ol>
+    </nav>
+
+    <section id="overview" class="anchor">
+      <div class="sechead"><span class="dots" aria-hidden="true"><i class="c"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><h2>01 · ภาพรวม</h2></div>
+      <p class="secintro">NomGI เกิดมาเพื่อเป็น “ห้องนั่งเล่นที่มีคนพร้อมฟังเสมอ” — ไม่ใช่แอปเทคโนโลยีเย็นชา และไม่ใช่คลินิกที่เป็นทางการ</p>
+
+      <h3>หัวใจของแอป</h3>
+      <p class="lead-in">ผู้ใช้เลือกบทบาทได้ 2 อย่าง แล้วระบบจับคู่ให้อัตโนมัติเป็นห้องแชทส่วนตัว 1:1 หรือจะเข้าห้องกลุ่มเล็กก็ได้</p>
+      <div class="flow">
+        <b>ฉันอยากระบาย</b> <span class="ar">⇄</span> <b>ฉันอยากรับฟัง</b> <span class="ar">→</span> เข้าคิว <span class="ar">→</span> จับคู่ <span class="ar">→</span> ห้องแชทนิรนาม <span class="ar">→</span> พิธีกรรมปิดจบอย่างอบอุ่น
+      </div>
+
+      <div class="grid three" style="margin-top:20px">
+        <div class="card"><div class="ic">🕊️</div><h4>ใครใช้</h4><p>วัยรุ่น นักเรียน นักศึกษาไทย ที่อยากระบายแบบไม่เปิดเผยตัว และอาสาสมัคร “ผู้รับฟัง” ที่อยากช่วยเพื่อน</p></div>
+        <div class="card"><div class="ic">🌙</div><h4>ใช้ตอนไหน</h4><p>บนมือถือเป็นหลัก มักใช้ตอนกลางคืน ในช่วงที่ใจไม่ดี — จึงต้องรู้สึกปลอดภัยทันที</p></div>
+        <div class="card"><div class="ic">🎯</div><h4>ความสำเร็จ</h4><p>ผู้ใช้รู้สึกเบาใจขึ้นหลังใช้ และกลับมาใช้ซ้ำเพราะไว้ใจพื้นที่นี้</p></div>
+      </div>
+
+      <h3>หลักการออกแบบ 5 ข้อ</h3>
+      <div class="grid two">
+        <div class="card"><h4>สงบก่อนสวย</h4><p>ทุกหน้าต้องลดความเครียดของคนที่กำลังใจไม่ดี ไม่เพิ่ม</p></div>
+        <div class="card"><h4>ค่อยๆ เผย ไม่เทกอง</h4><p>ฟีเจอร์เยอะได้ แต่หน้าจอเดียวต้องมีลำดับชัด สิ่งรองพับเก็บได้</p></div>
+        <div class="card"><h4>ความเป็นส่วนตัวมองเห็นได้</h4><p>จุดไหนข้อมูลอยู่แค่ในเครื่อง/นิรนาม บอกซ้ำๆ ด้วยภาษาอ่อนโยน</p></div>
+        <div class="card"><h4>มือถือคือหน้าจอจริง</h4><p>เริ่มออกแบบที่จอแคบ ปุ่มใหญ่พอสำหรับนิ้ว</p></div>
+        <div class="card" style="grid-column:1/-1"><h4>ความปลอดภัยถึงก่อนเสมอ</h4><p>ปุ่มหนีด่วน สายด่วน และทางออก ต้องหาเจอได้ในทุกสภาวะโดยไม่รก</p></div>
+      </div>
+    </section>
+
+    <section id="arch" class="anchor">
+      <div class="sechead"><span class="dots" aria-hidden="true"><i></i><i class="c"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><h2>02 · สถาปัตยกรรม & เทคโนโลยี</h2></div>
+      <p class="secintro">จุดเด่นคือ “ไม่มีขั้นตอน build” — ทุกหน้าเป็นไฟล์ <code>.html</code> เดี่ยวๆ ที่คอมไพล์ JSX ในเบราว์เซอร์ ทำให้แก้และ deploy ได้ทันที</p>
+
+      <div class="grid two">
+        <div class="card"><div class="ic">⚛️</div><h4>Frontend</h4><p>React 18 โหลดผ่าน CDN + Babel Standalone แปลง JSX ในเบราว์เซอร์ · จัดสไตล์ด้วย Tailwind CDN ที่ผูกสีกับ CSS variables (<code>var(--color-*)</code>)</p></div>
+        <div class="card"><div class="ic">🗄️</div><h4>Backend</h4><p>Supabase — Postgres, Row Level Security (RLS), Realtime, Auth และฟังก์ชัน SECURITY DEFINER · <code>config.js</code> เก็บแค่ anon key ที่เปิดเผยได้ (ความปลอดภัยจริงอยู่ที่ RLS)</p></div>
+        <div class="card"><div class="ic">🎨</div><h4>ธีม & การเข้าถึง</h4><p><code>theme.js</code> คุมโหมดสว่าง/มืด ปรับขนาดฟอนต์ (0.9–1.3×) และลดการเคลื่อนไหว — ทุกหน้าโหลดไฟล์นี้</p></div>
+        <div class="card"><div class="ic">📲</div><h4>PWA</h4><p><code>manifest.webmanifest</code> + <code>service-worker.js</code> (แคชเฉพาะไฟล์สแตติก ไม่แคช HTML) ติดตั้งลงจอโฮมได้</p></div>
+      </div>
+
+      <h3>การนำขึ้นระบบ (Deploy)</h3>
+      <div class="flow">
+        แก้ไฟล์ในเครื่อง <span class="ar">→</span> <b>git commit</b> <span class="ar">→</span> sync ไปโฟลเดอร์ <code>blissiam-chat3/</code> บน branch หลัก <span class="ar">→</span> <b>push origin main</b> <span class="ar">→</span> <b>Vercel</b> auto-build ขึ้นเว็บจริง
+      </div>
+
+      <div class="note"><span class="ic">🔒</span><p><b>ความเป็นส่วนตัวโดยการออกแบบ:</b> ข้อมูลส่วนตัว (บันทึกอารมณ์ · สมุดขอบคุณ · แผนรับมือ · เส้นทางดูแลใจ) เก็บใน <b>localStorage เท่านั้น</b> ไม่ขึ้นเซิร์ฟเวอร์ — key ขึ้นต้นด้วย <code>nomgi_</code> ทั้งหมด ผู้ใช้ส่งออกเป็นไฟล์ หรือลบทิ้งได้เอง</p></div>
+
+      <h3>รูปแบบโค้ดสำคัญ</h3>
+      <p class="lead-in">ไฟล์ JavaScript กลางทุกไฟล์ห่อด้วย <b>IIFE</b> <code>(function(){…})()</code> เพื่อกันตัวแปรชนกันตอน Babel ฉีดโค้ดเข้าสู่ global scope</p>
+      <div class="grid three">
+        <div class="card"><h4>theme.js</h4><p>โหมดสี · ปรับฟอนต์ · reduce-motion</p><span class="path">ทุกหน้า</span></div>
+        <div class="card"><h4>mood.js</h4><p>บันทึกอารมณ์ · streak · สมุดขอบคุณ</p><span class="path">NomGIMood</span></div>
+        <div class="card"><h4>safety.js</h4><p>ตรวจจับคำเสี่ยง + สายด่วน + จัดหมวด</p><span class="path">NomGISafety</span></div>
+        <div class="card"><h4>kudos-tree.js</h4><p>SVG ต้นไม้ที่โตตามน้ำใจ</p><span class="path">NomGIKudos</span></div>
+        <div class="card"><h4>panic.js</h4><p>ปุ่มออกด่วน + กด Esc สองครั้ง</p><span class="path">NomGIExit</span></div>
+        <div class="card"><h4>pwa.js · sw</h4><p>ลงทะเบียน service worker</p><span class="path">PWA</span></div>
+      </div>
+    </section>
+
+    <section id="pages" class="anchor">
+      <div class="sechead"><span class="dots" aria-hidden="true"><i></i><i></i><i class="c"></i><i></i><i></i><i></i><i></i><i></i><i></i></span><h2>03 · หน้าเว็บทั้งหมด</h2></div>
+      <p class="secintro">12 หน้า แต่ละหน้าเป็น React app เดี่ยวๆ ในไฟล์ HTML ของตัวเอง</p>
+      <div class="grid two">
+        <div class="card"><div class="ic">🏠</div><h4>index.html</h4><p>หน้าแรก — เลือกหัวข้อ/ตัวตน/แบบที่อยากให้ช่วย เลือกบทบาท เช็คอินอารมณ์ สมุดขอบคุณ เข้าวงกลม เชื่อมทางเข้าทุกฟีเจอร์</p><span class="path">/index.html</span></div>
+        <div class="card"><div class="ic">⏳</div><h4>queue.html</h4><p>หน้ารอจับคู่ — ระหว่างรอมีฝึกหายใจ 4-7-8 หรือดึงสติ 5-4-3-2-1 · ระบบกันผู้ฟังหมดไฟ</p><span class="path">/queue.html</span></div>
+        <div class="card"><div class="ic">💬</div><h4>chat.html</h4><p>ห้องแชท 1:1 — ข้อความเรียลไทม์ React อีโมจิ มีม เปลี่ยนพื้นหลัง ส่งไออุ่น ดูโปรไฟล์คู่ ให้ดาว/น้ำใจ พิธีกรรมปิดจบ ส่งต่ออย่างอบอุ่น</p><span class="path">/chat.html</span></div>
+        <div class="card"><div class="ic">👥</div><h4>group.html</h4><p>วงกลมแบ่งปัน — ห้องกลุ่มเล็ก 3–4 คนตามหัวข้อ (นิรนามเสมอ)</p><span class="path">/group.html</span></div>
+        <div class="card"><div class="ic">🌳</div><h4>profile.html</h4><p>โปรไฟล์ — ต้นไม้น้ำใจ เหรียญ สรุปสัปดาห์ เส้นทางใจ แผนรับมือ ตั้งค่าการเข้าถึง ส่งออก/ลบข้อมูล แท็กความถนัด</p><span class="path">/profile.html</span></div>
+        <div class="card"><div class="ic">💛</div><h4>wall.html</h4><p>กำแพงให้กำลังใจ — โพสต์ข้อความสั้นนิรนาม กดหัวใจให้กัน (มี moderation)</p><span class="path">/wall.html</span></div>
+        <div class="card"><div class="ic">🌿</div><h4>care.html</h4><p>มุมดูแลใจ — เส้นทาง 7 วัน เครื่องมือคลายใจ (สแกนร่างกาย/จัดระเบียบความคิด/เลื่อนเวลากังวล) แหล่งช่วยเหลือ</p><span class="path">/care.html</span></div>
+        <div class="card"><div class="ic">🔑</div><h4>login · signup</h4><p>เข้าสู่ระบบ / สร้างบัญชี · ผู้ที่ถูกแบนยื่นอุทธรณ์ได้จากหน้า login</p><span class="path">/login · /signup</span></div>
+        <div class="card"><div class="ic">🛡️</div><h4>admin.html</h4><p>หลังบ้าน — ภาพรวม, วิเคราะห์เชิงลึก, คิว, ห้อง, รายงาน, จัดการผู้ใช้ (แบน/อุทธรณ์/สัญญาณเสี่ยง/กำแพง), ตั้งธีม</p><span class="path">/admin.html</span></div>
+        <div class="card"><div class="ic">🔐</div><h4>admin-login · setup-check</h4><p>เข้าสู่ระบบผู้ดูแล · หน้าตรวจการตั้งค่าเชื่อมต่อ Supabase</p><span class="path">/admin-login</span></div>
+      </div>
+    </section>
+
+    <section id="timeline" class="anchor">
+      <div class="sechead"><span class="dots" aria-hidden="true"><i></i><i></i><i></i><i class="c"></i><i></i><i></i><i></i><i></i><i></i></span><h2>04 · เส้นทางการพัฒนา</h2></div>
+      <p class="secintro">ทุกฟีเจอร์ปล่อยเป็นชุด (batch) ทีละนิด เพื่อคุมคุณภาพและไม่พังของเดิม — นี่คือลำดับจริงตั้งแต่ต้น</p>
+
+      <div class="tl">
+        <div class="batch"><span class="tag">Phase 1–3</span><h4>รากฐาน: จับคู่ ระบาย รับฟัง</h4><ul>
+          <li><b>แชท 1:1 นิรนาม</b> + คิวจับคู่อัตโนมัติ + เลือกเปิด/ปิดตัวตน</li>
+          <li><b>เช็คอินอารมณ์</b>ก่อนคุย · <b>ต้นไม้น้ำใจ</b>ที่โตตามการให้กำลังใจ · <b>พิธีกรรมปิดจบ</b>อย่างอบอุ่น</li>
+          <li><b>เลือกแบบที่อยากให้ช่วย</b> (แค่ฟัง / อยากได้คำแนะนำ / อยากมีเพื่อน)</li>
+          <li><b>วงกลมแบ่งปัน</b> — ห้องกลุ่มเล็กตามหัวข้อ</li>
+        </ul></div>
+
+        <div class="batch"><span class="tag">Batch A</span><h4>ความปลอดภัย + ความอบอุ่นเริ่มต้น</h4><ul>
+          <li><b>ตรวจจับภาวะวิกฤต</b> — เจอคำเสี่ยงแล้วเสนอการ์ดสายด่วนอย่างนุ่มนวล</li>
+          <li>การ์ดข้อตกลงก่อนคุย · ประโยคเปิดบทสนทนา + การ์ดกำลังใจสำเร็จรูป · บันทึกสะท้อนใจหลังคุย</li>
+        </ul></div>
+
+        <div class="batch"><span class="tag">Batch B</span><h4>นิสัยและการสะสม</h4><ul>
+          <li><b>สถิติเช็คอินรายวัน</b> (streak) · <b>เหรียญตราสะสม</b>ตามน้ำใจ · ทำเป็น <b>PWA</b> ติดตั้งได้</li>
+        </ul></div>
+
+        <div class="batch"><span class="tag">Batch C</span><h4>ควบคุมคุณภาพ (ต้องใช้ SQL)</h4><ul>
+          <li><b>บล็อก/ข้าม</b>คู่สนทนา · <b>ให้คะแนนหลังคุย</b> · ล็อกกันจับคู่กับตัวเอง · <b>อารมณ์รวมของชุมชน</b>แบบนิรนาม (ดูในหลังบ้าน)</li>
+        </ul></div>
+
+        <div class="batch"><span class="tag">5 ฟีเจอร์เขียว</span><h4>ดูแลใจ + การเข้าถึง</h4><ul>
+          <li>ฝึกหายใจ 4-7-8 · สรุปรายสัปดาห์ · ปรับขนาดฟอนต์ + ลดการเคลื่อนไหว · ทัวร์ครั้งแรก · สมุดขอบคุณรายวัน</li>
+        </ul></div>
+
+        <div class="batch"><span class="tag">Batch D</span><h4>สื่อสารและปฏิสัมพันธ์</h4><ul>
+          <li><b>React ข้อความด้วยอีโมจิ</b> (เรียลไทม์) · <b>แท็กความถนัด</b>ของผู้รับฟัง · <b>วงกลมมีเวลานัด</b> (คืนวันอาทิตย์) · <b>ระบบอุทธรณ์การแบน</b></li>
+        </ul></div>
+
+        <div class="batch"><span class="tag">Batch E</span><h4>ปลอดภัย + เป็นส่วนตัว (frontend ล้วน)</h4><ul>
+          <li><b>ปุ่มออกด่วน</b> (แถบริมจอ + Esc×2) · <b>ดึงสติ 5-4-3-2-1</b> · <b>แผนรับมือของฉัน</b> · <b>ส่งออก/ลบข้อมูล</b>ส่วนตัว</li>
+        </ul></div>
+
+        <div class="batch"><span class="tag">Batch F</span><h4>ความต่อเนื่องและชุมชน (ต้องใช้ SQL)</h4><ul>
+          <li><b>กลับมาคุยกับคนเดิม</b> (ยินยอมทั้งสองฝ่าย) · <b>กำแพงให้กำลังใจ</b> · เหรียญ <b>ผู้ฟังที่ไว้ใจได้</b> · <b>กันผู้ฟังหมดไฟ</b> · <b>Auto-flag</b> คำเสี่ยงเข้าคิว admin</li>
+        </ul></div>
+
+        <div class="batch"><span class="tag">UI Pass</span><h4>ปรับให้สงบและกระชับ</h4><ul>
+          <li>หน้าแรกใช้ชิปกะทัดรัด · แชทแตะง่ายบนมือถือ · โปรไฟล์จัดหมวดพับได้</li>
+        </ul></div>
+
+        <div class="batch"><span class="tag">Batch G</span><h4>ยกระดับคุณภาพผู้รับฟัง (ต้องใช้ SQL)</h4><ul>
+          <li><b>คอร์สปั้นผู้รับฟัง</b> (4 บทเรียน + แบบทดสอบ) → เหรียญ <b>ผ่านการอบรม</b></li>
+          <li><b>ส่งต่ออย่างอบอุ่น</b> — พาคู่สนทนาไปหาความช่วยเหลือที่เหมาะสม · <b>แท็บวิเคราะห์เชิงลึก</b>ในหลังบ้าน</li>
+        </ul></div>
+
+        <div class="batch"><span class="tag">Batch H</span><h4>ดูแลใจให้ลึกและต่อเนื่อง (frontend ล้วน)</h4><ul>
+          <li><b>มุมดูแลใจ</b> — เส้นทาง 7 วัน · เครื่องมือคลายใจ · แหล่งช่วยเหลือ · <b>เช็คอินตามหลัง</b>เมื่อเมื่อวานใจหนัก</li>
+        </ul></div>
+      </div>
+    </section>
+
+    <section id="data" class="anchor">
+      <div class="sechead"><span class="dots" aria-hidden="true"><i></i><i></i><i></i><i></i><i class="c"></i><i></i><i></i><i></i><i></i></span><h2>05 · ฐานข้อมูล</h2></div>
+      <p class="secintro">ทุกตารางเปิด Row Level Security — ผู้ใช้เห็น/แก้ได้เฉพาะข้อมูลของตัวเองหรือห้องที่ตัวเองอยู่ · งานที่ละเอียดอ่อนทำผ่านฟังก์ชัน SECURITY DEFINER</p>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>ตาราง</th><th>เก็บอะไร</th></tr></thead>
+          <tbody>
+            <tr><td><code>profiles</code></td><td>ผู้ใช้ · ชื่อแสดง · น้ำใจ · สถานะ · ความถนัด · คะแนนเฉลี่ย · ผ่านการอบรม</td></tr>
+            <tr><td><code>rooms</code> · <code>messages</code></td><td>ห้องแชท 1:1 และข้อความ (เรียลไทม์)</td></tr>
+            <tr><td><code>queue</code></td><td>คิวรอจับคู่ + trigger <code>match_users()</code> จับคู่อัตโนมัติ</td></tr>
+            <tr><td><code>group_rooms</code> · <code>group_members</code></td><td>ห้องกลุ่มและสมาชิก + ฟังก์ชัน <code>join_group()</code></td></tr>
+            <tr><td><code>room_kudos</code> · <code>ratings</code></td><td>การให้น้ำใจ และคะแนนหลังคุย</td></tr>
+            <tr><td><code>message_reactions</code></td><td>อีโมจิที่แตะบนข้อความ</td></tr>
+            <tr><td><code>reports</code> · <code>blocks</code></td><td>รายงานปัญหา และการบล็อก</td></tr>
+            <tr><td><code>mood_pings</code></td><td>อารมณ์รวมชุมชน — ไม่มี user_id (นิรนามจริง)</td></tr>
+            <tr><td><code>ban_appeals</code></td><td>คำอุทธรณ์ของผู้ถูกแบน</td></tr>
+            <tr><td><code>saved_partners</code> · <code>reconnect_invites</code></td><td>บันทึกคู่คุย และคำเชิญกลับมาคุย</td></tr>
+            <tr><td><code>wall_posts</code> · <code>wall_hearts</code></td><td>กำแพงกำลังใจและหัวใจ</td></tr>
+            <tr><td><code>safety_flags</code></td><td>สัญญาณเสี่ยงที่ auto-flag เข้าคิวผู้ดูแล</td></tr>
+            <tr><td><code>site_settings</code></td><td>ธีมเว็บที่ผู้ดูแลตั้ง</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note"><span class="ic">🧩</span><p><b>ฟังก์ชันฝั่งเซิร์ฟเวอร์:</b> <code>match_users()</code> จับคู่ตามหัวข้อ/แบบที่อยากให้ช่วย · <code>give_kudos()</code> · <code>join_group()</code> · <code>my_reconnectable()</code>, <code>request_reconnect()</code>, <code>accept_reconnect()</code> · <code>get_partner_identity()</code> เผยตัวตนเฉพาะเมื่อทั้งคู่ยินยอม — ทั้งหมดเป็น SECURITY DEFINER ที่ตรวจสิทธิ์เองอย่างรัดกุม</p></div>
+      <p class="lead-in" style="font-size:14px">ฟีเจอร์ที่ต้องใช้ SQL จะมาเป็นไฟล์ <code>supabase-batch-*.sql</code> ให้เจ้าของรันเองใน Supabase SQL Editor (รันซ้ำได้ปลอดภัย — ใช้ <code>IF NOT EXISTS</code> / <code>DROP POLICY IF EXISTS</code> ครอบไว้)</p>
+    </section>
+
+    <section id="safety" class="anchor">
+      <div class="sechead"><span class="dots" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="c"></i></span><h2>06 · ความปลอดภัย & ความเป็นส่วนตัว</h2></div>
+      <p class="secintro">เพราะผู้ใช้กำลังเปราะบาง เรื่องนี้จึงมาก่อนทุกอย่าง — ออกแบบเป็นหลายชั้นซ้อนกัน</p>
+
+      <div class="grid two">
+        <div class="card"><div class="ic">🆘</div><h4>ตรวจจับภาวะวิกฤต</h4><p>ทำงานฝั่งเบราว์เซอร์ล้วน (<code>safety.js</code>) เจอสัญญาณเสี่ยงแล้วเสนอสายด่วน 1323 / สะมาริตันส์ / 1669 อย่างนุ่มนวล ไม่บล็อกการคุย</p></div>
+        <div class="card"><div class="ic">🚪</div><h4>ปุ่มออกด่วน</h4><p>แถบเล็กริมจอทุกหน้า + กด Esc สองครั้ง = เด้งไปหน้ากลางๆ ทันที ใช้ <code>location.replace</code> ไม่ทิ้งประวัติ</p></div>
+        <div class="card"><div class="ic">🎓</div><h4>ปั้นผู้รับฟังก่อนรับงาน</h4><p>คอร์สสั้น + แบบทดสอบ ก่อนรับฟังครั้งแรก → เหรียญ “ผ่านการอบรม” เพิ่มคุณภาพและความปลอดภัย</p></div>
+        <div class="card"><div class="ic">🤍</div><h4>ส่งต่ออย่างอบอุ่น</h4><p>ผู้รับฟังกดพาคู่สนทนาไปหาความช่วยเหลือที่เหมาะสมได้ พร้อมสคริปต์ที่ไม่ทำให้รู้สึกถูกทิ้ง</p></div>
+        <div class="card"><div class="ic">🚩</div><h4>Auto-flag + Moderation</h4><p>คำเสี่ยงถูกส่งเข้าคิวผู้ดูแลอัตโนมัติ · มีระบบรายงาน บล็อก แบน และอุทธรณ์ครบวงจร</p></div>
+        <div class="card"><div class="ic">🔐</div><h4>ข้อมูลเป็นของผู้ใช้</h4><p>บันทึกส่วนตัวอยู่ในเครื่อง · อารมณ์ชุมชนเก็บแบบไม่มีตัวตน · ส่งออกหรือลบข้อมูลทั้งหมดได้เอง · RLS ป้องกันชั้นฐานข้อมูล</p></div>
+      </div>
+
+      <div class="note"><span class="ic">💬</span><p>NomGI เป็น<b>พื้นที่รับฟังจากเพื่อน ไม่ใช่บริการทางการแพทย์</b> — ทุกจุดที่เกี่ยวกับภาวะเสี่ยงจะพาผู้ใช้ไปเชื่อมกับสายด่วนและผู้เชี่ยวชาญจริงเสมอ</p></div>
+    </section>
+
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="dots lg" aria-hidden="true"><i></i><i></i><i></i><i></i><i class="c"></i><i></i><i></i><i></i><i></i></span>
+    <p><strong>NomGI</strong> · พื้นที่แบ่งปันน้ำใจ · <a href="index.html">กลับหน้าแรก</a></p>
+    <p class="mono">React + Supabase · ไม่มี build step · สร้างด้วยความห่วงใย</p>
+  </div>
+</footer>
+
+<script>
+  (function(){
+    var root=document.documentElement, KEY="nomgi-doc-theme";
+    function cur(){return root.getAttribute("data-theme")|| (matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light");}
+    try{var s=localStorage.getItem(KEY); if(s) root.setAttribute("data-theme",s);}catch(e){}
+    document.getElementById("themeToggle").addEventListener("click",function(){
+      var next=cur()==="dark"?"light":"dark";
+      root.setAttribute("data-theme",next);
+      try{localStorage.setItem(KEY,next);}catch(e){}
+    });
+  })();
+</script>
+</body>
+</html>
