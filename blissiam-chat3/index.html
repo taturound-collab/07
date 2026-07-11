@@ -413,7 +413,7 @@
         // ลิงก์ไปกำแพงให้กำลังใจ
         function WallLink() {
             return (
-                <a href="wall.html" class="block mb-8 bg-gradient-to-br from-secondary-50 to-primary-50 border border-line rounded-3xl p-5 shadow-sm hover:shadow-md transition group">
+                <a href="wall.html" class="block mb-4 bg-gradient-to-br from-secondary-50 to-primary-50 border border-line rounded-3xl p-5 shadow-sm hover:shadow-md transition group">
                     <div class="flex items-center gap-4">
                         <div class="text-3xl">💛</div>
                         <div class="flex-1 min-w-0">
@@ -423,6 +423,57 @@
                         <div class="text-primary-500 group-hover:translate-x-1 transition">›</div>
                     </div>
                 </a>
+            );
+        }
+
+        function CareLink() {
+            return (
+                <a href="care.html" class="block mb-8 bg-surface border border-line rounded-3xl p-5 shadow-sm hover:shadow-md transition group">
+                    <div class="flex items-center gap-4">
+                        <div class="text-3xl">🌿</div>
+                        <div class="flex-1 min-w-0">
+                            <div class="font-bold text-ink-900">มุมดูแลใจ</div>
+                            <div class="text-sm text-ink-500">เส้นทางดูแลใจ · เครื่องมือคลายเครียด · แหล่งช่วยเหลือ — เงียบๆ คนเดียวได้</div>
+                        </div>
+                        <div class="text-primary-500 group-hover:translate-x-1 transition">›</div>
+                    </div>
+                </a>
+            );
+        }
+
+        // เช็คอินตามหลัง — ถ้าเมื่อวานใจหนัก วันนี้ทักเบาๆ (แสดงครั้งเดียวต่อวัน)
+        function GentleFollowUp() {
+            const Mood = window.NomGIMood;
+            const seenKey = 'nomgi_followup_seen';
+            const [dismissed, setDismissed] = useState(false);
+            const show = (() => {
+                if (!Mood || !Mood.dailyHistory) return false;
+                try {
+                    const today = (new Date()).toISOString().slice(0, 10);
+                    if (localStorage.getItem(seenKey) === today) return false;
+                    const hist = Mood.dailyHistory() || [];
+                    const y = new Date(); y.setDate(y.getDate() - 1);
+                    const yStr = y.getFullYear() + '-' + String(y.getMonth()+1).padStart(2,'0') + '-' + String(y.getDate()).padStart(2,'0');
+                    const yesterday = hist.find(x => x.date === yStr);
+                    return !!(yesterday && yesterday.score <= 2);
+                } catch (e) { return false; }
+            })();
+            function close() { try { localStorage.setItem(seenKey, (new Date()).toISOString().slice(0, 10)); } catch (e) {} setDismissed(true); }
+            if (!show || dismissed) return null;
+            return (
+                <div class="mb-4 bg-gradient-to-br from-secondary-50 to-surface border border-line rounded-3xl p-5">
+                    <div class="flex items-start gap-3">
+                        <div class="text-2xl">🌙</div>
+                        <div class="flex-1 min-w-0">
+                            <div class="font-bold text-ink-900 text-sm">เมื่อวานดูเหนื่อยมานะ วันนี้เป็นยังไงบ้าง?</div>
+                            <p class="text-xs text-ink-500 mt-0.5">แค่อยากแวะมาถามไถ่ · ถ้าอยากระบายหรือดูแลใจตัวเอง เราอยู่ตรงนี้เสมอ</p>
+                            <div class="flex flex-wrap gap-2 mt-3">
+                                <a href="care.html" class="px-3.5 py-1.5 rounded-full bg-primary-500 text-white text-xs font-semibold hover:bg-primary-600 transition">ไปมุมดูแลใจ 🌿</a>
+                                <button type="button" onClick={close} class="px-3.5 py-1.5 rounded-full border border-line text-ink-500 text-xs hover:bg-paper-100 transition">วันนี้โอเคแล้ว</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             );
         }
 
@@ -722,10 +773,12 @@
                     {/* Configuration & Selection Panel */}
                     <section class="px-6 pb-20">
                         <div class="max-w-6xl mx-auto">
+                            {!isAdmin && <GentleFollowUp />}
                             {!isAdmin && <DailyCheckIn />}
                             {!isAdmin && <GratitudeToday />}
                             {!isAdmin && user && <ReconnectCard user={user} />}
                             {!isAdmin && <WallLink />}
+                            {!isAdmin && <CareLink />}
                             {!isAdmin && (
                                 <div class="mb-8 bg-surface border border-line rounded-3xl p-5 sm:p-7 shadow-sm">
                                     {/* 1. เลือกหัวข้อสนทนา — ชิปกะทัดรัด อ่านคำอธิบายของอันที่เลือกด้านล่าง */}

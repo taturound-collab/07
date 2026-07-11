@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>มุมดูแลใจ | NomGI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="config.js"></script>
+    <link id="blissiam-font-link" href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['var(--font-body)', 'Kanit', 'sans-serif'] },
+                    colors: {
+                        paper: { 50: 'var(--color-paper-50)', 100: 'var(--color-paper-100)', 200: 'var(--color-paper-200)', 300: 'var(--color-paper-300)' },
+                        ink: { 900: 'var(--color-ink-900)', 700: 'var(--color-ink-700)', 500: 'var(--color-ink-500)', 400: 'var(--color-ink-400)', 300: 'var(--color-ink-300)', 200: 'var(--color-ink-200)' },
+                        surface: 'var(--color-surface)',
+                        primary: { 50: 'var(--color-primary-50)', 100: 'var(--color-primary-100)', 200: 'var(--color-primary-200)', 300: 'var(--color-primary-300)', 400: 'var(--color-primary-400)', 500: 'var(--color-primary-500)', 600: 'var(--color-primary-600)', 700: 'var(--color-primary-700)' },
+                        secondary: { 50: 'var(--color-secondary-50)', 100: 'var(--color-secondary-100)', 200: 'var(--color-secondary-200)', 300: 'var(--color-secondary-300)', 400: 'var(--color-secondary-400)', 500: 'var(--color-secondary-500)', 600: 'var(--color-secondary-600)' },
+                        line: 'var(--color-line)'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --color-primary-50: #f3f7f1; --color-primary-100: #e3ece0; --color-primary-200: #c5dcc0;
+            --color-primary-300: #9dc295; --color-primary-400: #739e6b; --color-primary-500: #4D7355;
+            --color-primary-600: #3d5d44; --color-primary-700: #314936;
+            --color-secondary-50: #fbf3ea; --color-secondary-100: #f3e0c8; --color-secondary-200: #e6bf8e;
+            --color-secondary-300: #cc9655; --color-secondary-400: #A8662A; --color-secondary-500: #925621; --color-secondary-600: #74441a;
+            --color-paper-50: #fdfcfa; --color-paper-100: #f6f3ee; --color-paper-200: #ece7de; --color-paper-300: #ddd6c9;
+            --color-ink-900: #1a1a1a; --color-ink-700: #3a3a3a; --color-ink-500: #6b6b6b; --color-ink-400: #8a8a8a; --color-ink-300: #9c9c9c; --color-ink-200: #c2c2c2;
+            --color-line: #e8e3d9; --color-surface: #ffffff;
+            --font-body: 'Kanit', sans-serif;
+        }
+    </style>
+    <script src="theme.js"></script>
+    <script src="pwa.js"></script>
+    <script src="panic.js"></script>
+    <script src="mood.js"></script>
+    <style>
+        body { font-family: 'Kanit', sans-serif; background-color: var(--color-paper-50); background-image: radial-gradient(circle at 15% 8%, var(--color-primary-50) 0%, transparent 42%), radial-gradient(circle at 85% 92%, var(--color-secondary-50) 0%, transparent 42%); background-attachment: fixed; }
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .card { border-radius: 1.75rem; border: 1px solid var(--color-line); background: var(--color-surface); }
+        @media (prefers-reduced-motion: reduce) { .fade-in { animation: none; } }
+    </style>
+</head>
+<body class="min-h-screen text-ink-900">
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        function DotLogo({ size = 26 }) {
+            return (
+                <svg width={size} height={size} viewBox="0 0 28 28" fill="none">
+                    <circle cx="4" cy="4" r="3" fill="var(--color-ink-900)"/><circle cx="14" cy="4" r="3" fill="var(--color-ink-900)"/><circle cx="24" cy="4" r="3" fill="var(--color-ink-900)"/>
+                    <circle cx="4" cy="14" r="3" fill="var(--color-ink-900)"/><circle cx="14" cy="14" r="3" fill="var(--color-primary-500)"/><circle cx="24" cy="14" r="3" fill="var(--color-ink-900)"/>
+                    <circle cx="4" cy="24" r="3" fill="var(--color-ink-900)"/><circle cx="14" cy="24" r="3" fill="var(--color-ink-900)"/><circle cx="24" cy="24" r="3" fill="var(--color-ink-900)"/>
+                </svg>
+            );
+        }
+
+        // ---------------- เส้นทางดูแลใจ (guided journeys) ----------------
+        const JOURNEYS = [
+            {
+                id: 'self_compassion', emoji: '🤍', title: '7 วันเมตตาต่อตัวเอง',
+                desc: 'ฝึกใจดีกับตัวเองทีละวัน',
+                days: [
+                    'วันนี้พูดกับตัวเองเหมือนพูดกับเพื่อนสนิท — "เธอทำดีที่สุดแล้วนะ"',
+                    'เขียนสิ่งที่ตัวเองทำได้ดี 3 อย่าง แม้เล็กน้อยแค่ไหนก็ได้',
+                    'วางมือบนอก หายใจช้าๆ แล้วบอกตัวเองว่า "ฉันสมควรได้รับความเมตตา"',
+                    'ให้อภัยตัวเองในเรื่องที่ยังค้างคาใจ 1 เรื่อง',
+                    'ทำสิ่งเล็กๆ ที่ทำให้ตัวเองยิ้มได้ 1 อย่างวันนี้',
+                    'สังเกตเสียงวิจารณ์ในหัว แล้วลองเปลี่ยนเป็นเสียงที่อ่อนโยนกว่า',
+                    'เขียนจดหมายสั้นๆ ให้ตัวเองในวันที่เหนื่อย เก็บไว้อ่านวันหลัง',
+                ]
+            },
+            {
+                id: 'calm_anxiety', emoji: '🌊', title: '5 วันคลายกังวล',
+                desc: 'ค่อยๆ คลายปมในใจ',
+                days: [
+                    'จดความกังวลทั้งหมดลงกระดาษ แล้วขีดเส้นแบ่ง "สิ่งที่ควบคุมได้ / ไม่ได้"',
+                    'เลือกความกังวล 1 อย่างที่ควบคุมได้ แล้วเขียนก้าวเล็กๆ 1 ก้าว',
+                    'ฝึกหายใจ 4-7-8 สัก 3 รอบ เมื่อรู้สึกใจเต้นเร็ว',
+                    'ถามตัวเองว่า "เรื่องนี้จะสำคัญไหมในอีก 5 ปี?"',
+                    'ทำกิจกรรมที่ทำให้อยู่กับปัจจุบัน เช่น เดิน ล้างจาน จัดโต๊ะ',
+                ]
+            },
+        ];
+        const JKEY = 'nomgi_journeys';
+        function readJourneys() { try { return JSON.parse(localStorage.getItem(JKEY)) || {}; } catch (e) { return {}; } }
+        function writeJourneys(d) { try { localStorage.setItem(JKEY, JSON.stringify(d)); } catch (e) {} }
+        function ymd(d) { const x = d || new Date(); return x.getFullYear() + '-' + String(x.getMonth()+1).padStart(2,'0') + '-' + String(x.getDate()).padStart(2,'0'); }
+
+        function JourneyCard({ j }) {
+            const [state, setState] = useState(() => readJourneys()[j.id] || null);
+            const doneDays = state ? (state.done || []) : [];
+            const started = !!state;
+            const nextDay = doneDays.length + 1;
+            const complete = doneDays.length >= j.days.length;
+            const canDoToday = started && !complete && state.lastDate !== ymd();
+            function start() { const all = readJourneys(); all[j.id] = { startedAt: new Date().toISOString(), done: [], lastDate: null }; writeJourneys(all); setState(all[j.id]); }
+            function markToday() {
+                const all = readJourneys(); const s = all[j.id] || { done: [] };
+                s.done = [...(s.done || []), (s.done || []).length + 1]; s.lastDate = ymd();
+                all[j.id] = s; writeJourneys(all); setState({ ...s });
+            }
+            const pct = Math.round(doneDays.length / j.days.length * 100);
+            return (
+                <div class="card p-5">
+                    <div class="flex items-start gap-3">
+                        <div class="text-3xl leading-none">{j.emoji}</div>
+                        <div class="flex-1 min-w-0">
+                            <h3 class="font-bold text-ink-900">{j.title}</h3>
+                            <p class="text-xs text-ink-500">{j.desc} · {j.days.length} วัน</p>
+                        </div>
+                        {started && <span class="text-xs font-bold text-primary-600 shrink-0">{doneDays.length}/{j.days.length}</span>}
+                    </div>
+                    {started && (
+                        <div class="h-1.5 bg-paper-200 rounded-full overflow-hidden mt-3">
+                            <div class="h-full bg-primary-500 rounded-full transition-all" style={{ width: pct + '%' }}></div>
+                        </div>
+                    )}
+                    {!started ? (
+                        <button type="button" onClick={start} class="mt-4 w-full py-2.5 rounded-full bg-primary-500 text-white text-sm font-semibold hover:bg-primary-600 transition">เริ่มเส้นทางนี้</button>
+                    ) : complete ? (
+                        <div class="mt-4 text-center bg-primary-50 rounded-2xl py-3 text-sm text-primary-700 font-medium">🌳 จบเส้นทางแล้ว · เก่งมากที่ดูแลใจตัวเองครบทุกวัน</div>
+                    ) : (
+                        <div class="mt-4">
+                            <div class="bg-paper-50 border border-line rounded-2xl p-4 mb-3">
+                                <div class="text-xs font-semibold text-primary-600 mb-1">วันที่ {nextDay}</div>
+                                <p class="text-sm text-ink-700 leading-relaxed">{j.days[nextDay - 1]}</p>
+                            </div>
+                            {canDoToday ? (
+                                <button type="button" onClick={markToday} class="w-full py-2.5 rounded-full bg-primary-500 text-white text-sm font-semibold hover:bg-primary-600 transition">ทำวันนี้แล้ว ✓</button>
+                            ) : (
+                                <p class="text-center text-xs text-ink-400">ทำวันนี้ครบแล้ว · พรุ่งนี้แวะมาทำวันถัดไปนะ 🌙</p>
+                            )}
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        // ---------------- เครื่องมือคลายใจ ----------------
+        // สแกนร่างกาย (body scan) — ไล่ความสนใจไปทีละส่วน
+        const BODY_STEPS = [
+            { part: 'เท้าและขา', hint: 'รู้สึกถึงน้ำหนักที่กดลงพื้น ปล่อยให้ผ่อนคลาย', secs: 20 },
+            { part: 'ท้องและหลัง', hint: 'สังเกตลมหายใจที่ทำให้ท้องขยับขึ้นลง', secs: 20 },
+            { part: 'มือและแขน', hint: 'คลายกำปั้น ปล่อยไหล่ให้ตกลงเบาๆ', secs: 20 },
+            { part: 'คอและไหล่', hint: 'ที่ที่เรามักเก็บความเครียด ค่อยๆ ผ่อนลง', secs: 20 },
+            { part: 'ใบหน้า', hint: 'คลายกราม คลายหว่างคิ้ว ปล่อยให้หน้านิ่ง', secs: 20 },
+        ];
+        function BodyScan({ onClose }) {
+            const [i, setI] = useState(0);
+            const [count, setCount] = useState(BODY_STEPS[0].secs);
+            const [done, setDone] = useState(false);
+            useEffect(() => {
+                if (done) return;
+                const step = BODY_STEPS[i];
+                let c = step.secs; setCount(c);
+                const t = setInterval(() => {
+                    c--; setCount(c > 0 ? c : 0);
+                    if (c <= 0) { clearInterval(t); if (i < BODY_STEPS.length - 1) setI(i + 1); else setDone(true); }
+                }, 1000);
+                return () => clearInterval(t);
+            }, [i, done]);
+            if (done) return (
+                <div class="text-center py-4">
+                    <div class="text-4xl mb-2">🌿</div>
+                    <p class="text-sm text-ink-600 mb-4">สแกนครบทั้งตัวแล้ว · รู้สึกผ่อนคลายขึ้นไหม</p>
+                    <button type="button" onClick={onClose} class="text-xs text-ink-400 hover:text-primary-600 transition">‹ กลับ</button>
+                </div>
+            );
+            const s = BODY_STEPS[i];
+            return (
+                <div class="text-center py-2">
+                    <div class="flex items-center justify-center gap-1.5 mb-4">
+                        {BODY_STEPS.map((_, k) => <div key={k} class={`h-1.5 rounded-full transition-all ${k === i ? 'w-6 bg-primary-500' : k < i ? 'w-3 bg-primary-300' : 'w-3 bg-paper-200'}`}></div>)}
+                    </div>
+                    <div class="text-lg font-bold text-ink-900 mb-1">{s.part}</div>
+                    <p class="text-sm text-ink-500 mb-3">{s.hint}</p>
+                    <div class="text-3xl font-extrabold text-primary-600 tabular-nums mb-4">{count}</div>
+                    <button type="button" onClick={onClose} class="text-xs text-ink-400 hover:text-red-500 transition">หยุด</button>
+                </div>
+            );
+        }
+
+        // จัดระเบียบความคิด (thought record) — เก็บ localStorage ส่วนตัว
+        const TKEY = 'nomgi_thoughts';
+        function ThoughtRecord({ onClose }) {
+            const [situation, setSituation] = useState('');
+            const [thought, setThought] = useState('');
+            const [reframe, setReframe] = useState('');
+            const [saved, setSaved] = useState(false);
+            function save() {
+                if (!situation.trim() && !thought.trim()) return;
+                let list = []; try { list = JSON.parse(localStorage.getItem(TKEY)) || []; } catch (e) {}
+                list.push({ situation: situation.trim(), thought: thought.trim(), reframe: reframe.trim(), at: new Date().toISOString() });
+                try { localStorage.setItem(TKEY, JSON.stringify(list.slice(-100))); } catch (e) {}
+                setSaved(true);
+            }
+            if (saved) return (
+                <div class="text-center py-4">
+                    <div class="text-4xl mb-2">📝</div>
+                    <p class="text-sm text-ink-600 mb-1">บันทึกแล้ว · เก็บไว้ในเครื่องนี้ เห็นแค่คุณ</p>
+                    <p class="text-xs text-ink-400 mb-4">การเขียนความคิดออกมา ช่วยให้เห็นมันชัดขึ้นและเบาลง</p>
+                    <button type="button" onClick={onClose} class="text-xs text-ink-400 hover:text-primary-600 transition">‹ กลับ</button>
+                </div>
+            );
+            const F = (label, val, set, ph) => (
+                <div class="mb-3">
+                    <label class="text-xs font-semibold text-ink-600">{label}</label>
+                    <textarea value={val} onChange={e => set(e.target.value.slice(0, 400))} rows="2" placeholder={ph}
+                        class="mt-1 w-full bg-paper-50 border border-line rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary-500/30" />
+                </div>
+            );
+            return (
+                <div class="py-1">
+                    {F('เกิดอะไรขึ้น?', situation, setSituation, 'สถานการณ์ที่ทำให้รู้สึกไม่ดี...')}
+                    {F('ความคิดแรกที่ผุดขึ้น', thought, setThought, 'เช่น "ฉันทำอะไรก็ไม่สำเร็จ"...')}
+                    {F('ลองมองอีกมุมที่ใจดีกว่า', reframe, setReframe, 'เช่น "ครั้งนี้พลาด แต่ก็มีหลายอย่างที่ทำได้"...')}
+                    <div class="flex items-center gap-3">
+                        <button type="button" onClick={save} class="px-4 py-2 rounded-full bg-primary-500 text-white text-sm font-semibold hover:bg-primary-600 transition">บันทึก</button>
+                        <button type="button" onClick={onClose} class="text-xs text-ink-400 hover:text-ink-600 transition">ยกเลิก</button>
+                    </div>
+                </div>
+            );
+        }
+
+        // เลื่อนเวลากังวล (worry postponement)
+        const WKEY = 'nomgi_worries';
+        function WorryTime({ onClose }) {
+            const [text, setText] = useState('');
+            const [when, setWhen] = useState('เย็นนี้ 18:00');
+            const [saved, setSaved] = useState(false);
+            function save() {
+                if (!text.trim()) return;
+                let list = []; try { list = JSON.parse(localStorage.getItem(WKEY)) || []; } catch (e) {}
+                list.push({ text: text.trim(), when, at: new Date().toISOString() });
+                try { localStorage.setItem(WKEY, JSON.stringify(list.slice(-100))); } catch (e) {}
+                setSaved(true);
+            }
+            if (saved) return (
+                <div class="text-center py-4">
+                    <div class="text-4xl mb-2">🕰️</div>
+                    <p class="text-sm text-ink-600 mb-1">พักเรื่องนี้ไว้ก่อนนะ</p>
+                    <p class="text-xs text-ink-400 mb-4">ไม่ต้องคิดตอนนี้ก็ได้ · ค่อยกลับมาคิดตอน <b>{when}</b> ตอนนี้ให้ใจได้พัก</p>
+                    <button type="button" onClick={onClose} class="text-xs text-ink-400 hover:text-primary-600 transition">‹ กลับ</button>
+                </div>
+            );
+            return (
+                <div class="py-1">
+                    <p class="text-xs text-ink-500 mb-3">แทนที่จะกังวลตอนนี้ ลองจดไว้แล้วนัดเวลาคิดทีหลัง — สมองจะได้พัก</p>
+                    <textarea value={text} onChange={e => setText(e.target.value.slice(0, 300))} rows="2" placeholder="ตอนนี้กังวลเรื่องอะไร?"
+                        class="w-full bg-paper-50 border border-line rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary-500/30 mb-3" />
+                    <label class="text-xs font-semibold text-ink-600">จะกลับมาคิดเรื่องนี้ตอน</label>
+                    <input type="text" value={when} onChange={e => setWhen(e.target.value.slice(0, 40))}
+                        class="mt-1 mb-3 w-full bg-paper-50 border border-line rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30" />
+                    <div class="flex items-center gap-3">
+                        <button type="button" onClick={save} class="px-4 py-2 rounded-full bg-primary-500 text-white text-sm font-semibold hover:bg-primary-600 transition">พักไว้ก่อน</button>
+                        <button type="button" onClick={onClose} class="text-xs text-ink-400 hover:text-ink-600 transition">ยกเลิก</button>
+                    </div>
+                </div>
+            );
+        }
+
+        const TOOLS = [
+            { id: 'body', emoji: '🧘', title: 'สแกนร่างกาย', desc: 'ไล่ผ่อนคลายทีละส่วน ~2 นาที', render: (close) => <BodyScan onClose={close} /> },
+            { id: 'thought', emoji: '📝', title: 'จัดระเบียบความคิด', desc: 'เขียนความคิดออกมา มองอีกมุม', render: (close) => <ThoughtRecord onClose={close} /> },
+            { id: 'worry', emoji: '🕰️', title: 'เลื่อนเวลากังวล', desc: 'พักเรื่องกวนใจไว้ก่อน', render: (close) => <WorryTime onClose={close} /> },
+        ];
+        function ToolsSection() {
+            const [open, setOpen] = useState(null);
+            return (
+                <div class="space-y-3">
+                    {TOOLS.map(t => (
+                        <div key={t.id} class="card overflow-hidden">
+                            {open === t.id ? (
+                                <div class="p-5">
+                                    <div class="flex items-center gap-2 mb-3">
+                                        <span class="text-xl">{t.emoji}</span>
+                                        <h3 class="font-bold text-ink-900">{t.title}</h3>
+                                    </div>
+                                    {t.render(() => setOpen(null))}
+                                </div>
+                            ) : (
+                                <button type="button" onClick={() => setOpen(t.id)} class="w-full flex items-center gap-3 p-5 text-left hover:bg-paper-50 transition">
+                                    <span class="text-2xl">{t.emoji}</span>
+                                    <span class="flex-1 min-w-0">
+                                        <span class="block font-bold text-ink-900 text-sm">{t.title}</span>
+                                        <span class="block text-xs text-ink-500">{t.desc}</span>
+                                    </span>
+                                    <span class="text-primary-500">›</span>
+                                </button>
+                            )}
+                        </div>
+                    ))}
+                    <p class="text-xs text-ink-400 text-center pt-1">ฝึกหายใจ 4-7-8 และดึงสติ 5-4-3-2-1 มีให้ระหว่างรอคิวในหน้าจับคู่ด้วยนะ</p>
+                </div>
+            );
+        }
+
+        // ---------------- แหล่งช่วยเหลือ ----------------
+        const HOTLINES = [
+            { name: 'สายด่วนสุขภาพจิต', org: 'กรมสุขภาพจิต', phone: '1323', note: 'ฟรี ตลอด 24 ชม.', href: 'tel:1323' },
+            { name: 'สมาคมสะมาริตันส์', org: 'รับฟังผู้ที่คิดสั้น', phone: '02-113-6789', note: 'ทุกวัน 12:00–22:00 น.', href: 'tel:021136789' },
+            { name: 'เจ็บป่วยฉุกเฉิน', org: 'สถาบันการแพทย์ฉุกเฉิน', phone: '1669', note: 'เหตุฉุกเฉิน เสี่ยงถึงชีวิต', href: 'tel:1669' },
+            { name: 'สายด่วนเด็กและครอบครัว', org: 'มูลนิธิสายเด็ก', phone: '1387', note: 'สำหรับเด็กและเยาวชน', href: 'tel:1387' },
+        ];
+        function ResourcesSection() {
+            return (
+                <div class="space-y-4">
+                    <div class="card p-5 bg-gradient-to-br from-primary-50 to-surface">
+                        <h3 class="font-bold text-ink-900 mb-1">ถ้าตอนนี้รู้สึกไม่ไหว 🤍</h3>
+                        <p class="text-sm text-ink-500 mb-3">คุณไม่ได้อยู่คนเดียว มีคนพร้อมช่วยจริงๆ โทรได้เลย ไม่มีค่าใช้จ่าย</p>
+                        <div class="space-y-2">
+                            {HOTLINES.map(h => (
+                                <a key={h.phone} href={h.href} class="flex items-center gap-3 bg-surface border border-line rounded-2xl p-3 hover:border-primary-400 transition">
+                                    <div class="w-11 h-11 rounded-xl bg-primary-500 text-white flex items-center justify-center shrink-0">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"/></svg>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="font-bold text-ink-900 text-sm">{h.name} <span class="text-primary-600">{h.phone}</span></div>
+                                        <div class="text-xs text-ink-500">{h.org} · {h.note}</div>
+                                    </div>
+                                </a>
+                            ))}
+                        </div>
+                    </div>
+                    <div class="card p-5">
+                        <h3 class="font-bold text-ink-900 mb-3">เรียนรู้เพิ่มเติม</h3>
+                        <a href="https://www.dmh.go.th" target="_blank" rel="noopener noreferrer" class="flex items-center justify-between py-2.5 border-b border-line text-sm text-ink-700 hover:text-primary-600 transition">
+                            <span>กรมสุขภาพจิต — ความรู้สุขภาพใจ</span><span class="text-ink-300">↗</span>
+                        </a>
+                        <a href="https://www.dmh.go.th/test/" target="_blank" rel="noopener noreferrer" class="flex items-center justify-between py-2.5 text-sm text-ink-700 hover:text-primary-600 transition">
+                            <span>แบบประเมินสุขภาพจิตเบื้องต้น</span><span class="text-ink-300">↗</span>
+                        </a>
+                        <p class="text-xs text-ink-400 mt-3 leading-relaxed">NomGI เป็นพื้นที่รับฟังจากเพื่อน ไม่ใช่บริการทางการแพทย์ · หากมีภาวะฉุกเฉินหรืออยากได้การดูแลจากผู้เชี่ยวชาญ กรุณาติดต่อสายด่วนหรือสถานพยาบาลนะ</p>
+                    </div>
+                </div>
+            );
+        }
+
+        function App() {
+            const [tab, setTab] = useState('journeys');
+            const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
+            useEffect(() => { window.BlissiamTheme?.loadAndApplyTheme(); }, []);
+            function toggleDark() { const r = window.BlissiamTheme?.toggleColorScheme(); setIsDark(r === 'dark'); }
+            const tabs = [
+                { id: 'journeys', label: 'เส้นทางดูแลใจ', emoji: '🌱' },
+                { id: 'tools', label: 'เครื่องมือคลายใจ', emoji: '🧰' },
+                { id: 'resources', label: 'แหล่งช่วยเหลือ', emoji: '🤝' },
+            ];
+            return (
+                <div class="min-h-screen">
+                    <nav class="sticky top-0 z-40 bg-paper-50/90 backdrop-blur border-b border-line px-5 py-3">
+                        <div class="max-w-xl mx-auto flex items-center justify-between">
+                            <a href="index.html" class="flex items-center gap-2 text-ink-700 hover:text-primary-600 transition">
+                                <span class="text-lg">‹</span><DotLogo /><span class="font-bold">มุมดูแลใจ</span>
+                            </a>
+                            <button type="button" onClick={toggleDark} title="สลับโหมดสว่าง/มืด" class="w-9 h-9 rounded-full flex items-center justify-center border border-line hover:border-primary-400 transition text-ink-700">
+                                {isDark ? (
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 3v1.5m0 15V21m9-9h-1.5M4.5 12H3m15.36 6.36l-1.06-1.06M6.7 6.7L5.64 5.64m12.72 0l-1.06 1.06M6.7 17.3l-1.06 1.06M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                                ) : (
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+                                )}
+                            </button>
+                        </div>
+                    </nav>
+
+                    <div class="max-w-xl mx-auto px-5 py-6">
+                        <p class="text-sm text-ink-500 mb-5 text-center">พื้นที่เงียบๆ ไว้ดูแลใจตัวเอง · ทุกอย่างเก็บในเครื่องนี้ เห็นแค่คุณ 🌿</p>
+                        <div class="flex gap-2 mb-6 bg-paper-100 p-1 rounded-2xl">
+                            {tabs.map(t => (
+                                <button key={t.id} type="button" onClick={() => setTab(t.id)}
+                                    class={`flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition ${tab === t.id ? 'bg-surface text-primary-700 shadow-sm' : 'text-ink-500 hover:text-ink-700'}`}>
+                                    <span class="block sm:inline">{t.emoji}</span> <span class="hidden xs:inline sm:inline">{t.label}</span>
+                                </button>
+                            ))}
+                        </div>
+                        <div class="fade-in" key={tab}>
+                            {tab === 'journeys' && <div class="space-y-4">{JOURNEYS.map(j => <JourneyCard key={j.id} j={j} />)}</div>}
+                            {tab === 'tools' && <ToolsSection />}
+                            {tab === 'resources' && <ResourcesSection />}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>
