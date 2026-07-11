@@ -426,6 +426,104 @@
             );
         }
 
+        // ---- คอร์สปั้นผู้รับฟัง (ก่อนรับฟังครั้งแรก) ----
+        const LISTENER_LESSONS = [
+            { icon: '🌱', title: 'หน้าที่เราคือ "อยู่ด้วย" ไม่ใช่ "แก้ให้จบ"',
+              body: 'คนที่มาระบายส่วนใหญ่ไม่ได้ต้องการทางออก เขาต้องการรู้ว่ามีคนได้ยิน · การสะท้อนความรู้สึก เช่น "ฟังดูเหนื่อยมากเลยนะ" มีค่ากว่าคำแนะนำหลายเท่า' },
+            { icon: '🚫', title: 'คำที่ปิดประตูใจเขา',
+              body: 'หลีกเลี่ยง "อย่าคิดมาก" · "คนอื่นแย่กว่าเธออีก" · "เดี๋ยวก็ดีเอง" · การรีบปลอบให้จบ ทำให้เขารู้สึกว่าความทุกข์ของตัวเองไม่สำคัญ' },
+            { icon: '🤝', title: 'เรารับฟัง ไม่ใช่รับผิดชอบทั้งชีวิตเขา',
+              body: 'เราเป็นเพื่อนรับฟัง ไม่ใช่นักบำบัด · ดูแลใจตัวเองด้วย ถ้ารู้สึกเกินกำลัง การส่งต่อให้สายด่วน/มืออาชีพไม่ใช่ความล้มเหลว แต่คือความรับผิดชอบ' },
+            { icon: '🆘', title: 'เมื่อเจอสัญญาณเสี่ยง',
+              body: 'ถ้าเขาพูดถึงการทำร้ายตัวเอง/ไม่อยากอยู่ต่อ: อย่าตกใจหนี อย่าตัดสิน · อยู่กับเขา ถามด้วยความห่วงใย และชวนติดต่อสายด่วน 1323 · ในแชทมีปุ่ม "ส่งต่ออย่างอบอุ่น" ช่วยได้' },
+        ];
+        const LISTENER_QUIZ = [
+            { q: 'เพื่อนบอกว่า "หนูรู้สึกไร้ค่า" — ตอบแบบไหนดีที่สุด?',
+              options: ['ขอบคุณที่เล่าให้ฟังนะ ความรู้สึกนั้นหนักมากเลย เล่าเพิ่มได้ไหม', 'อย่าคิดมากสิ เธอมีดีตั้งเยอะ', 'คนอื่นลำบากกว่านี้อีกนะ'],
+              correct: 0, hint: 'เริ่มจากรับฟังและอยู่กับความรู้สึกเขาก่อน ไม่รีบปลอบหรือเปรียบเทียบ' },
+            { q: 'คู่สนทนาเงียบไปนาน ควรทำยังไง?',
+              options: ['เร่งถามรัวๆ ให้รีบตอบ', 'ไม่เป็นไรนะ ค่อยๆ ไม่ต้องรีบ เราอยู่ตรงนี้', 'ออกจากห้องไปเลย'],
+              correct: 1, hint: 'ความเงียบก็เป็นพื้นที่ปลอดภัยได้ ให้เวลาเขาโดยไม่กดดัน' },
+            { q: 'เขาพูดว่า "ไม่อยากมีชีวิตอยู่แล้ว" ควรทำอย่างไร?',
+              options: ['เปลี่ยนเรื่องทันทีให้บรรยากาศดีขึ้น', 'บอกว่า "อย่าพูดแบบนั้นสิ บาปนะ"', 'อยู่กับเขา ถามด้วยความห่วงใย และชวนติดต่อสายด่วน 1323'],
+              correct: 2, hint: 'ไม่หนี ไม่ตัดสิน — อยู่กับเขาและเชื่อมต่อกับความช่วยเหลือจริง' },
+        ];
+        function ListenerTraining({ onComplete, onClose, saving }) {
+            const [phase, setPhase] = useState('learn'); // learn -> quiz -> done
+            const [i, setI] = useState(0);
+            const [picked, setPicked] = useState(null);
+            const total = LISTENER_LESSONS.length;
+            const q = LISTENER_QUIZ[i];
+            function nextLesson() { if (i < total - 1) setI(i + 1); else { setPhase('quiz'); setI(0); setPicked(null); } }
+            function choose(idx) {
+                setPicked(idx);
+                if (idx === q.correct) {
+                    setTimeout(() => {
+                        if (i < LISTENER_QUIZ.length - 1) { setI(i + 1); setPicked(null); }
+                        else setPhase('done');
+                    }, 650);
+                }
+            }
+            return (
+                <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+                    <div class="relative bg-surface rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-float border border-line">
+                        {phase === 'learn' && (
+                            <>
+                                <div class="flex items-center gap-1.5 mb-5">
+                                    {LISTENER_LESSONS.map((_, k) => (
+                                        <div key={k} class={`h-1.5 rounded-full transition-all ${k === i ? 'w-6 bg-primary-500' : k < i ? 'w-3 bg-primary-300' : 'w-3 bg-paper-200'}`}></div>
+                                    ))}
+                                </div>
+                                <div class="text-4xl mb-3">{LISTENER_LESSONS[i].icon}</div>
+                                <h3 class="text-lg font-bold text-ink-900 mb-2 text-balance">{LISTENER_LESSONS[i].title}</h3>
+                                <p class="text-sm text-ink-600 leading-relaxed mb-6">{LISTENER_LESSONS[i].body}</p>
+                                <div class="flex items-center justify-between">
+                                    <button type="button" onClick={onClose} class="text-xs text-ink-400 hover:text-ink-600 transition">ไว้ทีหลัง</button>
+                                    <button type="button" onClick={nextLesson} class="px-5 py-2.5 rounded-full bg-primary-500 text-white text-sm font-semibold hover:bg-primary-600 transition">
+                                        {i < total - 1 ? 'ต่อไป ›' : 'ทำแบบทดสอบ →'}
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                        {phase === 'quiz' && (
+                            <>
+                                <div class="text-xs font-semibold text-primary-600 mb-2">คำถามที่ {i + 1}/{LISTENER_QUIZ.length}</div>
+                                <h3 class="text-base font-bold text-ink-900 mb-4 text-balance">{q.q}</h3>
+                                <div class="space-y-2">
+                                    {q.options.map((opt, idx) => {
+                                        const isPicked = picked === idx;
+                                        const right = picked !== null && idx === q.correct;
+                                        const wrong = isPicked && idx !== q.correct;
+                                        return (
+                                            <button key={idx} type="button" onClick={() => picked === null || picked !== q.correct ? choose(idx) : null}
+                                                class={`w-full text-left px-4 py-3 rounded-2xl border text-sm transition ${right ? 'border-primary-500 bg-primary-50 text-primary-700' : wrong ? 'border-red-300 bg-red-50 text-red-600' : 'border-line text-ink-700 hover:border-ink-300'}`}>
+                                                {right ? '✓ ' : wrong ? '✗ ' : ''}{opt}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                                {picked !== null && picked !== q.correct && (
+                                    <p class="text-xs text-ink-500 mt-3">💡 {q.hint} — ลองอีกครั้งนะ</p>
+                                )}
+                            </>
+                        )}
+                        {phase === 'done' && (
+                            <div class="text-center">
+                                <div class="text-5xl mb-3">🤍</div>
+                                <h3 class="text-lg font-bold text-ink-900 mb-1">พร้อมเป็นผู้รับฟังแล้ว</h3>
+                                <p class="text-sm text-ink-500 mb-6">ขอบคุณที่ตั้งใจดูแลใจคนอื่น · คุณจะได้เหรียญ "ผ่านการอบรม" ✅ ติดตัว</p>
+                                <button type="button" onClick={onComplete} disabled={saving}
+                                    class="w-full py-3 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 text-white font-semibold text-sm hover:brightness-105 transition disabled:opacity-50">
+                                    {saving ? 'กำลังบันทึก...' : 'เริ่มรับฟังเลย →'}
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
         function App() {
             const [user, setUser] = useState(null);
             const [profile, setProfile] = useState(null);
@@ -435,6 +533,8 @@
             const [selectedTopic, setSelectedTopic] = useState('general');
             const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
             const [moodRole, setMoodRole] = useState(null); // เปิด mood check-in ก่อนเข้าคิว (#4)
+            const [showTraining, setShowTraining] = useState(false); // คอร์สปั้นผู้รับฟัง (ครั้งแรก)
+            const [trainingSaving, setTrainingSaving] = useState(false);
             const [selectedSupport, setSelectedSupport] = useState('listen'); // #2 แบบที่อยากให้ช่วย
 
             useEffect(() => {
@@ -491,7 +591,23 @@
                     window.location.href = `login.html?redirect=queue.html&role=${role}&identity=${identityMode}&topic=${selectedTopic}&support=${selectedSupport}`;
                     return;
                 }
+                // ผู้รับฟังครั้งแรก: ผ่านคอร์สอบรมสั้นๆ ก่อน
+                if (role === 'listener' && profile && !profile.trained_at) {
+                    setShowTraining(true);
+                    return;
+                }
                 setMoodRole(role); // เปิด mood check-in ก่อน แล้วค่อยเข้าคิว
+            }
+
+            // จบคอร์ส -> บันทึก trained_at แล้วไปต่อ (mood check-in ของผู้รับฟัง)
+            async function completeTraining() {
+                setTrainingSaving(true);
+                const now = new Date().toISOString();
+                try { await supabase.from('profiles').update({ trained_at: now }).eq('id', user.id); } catch (e) {}
+                setProfile(prev => prev ? { ...prev, trained_at: now } : prev);
+                setTrainingSaving(false);
+                setShowTraining(false);
+                setMoodRole('listener');
             }
 
             // #6 เข้าวงกลมแบ่งปัน (ห้องกลุ่มตามหัวข้อ)
@@ -763,6 +879,10 @@
                     </footer>
 
                     {/* Mood check-in ก่อนเข้าคิว (#4) */}
+                    {showTraining && (
+                        <ListenerTraining onComplete={completeTraining} onClose={() => setShowTraining(false)} saving={trainingSaving} />
+                    )}
+
                     {moodRole && (
                         <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
                             <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setMoodRole(null)}></div>
