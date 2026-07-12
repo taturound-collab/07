@@ -56,6 +56,7 @@
         }
     </style>
     <script src="theme.js"></script>
+    <script src="icons.js"></script>
     <script src="pwa.js"></script>
     <script src="panic.js"></script>
     <style>
@@ -91,6 +92,10 @@
     <div id="root"></div>
     <script type="text/babel">
         const { useState, useEffect } = React;
+        function Icon({ n, s = 20, cls = '' }) {
+            return <span class={`inline-flex items-center justify-center align-middle ${cls}`}
+                dangerouslySetInnerHTML={{ __html: (window.NomGIcon ? NomGIcon(n, s) : '') }} />;
+        }
         const supabase = window.supabaseClient;
 
         // ฟังก์ชันสร้างเสียงสังเคราะห์ (ปลอดภัยและเบราว์เซอร์ไม่บล็อกการทำงาน)
@@ -231,7 +236,7 @@
                         </div>
                     </div>
                     <button type="button" onClick={onBack}
-                        class="mt-4 text-xs text-ink-400 hover:text-red-500 transition">‹ เลือกใหม่</button>
+                        class="mt-4 text-xs text-ink-400 hover:text-red-500 transition"><Icon n="chevron-left" s={13} cls="mr-0.5" /> เลือกใหม่</button>
                 </div>
             );
         }
@@ -260,7 +265,7 @@
                     <p class="text-sm text-ink-600 font-medium mb-1">กลับมาอยู่กับปัจจุบันแล้วนะ</p>
                     <p class="text-xs text-ink-400 mb-4">ค่อยๆ หายใจ คุณทำได้ดีมาก</p>
                     <button type="button" onClick={onBack}
-                        class="text-xs text-ink-400 hover:text-primary-600 transition">‹ เลือกใหม่</button>
+                        class="text-xs text-ink-400 hover:text-primary-600 transition"><Icon n="chevron-left" s={13} cls="mr-0.5" /> เลือกใหม่</button>
                 </div>
             );
             return (
@@ -287,7 +292,7 @@
                         {step < GROUND_STEPS.length - 1 ? 'ถัดไป ›' : 'เสร็จแล้ว 🌿'}
                     </button>
                     <div><button type="button" onClick={onBack}
-                        class="mt-3 text-xs text-ink-400 hover:text-red-500 transition">‹ เลือกใหม่</button></div>
+                        class="mt-3 text-xs text-ink-400 hover:text-red-500 transition"><Icon n="chevron-left" s={13} cls="mr-0.5" /> เลือกใหม่</button></div>
                 </div>
             );
         }

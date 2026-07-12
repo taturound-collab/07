@@ -51,8 +51,9 @@
         btn.type = 'button';
         btn.setAttribute('aria-label', 'ออกด่วน — ไปหน้ากลางๆ ทันที (กด Esc สองครั้ง)');
         btn.title = 'ออกด่วน (กด Esc สองครั้ง)';
+        var icHtml = (window.NomGIcon ? window.NomGIcon('door-open', 18) : '✕');
         btn.innerHTML =
-            '<span class="ic" aria-hidden="true">✕</span>' +
+            '<span class="ic" aria-hidden="true">' + icHtml + '</span>' +
             '<span class="lb">ออกด่วน<span class="hint">Esc ×2</span></span>';
         btn.addEventListener('click', exitNow);
         document.body.appendChild(btn);

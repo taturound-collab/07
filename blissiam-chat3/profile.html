@@ -57,6 +57,7 @@
         .section-fold .card-playful { border: 0; box-shadow: none; background: transparent; border-radius: 0; padding: 0.25rem 0 0; }
     </style>
     <script src="theme.js"></script>
+    <script src="icons.js"></script>
     <script src="pwa.js"></script>
     <script src="panic.js"></script>
     <script src="kudos-tree.js"></script>
@@ -67,6 +68,10 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
         const supabase = window.supabaseClient;
+        function Icon({ n, s = 20, cls = '' }) {
+            return <span class={`inline-flex items-center justify-center align-middle ${cls}`}
+                dangerouslySetInnerHTML={{ __html: (window.NomGIcon ? NomGIcon(n, s) : '') }} />;
+        }
 
         const SPECIALTY_OPTIONS = [
             { id: 'general', label: 'เรื่องทั่วไป 💬' },
@@ -539,7 +544,7 @@
                             <h1 class="text-xl font-extrabold tracking-tight">โปรไฟล์ของฉัน ✨</h1>
                             <div class="flex items-center gap-4">
                                 <DarkModeToggle isDark={isDark} onToggle={toggleDarkMode} />
-                                <a href="index.html" class="text-sm text-ink-700 hover:text-primary-600 font-medium">← กลับหน้าแรก</a>
+                                <a href="index.html" class="text-sm text-ink-700 hover:text-primary-600 font-medium inline-flex items-center gap-1"><Icon n="arrow-left" s={15} /> กลับหน้าแรก</a>
                             </div>
                         </div>
                     </nav>

@@ -44,6 +44,7 @@
         .sheet-up { animation: sheetUp2 0.3s cubic-bezier(0.32, 0.72, 0, 1); }
     </style>
     <script src="theme.js"></script>
+    <script src="icons.js"></script>
     <script src="pwa.js"></script>
     <script src="panic.js"></script>
     <script src="safety.js"></script>
@@ -52,6 +53,10 @@
     <div id="root" class="h-full"></div>
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
+        function Icon({ n, s = 20, cls = '' }) {
+            return <span class={`inline-flex items-center justify-center align-middle ${cls}`}
+                dangerouslySetInnerHTML={{ __html: (window.NomGIcon ? NomGIcon(n, s) : '') }} />;
+        }
         const supabase = window.supabaseClient;
         const _safety = window.NomGISafety || {};
         const isRiskyText = _safety.isRisky || (() => false);
@@ -198,7 +203,7 @@
                     {/* Header */}
                     <header class="glass border-b border-line px-4 py-3 flex items-center justify-between z-20 shrink-0">
                         <div class="min-w-0">
-                            <div class="font-bold text-ink-900 truncate flex items-center gap-2">👥 วงกลมแบ่งปัน</div>
+                            <div class="font-bold text-ink-900 truncate flex items-center gap-2"><Icon n="users" s={18} cls="text-primary-600" /> วงกลมแบ่งปัน</div>
                             <div class="text-xs text-ink-400 truncate">{TOPIC_LABELS[groupRoom.topic] || groupRoom.topic} · {members.length} คนในวง</div>
                         </div>
                         <div class="flex items-center gap-1 shrink-0">

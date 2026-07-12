@@ -56,6 +56,7 @@
         }
     </style>
     <script src="theme.js"></script>
+    <script src="icons.js"></script>
     <script src="pwa.js"></script>
     <script src="panic.js"></script>
     <script src="mood.js"></script>
@@ -116,6 +117,12 @@
         const { useState, useEffect } = React;
         const supabase = window.supabaseClient;
 
+        // ไอคอน Lucide (inline SVG) — สืบทอดสีจาก text color ของ parent
+        function Icon({ n, s = 20, cls = '' }) {
+            return <span class={`inline-flex items-center justify-center align-middle ${cls}`}
+                dangerouslySetInnerHTML={{ __html: (window.NomGIcon ? NomGIcon(n, s) : '') }} />;
+        }
+
         const TOPICS = [
             { id: 'general', label: 'เรื่องทั่วไป 💬', desc: 'คุยสบายๆ ได้ทุกเรื่องทั่วไป' },
             { id: 'study', label: 'การเรียน/มหาลัย 📚', desc: 'เครียดเรียน ปรึกษาเรื่องเรียน' },
@@ -170,14 +177,14 @@
             if (done) return (
                 <div class="mb-3 flex items-center justify-between bg-surface/80 border border-line rounded-2xl px-4 py-2.5">
                     <span class="text-sm text-ink-500">🌤️ เช็คอินวันนี้แล้ว · พรุ่งนี้แวะมาใหม่นะ</span>
-                    {streak > 0 && <span class="text-xs font-bold text-primary-600 shrink-0">🔥 {streak} วันติด</span>}
+                    {streak > 0 && <span class="text-xs font-bold text-primary-600 shrink-0 inline-flex items-center gap-1"><Icon n="flame" s={13} /> {streak} วันติด</span>}
                 </div>
             );
             return (
                 <div class="mb-4 bg-gradient-to-br from-primary-50 to-surface border border-line rounded-2xl p-5 sm:p-6">
                     <div class="flex items-center justify-between mb-1">
                         <h3 class="font-bold text-base text-ink-900">เช็คอินความรู้สึกวันนี้ 🌤️</h3>
-                        {streak > 0 && <span class="text-sm font-bold text-primary-600 flex items-center gap-1">🔥 {streak} วันติด</span>}
+                        {streak > 0 && <span class="text-sm font-bold text-primary-600 flex items-center gap-1"><Icon n="flame" s={15} /> {streak} วันติด</span>}
                     </div>
                     {done ? (
                         <p class="text-sm text-ink-500 mt-1">เช็คอินวันนี้แล้ว · แวะมาใหม่พรุ่งนี้เพื่อรักษาสถิตินะ 🌱</p>
@@ -420,7 +427,7 @@
                             <div class="font-bold text-ink-900">กำแพงให้กำลังใจ</div>
                             <div class="text-sm text-ink-500">ทิ้งข้อความให้กำลังใจสั้นๆ แบบไม่เปิดเผยตัว · หรือมากดหัวใจให้คนอื่น</div>
                         </div>
-                        <div class="text-primary-500 group-hover:translate-x-1 transition">›</div>
+                        <div class="text-primary-500 group-hover:translate-x-1 transition"><Icon n="chevron-right" s={20} /></div>
                     </div>
                 </a>
             );
@@ -435,7 +442,7 @@
                             <div class="font-bold text-ink-900">มุมดูแลใจ</div>
                             <div class="text-sm text-ink-500">เส้นทางดูแลใจ · เครื่องมือคลายเครียด · แหล่งช่วยเหลือ — เงียบๆ คนเดียวได้</div>
                         </div>
-                        <div class="text-primary-500 group-hover:translate-x-1 transition">›</div>
+                        <div class="text-primary-500 group-hover:translate-x-1 transition"><Icon n="chevron-right" s={20} /></div>
                     </div>
                 </a>
             );
@@ -908,7 +915,7 @@
                                 <button onClick={joinGroupRoom} disabled={starting}
                                     class="mt-6 w-full card-playful bg-surface overflow-hidden text-left disabled:opacity-50 group">
                                     <div class="flex items-center gap-4 p-5 sm:p-6">
-                                        <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-400 to-secondary-500 flex items-center justify-center text-3xl shrink-0 group-hover:scale-105 transition">👥</div>
+                                        <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-400 to-secondary-500 flex items-center justify-center shrink-0 group-hover:scale-105 transition text-white"><Icon n="users" s={30} /></div>
                                         <div class="min-w-0 flex-1">
                                             <div class="font-extrabold text-lg text-ink-900">เข้าวงกลมแบ่งปัน</div>
                                             <div class="text-sm text-ink-500">คุยกันเป็นกลุ่มเล็ก 3-4 คนในหัวข้อ <span class="text-primary-600 font-medium">{TOPICS.find(t => t.id === selectedTopic)?.label || 'เรื่องทั่วไป'}</span> · ไม่ระบุตัวตน</div>

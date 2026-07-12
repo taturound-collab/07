@@ -56,6 +56,7 @@
         }
     </style>
     <script src="theme.js"></script>
+    <script src="icons.js"></script>
     <script src="pwa.js"></script>
     <style>
         body { font-family: 'Kanit', sans-serif; background-color: var(--color-paper-50); background-image: radial-gradient(circle at 15% 10%, var(--color-primary-50) 0%, transparent 45%), radial-gradient(circle at 85% 90%, var(--color-secondary-50) 0%, transparent 45%); background-attachment: fixed; transition: background-color 0.3s ease; }
@@ -84,6 +85,10 @@
     <div id="root"></div>
     <script type="text/babel">
         const { useState, useEffect } = React;
+        function Icon({ n, s = 20, cls = '' }) {
+            return <span class={`inline-flex items-center justify-center align-middle ${cls}`}
+                dangerouslySetInnerHTML={{ __html: (window.NomGIcon ? NomGIcon(n, s) : '') }} />;
+        }
         const supabase = window.supabaseClient;
 
         function DotLogo({ size = 28, animated = false }) {
@@ -230,7 +235,7 @@
                                         class="btn-playful w-full text-white py-3 font-semibold disabled:opacity-50">
                                         {appealing ? 'กำลังส่ง...' : 'ยื่นคำอุทธรณ์'}
                                     </button>
-                                    <a href="index.html" class="block mt-4 text-sm text-ink-400 hover:text-primary-600 transition">← กลับหน้าแรก</a>
+                                    <a href="index.html" class="block mt-4 text-sm text-ink-400 hover:text-primary-600 transition"><Icon n="arrow-left" s={15} cls="mr-1" /> กลับหน้าแรก</a>
                                 </>
                             )}
                         </div>
@@ -304,11 +309,11 @@
                             </p>
 
                             <a href="index.html" class="block text-center mt-4 text-sm text-ink-500 hover:text-primary-600 transition">
-                                ← กลับหน้าแรก
+                                <Icon n="arrow-left" s={15} cls="mr-1" /> กลับหน้าแรก
                             </a>
                         </div>
                         <p class="text-center text-xs text-ink-400 mt-4 flex items-center justify-center gap-1.5">
-                            <span aria-hidden="true">🔒</span> ปลอดภัย · คู่สนทนาไม่เห็นตัวตนจริงของคุณ เว้นแต่คุณเลือกเอง
+                            <span aria-hidden="true" class="inline-flex align-middle text-primary-600"><Icon n="lock" s={14} /></span> ปลอดภัย · คู่สนทนาไม่เห็นตัวตนจริงของคุณ เว้นแต่คุณเลือกเอง
                         </p>
                     </div>
                 </>

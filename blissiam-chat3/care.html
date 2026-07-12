@@ -42,6 +42,7 @@
         }
     </style>
     <script src="theme.js"></script>
+    <script src="icons.js"></script>
     <script src="pwa.js"></script>
     <script src="panic.js"></script>
     <script src="mood.js"></script>
@@ -57,6 +58,10 @@
     <div id="root"></div>
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
+        function Icon({ n, s = 20, cls = '' }) {
+            return <span class={`inline-flex items-center justify-center align-middle ${cls}`}
+                dangerouslySetInnerHTML={{ __html: (window.NomGIcon ? NomGIcon(n, s) : '') }} />;
+        }
 
         function DotLogo({ size = 26 }) {
             return (
@@ -177,7 +182,7 @@
                 <div class="text-center py-4">
                     <div class="text-4xl mb-2">🌿</div>
                     <p class="text-sm text-ink-600 mb-4">สแกนครบทั้งตัวแล้ว · รู้สึกผ่อนคลายขึ้นไหม</p>
-                    <button type="button" onClick={onClose} class="text-xs text-ink-400 hover:text-primary-600 transition">‹ กลับ</button>
+                    <button type="button" onClick={onClose} class="text-xs text-ink-400 hover:text-primary-600 transition inline-flex items-center gap-1"><Icon n="chevron-left" s={14} /> กลับ</button>
                 </div>
             );
             const s = BODY_STEPS[i];
@@ -213,7 +218,7 @@
                     <div class="text-4xl mb-2">📝</div>
                     <p class="text-sm text-ink-600 mb-1">บันทึกแล้ว · เก็บไว้ในเครื่องนี้ เห็นแค่คุณ</p>
                     <p class="text-xs text-ink-400 mb-4">การเขียนความคิดออกมา ช่วยให้เห็นมันชัดขึ้นและเบาลง</p>
-                    <button type="button" onClick={onClose} class="text-xs text-ink-400 hover:text-primary-600 transition">‹ กลับ</button>
+                    <button type="button" onClick={onClose} class="text-xs text-ink-400 hover:text-primary-600 transition inline-flex items-center gap-1"><Icon n="chevron-left" s={14} /> กลับ</button>
                 </div>
             );
             const F = (label, val, set, ph) => (
@@ -254,7 +259,7 @@
                     <div class="text-4xl mb-2">🕰️</div>
                     <p class="text-sm text-ink-600 mb-1">พักเรื่องนี้ไว้ก่อนนะ</p>
                     <p class="text-xs text-ink-400 mb-4">ไม่ต้องคิดตอนนี้ก็ได้ · ค่อยกลับมาคิดตอน <b>{when}</b> ตอนนี้ให้ใจได้พัก</p>
-                    <button type="button" onClick={onClose} class="text-xs text-ink-400 hover:text-primary-600 transition">‹ กลับ</button>
+                    <button type="button" onClick={onClose} class="text-xs text-ink-400 hover:text-primary-600 transition inline-flex items-center gap-1"><Icon n="chevron-left" s={14} /> กลับ</button>
                 </div>
             );
             return (
@@ -339,10 +344,10 @@
                     <div class="card p-5">
                         <h3 class="font-bold text-ink-900 mb-3">เรียนรู้เพิ่มเติม</h3>
                         <a href="https://www.dmh.go.th" target="_blank" rel="noopener noreferrer" class="flex items-center justify-between py-2.5 border-b border-line text-sm text-ink-700 hover:text-primary-600 transition">
-                            <span>กรมสุขภาพจิต — ความรู้สุขภาพใจ</span><span class="text-ink-300">↗</span>
+                            <span>กรมสุขภาพจิต — ความรู้สุขภาพใจ</span><span class="text-ink-400"><Icon n="external-link" s={15} /></span>
                         </a>
                         <a href="https://www.dmh.go.th/test/" target="_blank" rel="noopener noreferrer" class="flex items-center justify-between py-2.5 text-sm text-ink-700 hover:text-primary-600 transition">
-                            <span>แบบประเมินสุขภาพจิตเบื้องต้น</span><span class="text-ink-300">↗</span>
+                            <span>แบบประเมินสุขภาพจิตเบื้องต้น</span><span class="text-ink-400"><Icon n="external-link" s={15} /></span>
                         </a>
                         <p class="text-xs text-ink-400 mt-3 leading-relaxed">NomGI เป็นพื้นที่รับฟังจากเพื่อน ไม่ใช่บริการทางการแพทย์ · หากมีภาวะฉุกเฉินหรืออยากได้การดูแลจากผู้เชี่ยวชาญ กรุณาติดต่อสายด่วนหรือสถานพยาบาลนะ</p>
                     </div>
@@ -365,7 +370,7 @@
                     <nav class="sticky top-0 z-40 bg-paper-50/90 backdrop-blur border-b border-line px-5 py-3">
                         <div class="max-w-xl mx-auto flex items-center justify-between">
                             <a href="index.html" class="flex items-center gap-2 text-ink-700 hover:text-primary-600 transition">
-                                <span class="text-lg">‹</span><DotLogo /><span class="font-bold">มุมดูแลใจ</span>
+                                <Icon n="chevron-left" s={18} /><DotLogo /><span class="font-bold">มุมดูแลใจ</span>
                             </a>
                             <button type="button" onClick={toggleDark} title="สลับโหมดสว่าง/มืด" class="w-9 h-9 rounded-full flex items-center justify-center border border-line hover:border-primary-400 transition text-ink-700">
                                 {isDark ? (
