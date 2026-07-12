@@ -244,6 +244,91 @@
             );
         }
 
+        // เป้าหมายเล็กๆ รายสัปดาห์ (นับจากการเช็คอิน)
+        function WeeklyGoalCard() {
+            const [g, setG] = useState(() => (NomGIMood.weeklyGoal ? NomGIMood.weeklyGoal() : null));
+            function choose(n) { NomGIMood.setWeeklyGoal(n); setG(NomGIMood.weeklyGoal()); }
+            function reset() { NomGIMood.clearWeeklyGoal(); setG(null); }
+            return (
+                <div class="card-playful bg-surface p-6">
+                    <div class="text-xs font-semibold uppercase tracking-wide text-primary-600 mb-1">เป้าหมายเล็กๆ สัปดาห์นี้</div>
+                    {!g ? (
+                        <>
+                            <p class="text-sm text-ink-500 mb-3">ตั้งเป้าเช็คอินความรู้สึกกี่วันดี? ค่อยๆ ไปก็ได้ ไม่ต้องกดดันตัวเอง 🌿</p>
+                            <div class="flex gap-2">
+                                {[2, 3, 5].map(n => (
+                                    <button key={n} type="button" onClick={() => choose(n)}
+                                        class="flex-1 py-2.5 rounded-xl border border-line text-sm font-semibold text-ink-700 hover:border-primary-400 hover:text-primary-600 transition">{n} วัน</button>
+                                ))}
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            <div class="flex items-center justify-between mb-2">
+                                <p class="text-sm text-ink-700">เช็คอินให้ได้ <b class="text-primary-600">{g.target} วัน</b> สัปดาห์นี้</p>
+                                <span class="text-xs font-bold text-primary-600">{g.progress}/{g.target}</span>
+                            </div>
+                            <div class="flex gap-1.5 mb-2">
+                                {Array.from({ length: g.target }).map((_, i) => (
+                                    <div key={i} class={`flex-1 h-2.5 rounded-full ${i < g.progress ? 'bg-primary-500' : 'bg-paper-200'}`}></div>
+                                ))}
+                            </div>
+                            {g.done
+                                ? <p class="text-sm font-semibold text-primary-600">ทำสำเร็จแล้ว เก่งมากเลย! 🎉</p>
+                                : <p class="text-xs text-ink-400">อีก {g.target - g.progress} วันก็ถึงเป้า · <button type="button" onClick={reset} class="hover:text-primary-600 underline">เปลี่ยนเป้า</button></p>}
+                        </>
+                    )}
+                </div>
+            );
+        }
+
+        const THAI_MONTHS = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+        // สรุปรายเดือน "การเดินทางของใจ"
+        function MonthlyJourneyCard() {
+            const m = NomGIMood.monthlyStats();
+            const has = m.checkins || m.chats || m.gratitude || m.journal;
+            let summary;
+            if (!has) summary = 'เดือนนี้เพิ่งเริ่ม — ค่อยๆ ดูแลใจไปด้วยกันนะ 🌱';
+            else if (m.avgMood >= 3.5) summary = 'เดือนนี้ใจคุณดูสดใสขึ้นเรื่อยๆ ขอบคุณที่ดูแลตัวเองนะ 🌤️';
+            else if (m.avgMood > 0) summary = 'เดือนนี้อาจมีวันหนักบ้าง แต่คุณก็ผ่านมันมาได้ทุกวัน เก่งมากจริงๆ 💚';
+            else summary = 'คุณได้เริ่มบันทึกการเดินทางของใจแล้ว — ก้าวเล็กๆ ที่ยิ่งใหญ่';
+            const items = [
+                { label: 'เช็คอิน', value: m.checkins + ' วัน' },
+                { label: 'อารมณ์เฉลี่ย', value: m.checkins ? m.avgMood.toFixed(1) + '/5' : '–' },
+                { label: 'ได้พูดคุย', value: m.chats + ' ครั้ง' },
+                { label: 'ขอบคุณ+เขียน', value: (m.gratitude + m.journal) + ' อย่าง' },
+            ];
+            const series = m.dailySeries.slice(-31);
+            return (
+                <div class="card-playful bg-surface p-6">
+                    <div class="flex items-center justify-between mb-1">
+                        <div class="text-xs font-semibold uppercase tracking-wide text-primary-600">การเดินทางของใจ · เดือนนี้</div>
+                        <span class="text-xs text-ink-400">{THAI_MONTHS[m.month]}</span>
+                    </div>
+                    <p class="text-sm text-ink-700 mb-4">{summary}</p>
+                    <div class="grid grid-cols-2 gap-3 mb-4">
+                        {items.map((it, i) => (
+                            <div key={i} class="bg-paper-50 rounded-2xl p-4">
+                                <div class="text-lg font-extrabold text-ink-900">{it.value}</div>
+                                <div class="text-xs text-ink-500">{it.label}</div>
+                            </div>
+                        ))}
+                    </div>
+                    {series.length > 0 && (
+                        <div>
+                            <div class="flex items-end gap-1 h-16">
+                                {series.map((d, i) => (
+                                    <div key={i} class="flex-1 rounded-t" title={d.date + ' · ' + d.score + '/5'}
+                                        style={{ height: (10 + (d.score - 1) / 4 * 90) + '%', background: NomGIMood.moodOf(d.score).color, opacity: 0.85 }}></div>
+                                ))}
+                            </div>
+                            <div class="text-[10px] text-ink-300 mt-1 text-center">อารมณ์รายวันเดือนนี้ · เห็นแค่คุณคนเดียว</div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
         // สมุดขอบคุณย้อนหลัง
         function GratitudeListCard() {
             const list = ((NomGIMood.gratitudeList && NomGIMood.gratitudeList()) || []).slice(-8).reverse();
@@ -560,10 +645,15 @@
                         <KudosTreeCard count={kudosCount} ratingAvg={ratingAvg} ratingCount={ratingCount} trainedAt={trainedAt} />
 
                         {/* หมวดพับได้ — ลดความยาวหน้า ให้ฟอร์มโปรไฟล์เข้าถึงง่ายขึ้น */}
-                        <Section icon="📊" title="สัปดาห์นี้ของฉัน" hint="สรุปสัปดาห์ · เส้นทางใจ · สมุดขอบคุณ (ส่วนตัว เห็นแค่คุณ)">
+                        <Section icon="📊" title="สัปดาห์นี้ของฉัน" hint="สรุปสัปดาห์ · เป้าหมาย · เส้นทางใจ · สมุดขอบคุณ (ส่วนตัว เห็นแค่คุณ)">
                             <WeeklySummaryCard />
+                            <WeeklyGoalCard />
                             <MoodJourneyCard />
                             <GratitudeListCard />
+                        </Section>
+
+                        <Section icon="🗓️" title="การเดินทางของใจ · รายเดือน" hint="สรุปเดือนนี้แบบอบอุ่น (ส่วนตัว เห็นแค่คุณ)">
+                            <MonthlyJourneyCard />
                         </Section>
 
                         <SafetyPlanCard />

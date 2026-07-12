@@ -279,7 +279,116 @@
             );
         }
 
+        const NomGIMood = window.NomGIMood || { addAssessment: () => {}, assessmentHistory: () => [], addJournal: () => {}, deleteJournal: () => {}, journalList: () => [] };
+
+        // ---------- สำรวจใจตัวเอง (แบบสำรวจสั้นๆ ส่วนตัว ไม่ใช่การวินิจฉัย) ----------
+        const CHECK_Q = [
+            'รู้สึกเศร้า หดหู่ หรือหมดหวัง',
+            'เบื่อ หรือไม่มีความสุขกับสิ่งที่เคยชอบ',
+            'รู้สึกกังวล ประหม่า หรือกระวนกระวาย',
+            'หยุดคิดกังวลได้ยาก',
+        ];
+        const CHECK_OPTS = [{ v: 0, label: 'ไม่เลย' }, { v: 1, label: 'บางวัน' }, { v: 2, label: 'บ่อย' }, { v: 3, label: 'เกือบทุกวัน' }];
+        function checkBand(score) {
+            if (score <= 3) return { label: 'ใจค่อนข้างสงบดี', tone: 'primary', msg: 'ช่วงนี้ใจคุณดูโอเคอยู่ ดูแลตัวเองแบบนี้ต่อไปนะ 🌿' };
+            if (score <= 6) return { label: 'มีความเครียดอยู่บ้าง', tone: 'primary', msg: 'มีเรื่องกวนใจอยู่บ้าง ลองพักหายใจ หรือหาคนระบายด้วยสักคนก็ได้นะ' };
+            if (score <= 9) return { label: 'ใจกำลังเหนื่อยพอควร', tone: 'secondary', msg: 'ช่วงนี้ใจคุณแบกไว้เยอะ การได้พูดกับใครสักคนอาจช่วยได้ · ลองเข้ามาคุยดูไหม 💚' };
+            return { label: 'ใจกำลังลำบากมาก', tone: 'danger', msg: 'คุณกำลังเจอเรื่องหนักจริงๆ และไม่ควรเผชิญมันคนเดียว · โทรสายด่วน 1323 ได้ตลอด 24 ชม. นะ 🤍' };
+        }
+        function SelfCheck({ onClose }) {
+            const [ans, setAns] = useState([null, null, null, null]);
+            const [done, setDone] = useState(false);
+            const all = ans.every(a => a != null);
+            const score = ans.reduce((s, a) => s + (a || 0), 0);
+            const b = checkBand(score);
+            const prev = NomGIMood.assessmentHistory('wellcheck') || [];
+            if (done) {
+                const toneClass = b.tone === 'danger' ? 'text-red-600' : b.tone === 'secondary' ? 'text-secondary-600' : 'text-primary-600';
+                return (
+                    <div>
+                        <div class="text-3xl font-extrabold text-ink-900">{score}<span class="text-base text-ink-400">/12</span></div>
+                        <div class={`text-sm font-bold mb-2 ${toneClass}`}>{b.label}</div>
+                        <p class="text-sm text-ink-600 mb-3">{b.msg}</p>
+                        {score >= 7 && (
+                            <div class="bg-secondary-50 border border-secondary-100 rounded-2xl p-3 mb-3 text-sm">
+                                <a href="tel:1323" class="font-bold text-secondary-700">📞 สายด่วนสุขภาพจิต 1323</a> · ฟรี 24 ชม. — หรือลอง <a href="index.html" class="underline text-primary-600">หาคนคุยในเว็บ</a>
+                            </div>
+                        )}
+                        <p class="text-[11px] text-ink-400 mb-3">แบบสำรวจนี้ช่วยให้คุณสังเกตใจตัวเอง · ไม่ใช่การวินิจฉัยทางการแพทย์ · บันทึกไว้ในเครื่องคุณเท่านั้น</p>
+                        <button type="button" onClick={onClose} class="text-xs text-ink-400 hover:text-primary-600 transition inline-flex items-center gap-1"><Icon n="chevron-left" s={14} /> เสร็จแล้ว</button>
+                    </div>
+                );
+            }
+            return (
+                <div>
+                    <p class="text-xs text-ink-400 mb-3">ในช่วง 2 สัปดาห์ที่ผ่านมา คุณรู้สึกแบบนี้บ่อยแค่ไหน?</p>
+                    <div class="space-y-3">
+                        {CHECK_Q.map((q, qi) => (
+                            <div key={qi}>
+                                <div class="text-sm text-ink-700 mb-1.5">{qi + 1}. {q}</div>
+                                <div class="flex gap-1.5">
+                                    {CHECK_OPTS.map(o => (
+                                        <button key={o.v} type="button" onClick={() => { const n = ans.slice(); n[qi] = o.v; setAns(n); }}
+                                            class={`flex-1 py-1.5 rounded-lg text-[11px] border transition ${ans[qi] === o.v ? 'bg-primary-500 text-white border-primary-500' : 'border-line text-ink-500 hover:border-primary-300'}`}>{o.label}</button>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    <button type="button" disabled={!all} onClick={() => { NomGIMood.addAssessment('wellcheck', score, 12); setDone(true); }}
+                        class="mt-4 w-full py-2.5 rounded-xl bg-primary-500 text-white text-sm font-semibold disabled:opacity-40 hover:bg-primary-600 transition">ดูผล</button>
+                    {prev.length > 0 && <p class="text-[11px] text-ink-400 mt-2 text-center">เคยสำรวจมาแล้ว {prev.length} ครั้ง · ครั้งก่อน {prev[prev.length - 1].score}/12</p>}
+                </div>
+            );
+        }
+
+        // ---------- สมุดเขียนระบายส่วนตัว ----------
+        const JOURNAL_PROMPTS = [
+            'วันนี้มีอะไรที่ทำให้ยิ้มได้บ้าง?',
+            'ตอนนี้ในใจกำลังคิดถึงเรื่องอะไรมากที่สุด?',
+            'มีอะไรที่อยากบอกตัวเองในวันที่เหนื่อย?',
+            'สิ่งเล็กๆ ที่ภูมิใจในตัวเองวันนี้คืออะไร?',
+            'ถ้าพรุ่งนี้ดีขึ้นสัก 1% อยากให้เป็นเรื่องอะไร?',
+        ];
+        function JournalTool({ onClose }) {
+            const [text, setText] = useState('');
+            const [prompt] = useState(() => JOURNAL_PROMPTS[Math.floor(Math.random() * JOURNAL_PROMPTS.length)]);
+            const [list, setList] = useState(() => NomGIMood.journalList());
+            function save() { if (!text.trim()) return; NomGIMood.addJournal(text, prompt); setText(''); setList(NomGIMood.journalList()); }
+            function del(at) { NomGIMood.deleteJournal(at); setList(NomGIMood.journalList()); }
+            return (
+                <div>
+                    <p class="text-sm text-primary-700 font-medium mb-2">✍️ {prompt}</p>
+                    <textarea value={text} onChange={e => setText(e.target.value.slice(0, 2000))} rows="4"
+                        placeholder="เขียนอะไรก็ได้ที่อยู่ในใจ ไม่มีถูกผิด · เก็บไว้ในเครื่องคุณคนเดียว"
+                        class="w-full text-sm bg-paper-50 border border-line rounded-2xl px-4 py-3 resize-none focus:outline-none focus:ring-2 focus:ring-primary-500/30 placeholder:text-ink-400"></textarea>
+                    <div class="flex justify-between items-center mt-2">
+                        <span class="text-[11px] text-ink-400">{text.length}/2000</span>
+                        <button type="button" disabled={!text.trim()} onClick={save}
+                            class="px-4 py-2 rounded-xl bg-primary-500 text-white text-sm font-semibold disabled:opacity-40 hover:bg-primary-600 transition">บันทึก</button>
+                    </div>
+                    {list.length > 0 && (
+                        <div class="mt-4 border-t border-line pt-3 space-y-2">
+                            <div class="text-xs font-semibold text-ink-500">บันทึกที่ผ่านมา ({list.length})</div>
+                            {list.slice(0, 8).map(j => (
+                                <div key={j.at} class="bg-paper-50 rounded-xl p-3">
+                                    <div class="flex justify-between items-start gap-2">
+                                        <div class="text-[11px] text-ink-400">{j.date || ''}{j.prompt ? ' · ' + j.prompt : ''}</div>
+                                        <button type="button" onClick={() => del(j.at)} class="text-ink-300 hover:text-red-500 shrink-0" title="ลบ"><Icon n="trash-2" s={13} /></button>
+                                    </div>
+                                    <div class="text-sm text-ink-700 whitespace-pre-wrap mt-0.5">{j.text}</div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                    <button type="button" onClick={onClose} class="mt-3 text-xs text-ink-400 hover:text-primary-600 transition inline-flex items-center gap-1"><Icon n="chevron-left" s={14} /> กลับ</button>
+                </div>
+            );
+        }
+
         const TOOLS = [
+            { id: 'check', emoji: '🫧', title: 'สำรวจใจตัวเอง', desc: 'แบบสำรวจสั้นๆ ดูว่าใจเป็นยังไง (ส่วนตัว)', render: (close) => <SelfCheck onClose={close} /> },
+            { id: 'journal', emoji: '📔', title: 'สมุดเขียนระบาย', desc: 'เขียนสิ่งที่อยู่ในใจ พร้อมคำชวนเขียน', render: (close) => <JournalTool onClose={close} /> },
             { id: 'body', emoji: '🧘', title: 'สแกนร่างกาย', desc: 'ไล่ผ่อนคลายทีละส่วน ~2 นาที', render: (close) => <BodyScan onClose={close} /> },
             { id: 'thought', emoji: '📝', title: 'จัดระเบียบความคิด', desc: 'เขียนความคิดออกมา มองอีกมุม', render: (close) => <ThoughtRecord onClose={close} /> },
             { id: 'worry', emoji: '🕰️', title: 'เลื่อนเวลากังวล', desc: 'พักเรื่องกวนใจไว้ก่อน', render: (close) => <WorryTime onClose={close} /> },

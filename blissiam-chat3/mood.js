@@ -27,7 +27,7 @@
     function read() {
         try {
             const raw = localStorage.getItem(KEY);
-            if (!raw) return { pending: null, entries: [], daily: [], gratitude: [] };
+            if (!raw) return { pending: null, entries: [], daily: [], gratitude: [], sessions: 0, goal: null, journal: [], assess: [] };
             const d = JSON.parse(raw);
             return {
                 pending: d.pending || null,
@@ -35,9 +35,12 @@
                 daily: Array.isArray(d.daily) ? d.daily : [],
                 gratitude: Array.isArray(d.gratitude) ? d.gratitude : [],
                 sessions: Number.isFinite(d.sessions) ? d.sessions : 0,
+                goal: d.goal || null,
+                journal: Array.isArray(d.journal) ? d.journal : [],
+                assess: Array.isArray(d.assess) ? d.assess : [],
             };
         } catch (e) {
-            return { pending: null, entries: [], daily: [], gratitude: [], sessions: 0 };
+            return { pending: null, entries: [], daily: [], gratitude: [], sessions: 0, goal: null, journal: [], assess: [] };
         }
     }
 
@@ -165,9 +168,97 @@
     }
     function sessionCount() { return read().sessions | 0; }
 
+    // ===== ธีม B: การเติบโตของผู้ใช้ (ทั้งหมดเก็บใน localStorage — ส่วนตัว) =====
+
+    // ----- เป้าหมายเล็กๆ รายสัปดาห์ (นับจากจำนวนวันที่เช็คอินในสัปดาห์นี้) -----
+    // สัปดาห์เริ่มวันจันทร์
+    function weekStartYmd(dt) {
+        const d = dt ? new Date(dt) : new Date();
+        const day = (d.getDay() + 6) % 7; // จันทร์=0
+        d.setDate(d.getDate() - day);
+        return ymd(d);
+    }
+    function setWeeklyGoal(target) {
+        const d = read();
+        d.goal = { target: Math.min(7, Math.max(1, target | 0)), weekStart: weekStartYmd() };
+        write(d);
+        return d.goal;
+    }
+    function clearWeeklyGoal() { const d = read(); d.goal = null; write(d); }
+    // คืนเป้าหมายของสัปดาห์นี้ + ความคืบหน้า (ถ้าเป็นเป้าของสัปดาห์เก่า จะถือว่าหมดอายุ)
+    function weeklyGoal() {
+        const d = read();
+        const wk = weekStartYmd();
+        if (!d.goal || d.goal.weekStart !== wk) return null;
+        const days = [];
+        for (let i = 0; i < 7; i++) { const c = new Date(); c.setDate(c.getDate() - i); days.push(ymd(c)); }
+        const daySet = new Set(days.filter(x => x >= wk));
+        const progress = d.daily.filter(x => daySet.has(x.date)).length;
+        return { target: d.goal.target, progress: Math.min(progress, d.goal.target), done: progress >= d.goal.target };
+    }
+
+    // ----- สมุดเขียนระบายส่วนตัว -----
+    function addJournal(text, prompt) {
+        const t = (text || '').toString().trim().slice(0, 2000);
+        if (!t) return;
+        const d = read();
+        d.journal.push({ text: t, prompt: (prompt || '').toString().slice(0, 200), at: new Date().toISOString(), date: ymd() });
+        if (d.journal.length > 300) d.journal = d.journal.slice(-300);
+        write(d);
+    }
+    function deleteJournal(at) {
+        const d = read();
+        d.journal = d.journal.filter(j => j.at !== at);
+        write(d);
+    }
+    function journalList() { return read().journal.slice().reverse(); } // ใหม่->เก่า
+
+    // ----- แบบสำรวจใจส่วนตัว (บันทึกคะแนนรวม + วันที่ ดูแนวโน้มเอง) -----
+    function addAssessment(type, score, max) {
+        const d = read();
+        d.assess.push({ type: (type || 'mood').toString(), score: score | 0, max: max | 0, at: new Date().toISOString(), date: ymd() });
+        if (d.assess.length > 100) d.assess = d.assess.slice(-100);
+        write(d);
+    }
+    function assessmentHistory(type) {
+        const a = read().assess;
+        return (type ? a.filter(x => x.type === type) : a).slice();
+    }
+
+    // ----- สรุปรายเดือน "การเดินทางของใจ" -----
+    function monthlyStats(year, month) {
+        // month: 0-11; ถ้าไม่ส่งใช้เดือนปัจจุบัน
+        const now = new Date();
+        const y = (year == null) ? now.getFullYear() : year;
+        const m = (month == null) ? now.getMonth() : month;
+        const pref = y + '-' + String(m + 1).padStart(2, '0');
+        const d = read();
+        const inMonth = s => (s || '').slice(0, 7) === pref;
+        const dailyM = d.daily.filter(x => inMonth(x.date));
+        const chatM = d.entries.filter(e => inMonth((e.at || '').slice(0, 10)));
+        const chatRated = chatM.filter(e => e.before != null && e.after != null);
+        const improved = chatRated.filter(e => e.after > e.before).length;
+        const avgMood = dailyM.length ? Math.round((dailyM.reduce((s, x) => s + x.score, 0) / dailyM.length) * 10) / 10 : 0;
+        const gratM = d.gratitude.filter(g => inMonth(g.date)).length;
+        const journalM = d.journal.filter(j => inMonth(j.date)).length;
+        return {
+            year: y, month: m,
+            checkins: dailyM.length,
+            avgMood,
+            chats: chatM.length,
+            improvedChats: improved, improvedPct: chatRated.length ? Math.round(improved / chatRated.length * 100) : 0,
+            gratitude: gratM,
+            journal: journalM,
+            dailySeries: dailyM.slice().sort((a, b) => a.date < b.date ? -1 : 1),
+        };
+    }
+
     window.NomGIMood = { MOODS, setPending, getPending, commitAfter, history, stats, moodOf,
         dailyCheckIn, checkedInToday, streak, dailyHistory,
         weeklyStats, addGratitude, gratitudeToday, gratitudeList,
-        recordSession, sessionCount };
+        recordSession, sessionCount,
+        setWeeklyGoal, clearWeeklyGoal, weeklyGoal,
+        addJournal, deleteJournal, journalList,
+        addAssessment, assessmentHistory, monthlyStats };
 
 })();
