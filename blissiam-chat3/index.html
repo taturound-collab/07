@@ -65,14 +65,11 @@
         body {
             font-family: 'Kanit', sans-serif;
             background-color: var(--color-paper-50);
-            /* ใช้รูปเดียวกับ hero เป็นพื้นหลังทั้งหน้า + overlay สีกระดาษ (paper-50)
-               ที่ปรับตามโหมดสว่าง/มืดเอง ให้เนื้อหายังอ่านชัด */
+            /* พื้นหลัง flat โทนกระดาษ + ไล่สีเขียว/ส้มจางๆ (แทนรูปถ่าย hero เดิม) */
             background-image:
-                linear-gradient(color-mix(in srgb, var(--color-paper-50) 88%, transparent), color-mix(in srgb, var(--color-paper-50) 88%, transparent)),
-                url('assets/hero-bg.jpg');
-            background-size: cover, cover;
-            background-position: center, center 30%;
-            background-attachment: fixed, fixed;
+                radial-gradient(circle at 12% 6%, var(--color-primary-50) 0%, transparent 42%),
+                radial-gradient(circle at 88% 96%, var(--color-secondary-50) 0%, transparent 42%);
+            background-attachment: fixed;
             transition: background-color 0.3s ease;
         }
         .watermark { font-size: 13rem; font-weight: 800; color: var(--color-ink-900); opacity: 0.045; letter-spacing: -0.02em; white-space: nowrap; user-select: none; }
@@ -754,27 +751,20 @@
                         </div>
                     </nav>
 
-                    {/* Hero */}
-                    <section class="hero-fullscreen relative flex flex-col items-center justify-center px-6 overflow-hidden">
-                        <div class="absolute z-0 hero-photo"></div>
-                        <div class="absolute inset-0 z-0 hero-overlay"></div>
-                        <div class="absolute top-8 left-1/2 -translate-x-1/2 pointer-events-none select-none z-[1]">
-                            <span class="watermark">NOMGI</span>
-                        </div>
-                        <div class="max-w-3xl mx-auto text-center relative z-10 fade-in">
-                            <div class="inline-flex items-center gap-2 text-primary-600 text-xs font-semibold uppercase tracking-widest mb-4">
+                    {/* Hero — ภาพประกอบ flat สไตล์ unDraw (แทนรูปถ่ายเดิม) */}
+                    <section class="relative px-6 pt-8 pb-4 overflow-hidden">
+                        <div class="max-w-2xl mx-auto text-center relative z-10 fade-in">
+                            <div class="w-80 max-w-[82%] mx-auto mb-5" dangerouslySetInnerHTML={{ __html: (window.NomGIllus ? NomGIllus('hero') : '') }}></div>
+                            <div class="inline-flex items-center gap-2 text-primary-600 text-xs font-semibold uppercase tracking-widest mb-3">
                                 <span class="w-1.5 h-1.5 rounded-full bg-primary-500"></span>
                                 พื้นที่ปลอดภัย · ไม่ระบุตัวตน · ฟรี
                             </div>
-                            <h1 class="text-5xl md:text-6xl font-black leading-[1.1] mb-4">
+                            <h1 class="text-4xl md:text-5xl font-black leading-[1.1] mb-3">
                                 พื้นที่แบ่งปันน้ำใจ <span class="wiggle-hover inline-block">✨</span>
                             </h1>
                             <p class="text-base text-ink-500 max-w-xl mx-auto leading-relaxed">
                                 ไม่ว่าจะเป็นใคร อยู่ที่ไหน ไม่ว่าจะกี่โมง มีคนพร้อมรับฟังคุณอยู่เสมอ
                             </p>
-                        </div>
-                        <div class="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 animate-bounce pointer-events-none">
-                            <svg class="w-6 h-6 text-ink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
                         </div>
                     </section>
 
