@@ -35,11 +35,67 @@
         return out;
     }
 
-    // คืน SVG ต้นไม้ตามจำนวนน้ำใจ
+    // ต้นไม้แห่งการเยียวยา — โตตามจำนวนครั้งที่ "ระบาย/พูดคุย" จบ (ของผู้ระบายเอง)
+    // ระดับต้นๆ ถี่หน่อย จะได้เห็นต้นไม้ขยับตั้งแต่ครั้งแรกๆ
+    function growth(sessions) {
+        const c = Math.max(0, sessions | 0);
+        let g;
+        if (c === 0)      g = { level: 0, label: 'เมล็ดพันธุ์',      min: 0 };
+        else if (c < 2)   g = { level: 1, label: 'เริ่มผลิใบ',        min: 1 };
+        else if (c < 4)   g = { level: 2, label: 'ต้นกล้า',          min: 2 };
+        else if (c < 8)   g = { level: 3, label: 'แตกกิ่งก้าน',      min: 4 };
+        else if (c < 15)  g = { level: 4, label: 'ต้นไม้แข็งแรง',    min: 8 };
+        else              g = { level: 5, label: 'ผลิบานเต็มต้น',    min: 15 };
+        const NEXT = [1, 2, 4, 8, 15, null];
+        const nextAt = NEXT[g.level];
+        g.next = nextAt;
+        g.remaining = nextAt ? Math.max(0, nextAt - c) : 0;
+        return g;
+    }
+
+    // คำปลอบใจพิเศษเมื่อ "ขึ้นระดับใหม่" ของต้นไม้ (index = level)
+    const LEVEL_MSG = [
+        '',
+        'เมล็ดเล็กๆ ในใจคุณเริ่มผลิใบแล้ว · การกล้าเปิดใจ คือก้าวแรกที่งดงามที่สุด 🌱',
+        'ต้นกล้าของคุณแข็งแรงขึ้น · ทุกครั้งที่ได้ระบาย คุณกำลังดูแลใจตัวเองอยู่นะ 🌿',
+        'ต้นไม้เริ่มแตกกิ่งก้านแล้ว · คุณเก่งมากที่ยังก้าวต่อ แม้บางวันจะหนัก 🌳',
+        'ต้นไม้ของคุณหยั่งรากลึกและแข็งแรง · คุณผ่านอะไรมาเยอะ และคุณยังอยู่ตรงนี้ 💚',
+        'ต้นไม้ผลิบานเต็มต้นแล้ว 🌸 · เส้นทางของคุณ คือสิ่งที่น่าภูมิใจจริงๆ',
+    ];
+    // คำปลอบใจทั่วไป (ตอนต้นไม้โตขึ้นแต่ยังไม่ขึ้นระดับ) หมุนวนตามจำนวนครั้ง
+    const GENERAL_MSG = [
+        'ขอบคุณที่ใจดีกับตัวเองในวันนี้นะ 🤍',
+        'การได้พูดออกมา ทำให้ใจเบาลงได้เสมอ',
+        'คุณไม่ได้แบกทุกอย่างไว้คนเดียวแล้วนะ',
+        'ค่อยๆ ไปทีละก้าว เดี๋ยวก็ถึงเอง 🌿',
+        'แค่คุณยังดูแลใจตัวเองได้ ก็เก่งมากแล้ว',
+        'ต้นไม้เล็กๆ ของคุณ โตขึ้นพร้อมกับคุณเสมอ',
+        'วันนี้คุณทำได้ดีมากแล้ว พักได้นะ 🌙',
+    ];
+    // คืนข้อความปลอบใจสำหรับจำนวนครั้ง 'sessions' (นับรวมครั้งนี้แล้ว)
+    function growthMessage(sessions) {
+        const c = Math.max(1, sessions | 0);
+        const cur = growth(c), prev = growth(c - 1);
+        if (cur.level > prev.level && LEVEL_MSG[cur.level]) {
+            return { text: LEVEL_MSG[cur.level], milestone: true, label: cur.label };
+        }
+        return { text: GENERAL_MSG[c % GENERAL_MSG.length], milestone: false, label: cur.label };
+    }
+
+    // คืน SVG ต้นไม้ตามจำนวนน้ำใจ (kudos)
     function plantSvg(count, size) {
+        return treeSvg(stage(count).level, size, count, stage(count).label);
+    }
+    // คืน SVG ต้นไม้แห่งการเยียวยา ตามจำนวนครั้งที่ระบายจบ
+    function growthSvg(sessions, size) {
+        const g = growth(sessions);
+        return treeSvg(g.level, size, (sessions | 0) * 3, g.label);
+    }
+
+    // ตัวเรนเดอร์ต้นไม้จาก "ระดับ" โดยตรง (ใช้ร่วมทั้ง kudos + healing tree)
+    function treeSvg(lvl, size, seedCount, ariaLabel) {
         size = size || 160;
-        const s = stage(count);
-        const lvl = s.level;
+        const count = seedCount | 0;
         const soil = 'var(--color-secondary-200, #e6bf8e)';
         const trunk = 'var(--color-secondary-500, #925621)';
         const leaf = 'var(--color-primary-400, #739e6b)';
@@ -76,7 +132,7 @@
             if (lvl >= 4) parts += blossoms(count, 100, trunkTop, canopyR);
         }
 
-        return `<svg viewBox="0 0 200 200" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${s.label}">${parts}</svg>`;
+        return `<svg viewBox="0 0 200 200" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${ariaLabel || ''}">${parts}</svg>`;
     }
 
     // #9 ตราน้ำใจ (badges) ตามจำนวน kudos สะสม
@@ -99,6 +155,6 @@
         return { current: cur, next, remaining: next ? next.min - c : 0 };
     }
 
-    window.NomGIKudos = { plantSvg, stage, badge, BADGES };
+    window.NomGIKudos = { plantSvg, stage, badge, BADGES, growth, growthSvg, treeSvg, growthMessage };
 
 })();

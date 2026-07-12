@@ -34,9 +34,10 @@
                 entries: Array.isArray(d.entries) ? d.entries : [],
                 daily: Array.isArray(d.daily) ? d.daily : [],
                 gratitude: Array.isArray(d.gratitude) ? d.gratitude : [],
+                sessions: Number.isFinite(d.sessions) ? d.sessions : 0,
             };
         } catch (e) {
-            return { pending: null, entries: [], daily: [], gratitude: [] };
+            return { pending: null, entries: [], daily: [], gratitude: [], sessions: 0 };
         }
     }
 
@@ -154,8 +155,19 @@
 
     function moodOf(score) { return MOODS[clamp(score) - 1]; }
 
+    // ----- ต้นไม้แห่งการเยียวยา: นับจำนวนครั้งที่ "ระบาย/พูดคุย" จบ -----
+    // เรียกทุกครั้งที่ปิดบทสนทนาอย่างสมบูรณ์ -> ต้นไม้ส่วนตัวโตขึ้นทีละขั้น
+    function recordSession() {
+        const d = read();
+        d.sessions = (d.sessions | 0) + 1;
+        write(d);
+        return d.sessions;
+    }
+    function sessionCount() { return read().sessions | 0; }
+
     window.NomGIMood = { MOODS, setPending, getPending, commitAfter, history, stats, moodOf,
         dailyCheckIn, checkedInToday, streak, dailyHistory,
-        weeklyStats, addGratitude, gratitudeToday, gratitudeList };
+        weeklyStats, addGratitude, gratitudeToday, gratitudeList,
+        recordSession, sessionCount };
 
 })();

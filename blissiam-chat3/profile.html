@@ -81,7 +81,9 @@
         const kudosPlantSvg = (window.NomGIKudos && window.NomGIKudos.plantSvg) || (() => '');
         const kudosStage = (window.NomGIKudos && window.NomGIKudos.stage) || (() => ({ level: 0, label: '' }));
         const kudosBadge = (window.NomGIKudos && window.NomGIKudos.badge) || (() => ({ current: { icon: '', name: '' }, next: null, remaining: 0 }));
-        const NomGIMood = window.NomGIMood || { history: () => [], stats: () => ({ total: 0, improvedPct: 0 }), moodOf: () => ({ emoji: '', color: '#ccc' }), streak: () => 0 };
+        const healingTreeSvg = (window.NomGIKudos && window.NomGIKudos.growthSvg) || (() => '');
+        const healingGrowth = (window.NomGIKudos && window.NomGIKudos.growth) || (() => ({ level: 0, label: '', min: 0, next: null, remaining: 0 }));
+        const NomGIMood = window.NomGIMood || { history: () => [], stats: () => ({ total: 0, improvedPct: 0 }), moodOf: () => ({ emoji: '', color: '#ccc' }), streak: () => 0, sessionCount: () => 0 };
 
         // การ์ด "ต้นไม้น้ำใจ" — โชว์ kudos ของเราเป็นต้นไม้ที่โต + ตราน้ำใจ (#9)
         function KudosTreeCard({ count, ratingAvg, ratingCount, trainedAt }) {
@@ -124,6 +126,40 @@
                             </div>
                         </div>
                     )}
+                </div>
+            );
+        }
+
+        // การ์ด "ต้นไม้แห่งการเยียวยา" — โตทุกครั้งที่ระบาย/พูดคุยจบ (ส่วนตัว เก็บใน localStorage)
+        function HealingTreeCard() {
+            const sessions = NomGIMood.sessionCount();
+            const g = healingGrowth(sessions);
+            const nextMin = g.next;
+            const pct = nextMin ? Math.min(100, Math.round((sessions - g.min) / Math.max(1, nextMin - g.min) * 100)) : 100;
+            return (
+                <div class="card-playful bg-surface p-6">
+                    <div class="flex items-center gap-5">
+                        <div class="shrink-0 w-28 h-28" dangerouslySetInnerHTML={{ __html: healingTreeSvg(sessions, 112) }}></div>
+                        <div class="min-w-0">
+                            <div class="text-xs font-semibold uppercase tracking-wide text-primary-600">ต้นไม้แห่งการเยียวยา</div>
+                            <div class="text-2xl font-extrabold text-ink-900 mt-1">{g.label}</div>
+                            <div class="text-sm text-ink-500 mt-0.5">
+                                {sessions > 0 ? `เปิดใจระบายมาแล้ว ${sessions} ครั้ง` : 'ทุกครั้งที่คุณเปิดใจ ต้นไม้จะค่อยๆ โต 🌱'}
+                            </div>
+                        </div>
+                    </div>
+                    {nextMin && (
+                        <div class="mt-4 pt-4 border-t border-line">
+                            <div class="flex items-center justify-between text-xs text-ink-500 mb-1.5">
+                                <span>ต้นไม้จะโตอีกขั้น</span>
+                                <span>อีก {g.remaining} ครั้ง</span>
+                            </div>
+                            <div class="h-2 bg-paper-100 rounded-full overflow-hidden">
+                                <div class="h-full bg-primary-500 rounded-full transition-all" style={{ width: pct + '%' }}></div>
+                            </div>
+                        </div>
+                    )}
+                    <p class="text-[11px] text-ink-400 mt-3">ต้นไม้นี้เป็นของคุณคนเดียว · เก็บไว้ในเครื่องนี้ ไม่มีใครเห็น</p>
                 </div>
             );
         }
@@ -512,7 +548,8 @@
                         {error && <div class="bg-red-50 text-red-600 px-4 py-3 rounded-xl text-sm">{error}</div>}
                         {success && <div class="bg-primary-50 text-primary-700 px-4 py-3 rounded-xl text-sm">{success}</div>}
 
-                        {/* ต้นไม้น้ำใจ (#5) + เส้นทางใจ (#4) */}
+                        {/* ต้นไม้แห่งการเยียวยา (โตทุกครั้งที่ระบายจบ) + ต้นไม้น้ำใจ (#5) */}
+                        <HealingTreeCard />
                         <KudosTreeCard count={kudosCount} ratingAvg={ratingAvg} ratingCount={ratingCount} trainedAt={trainedAt} />
 
                         {/* หมวดพับได้ — ลดความยาวหน้า ให้ฟอร์มโปรไฟล์เข้าถึงง่ายขึ้น */}
