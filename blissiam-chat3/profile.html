@@ -51,7 +51,7 @@
         .btn-playful { border-radius: 9999px; background: linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600)); box-shadow: 0 8px 20px -6px var(--color-primary-500); transition: transform 0.2s ease, box-shadow 0.2s ease; }
         .btn-playful:hover:not(:disabled) { transform: translateY(-2px) scale(1.02); box-shadow: 0 12px 26px -6px var(--color-primary-500); }
         .btn-playful:active:not(:disabled) { transform: translateY(0) scale(0.98); }
-        .card-playful { border-radius: 2rem; box-shadow: 0 20px 45px -20px var(--color-primary-500); border: 1px solid color-mix(in srgb, var(--color-primary-500) 15%, var(--color-line)); }
+        .card-playful { border-radius: 1rem; box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 10px 26px -16px rgba(51,73,47,.28); border: 1px solid var(--color-line); }
         .avatar-ring { background: linear-gradient(135deg, var(--color-primary-500), var(--color-secondary-500, var(--color-primary-600))); padding: 4px; }
         /* การ์ดที่อยู่ในหมวดพับได้ — ตัด chrome ของการ์ดออก กันการ์ดซ้อนการ์ด */
         .section-fold .card-playful { border: 0; box-shadow: none; background: transparent; border-radius: 0; padding: 0.25rem 0 0; }
@@ -362,7 +362,7 @@
         // หมวดพับได้ — ใช้ <details> ได้คีย์บอร์ด/สกรีนรีดเดอร์ฟรี ลดความยาวหน้าบนมือถือ
         function Section({ icon, title, hint, children, defaultOpen = false }) {
             return (
-                <details open={defaultOpen} class="section-fold group rounded-3xl border border-line bg-surface overflow-hidden">
+                <details open={defaultOpen} class="section-fold group rounded-2xl border border-line bg-surface overflow-hidden">
                     <summary class="flex items-center gap-3 px-5 py-4 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden hover:bg-paper-50 transition">
                         <span class="text-xl leading-none">{icon}</span>
                         <span class="flex-1 min-w-0">

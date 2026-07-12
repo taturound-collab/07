@@ -107,7 +107,7 @@
         .btn-playful { border-radius: 9999px; background: linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600)); box-shadow: 0 8px 20px -6px var(--color-primary-500); transition: transform 0.2s ease, box-shadow 0.2s ease; }
         .btn-playful:hover:not(:disabled) { transform: translateY(-2px) scale(1.02); box-shadow: 0 12px 26px -6px var(--color-primary-500); }
         .btn-playful:active:not(:disabled) { transform: translateY(0) scale(0.98); }
-        .card-playful { border-radius: 2rem; box-shadow: 0 20px 45px -20px var(--color-primary-500); border: 1px solid color-mix(in srgb, var(--color-primary-500) 15%, var(--color-line)); }
+        .card-playful { border-radius: 1rem; box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 10px 26px -16px rgba(51,73,47,.28); border: 1px solid var(--color-line); }
     </style>
 </head>
 <body class="min-h-screen text-ink-900">
@@ -174,7 +174,7 @@
                 </div>
             );
             return (
-                <div class="mb-4 bg-gradient-to-br from-primary-50 to-surface border border-line rounded-3xl p-5 sm:p-6">
+                <div class="mb-4 bg-gradient-to-br from-primary-50 to-surface border border-line rounded-2xl p-5 sm:p-6">
                     <div class="flex items-center justify-between mb-1">
                         <h3 class="font-bold text-base text-ink-900">เช็คอินความรู้สึกวันนี้ 🌤️</h3>
                         {streak > 0 && <span class="text-sm font-bold text-primary-600 flex items-center gap-1">🔥 {streak} วันติด</span>}
@@ -216,7 +216,7 @@
                 </div>
             );
             return (
-                <div class="mb-6 bg-surface border border-line rounded-3xl p-5 sm:p-6">
+                <div class="mb-6 bg-surface border border-line rounded-2xl p-5 sm:p-6">
                     <h3 class="font-bold text-base text-ink-900 mb-1">วันนี้มีอะไรดีๆ 1 อย่าง? 🌷</h3>
                     {done ? (
                         <p class="text-sm text-ink-500 mt-1">บันทึกความขอบคุณของวันนี้แล้ว · ดูย้อนหลังได้ในโปรไฟล์</p>
@@ -253,7 +253,7 @@
             return (
                 <div class="fixed inset-0 z-[80] flex items-end sm:items-center justify-center p-4">
                     <div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
-                    <div class="relative w-full sm:max-w-md bg-surface rounded-3xl shadow-2xl border border-line overflow-hidden">
+                    <div class="relative w-full sm:max-w-md bg-surface rounded-2xl shadow-2xl border border-line overflow-hidden">
                         <div class="p-8 text-center">
                             <div class="text-5xl mb-4">{s.icon}</div>
                             <h3 class="text-xl font-extrabold text-ink-900 mb-2">{s.title}</h3>
@@ -296,7 +296,7 @@
             const days = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัส','ศุกร์','เสาร์'];
             const nextText = info.next.toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'short' }) + ' เวลา 20:00 น.';
             return (
-                <div class={`mt-4 rounded-3xl overflow-hidden border ${info.open ? 'border-primary-400' : 'border-line'}`}
+                <div class={`mt-4 rounded-2xl overflow-hidden border ${info.open ? 'border-primary-400' : 'border-line'}`}
                     style={{ background: info.open ? 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-700))' : 'var(--color-surface)' }}>
                     <div class="p-5 sm:p-6 flex items-center gap-4">
                         <div class={`w-14 h-14 rounded-2xl flex items-center justify-center text-3xl shrink-0 ${info.open ? 'bg-white/20' : 'bg-primary-50'}`}>🌙</div>
@@ -376,7 +376,7 @@
 
             if (invites.length === 0 && mutuals.length === 0) return null;
             return (
-                <div class="mb-8 bg-surface border border-line rounded-3xl p-6 shadow-sm">
+                <div class="mb-8 bg-surface border border-line rounded-2xl p-6 shadow-sm">
                     <h3 class="font-bold text-base text-ink-900 flex items-center gap-2 mb-1">🔖 กลับมาคุยกับคนเดิม</h3>
                     <p class="text-xs text-ink-400 mb-4">คู่ที่คุณกับเขาต่างบันทึกกันไว้ · ชวนกลับมาคุยกันใหม่ได้เมื่อทั้งคู่พร้อม</p>
 
@@ -413,7 +413,7 @@
         // ลิงก์ไปกำแพงให้กำลังใจ
         function WallLink() {
             return (
-                <a href="wall.html" class="block mb-4 bg-gradient-to-br from-secondary-50 to-primary-50 border border-line rounded-3xl p-5 shadow-sm hover:shadow-md transition group">
+                <a href="wall.html" class="block mb-4 bg-gradient-to-br from-secondary-50 to-primary-50 border border-line rounded-2xl p-5 shadow-sm hover:shadow-md transition group">
                     <div class="flex items-center gap-4">
                         <div class="text-3xl">💛</div>
                         <div class="flex-1 min-w-0">
@@ -428,7 +428,7 @@
 
         function CareLink() {
             return (
-                <a href="care.html" class="block mb-8 bg-surface border border-line rounded-3xl p-5 shadow-sm hover:shadow-md transition group">
+                <a href="care.html" class="block mb-8 bg-surface border border-line rounded-2xl p-5 shadow-sm hover:shadow-md transition group">
                     <div class="flex items-center gap-4">
                         <div class="text-3xl">🌿</div>
                         <div class="flex-1 min-w-0">
@@ -461,7 +461,7 @@
             function close() { try { localStorage.setItem(seenKey, (new Date()).toISOString().slice(0, 10)); } catch (e) {} setDismissed(true); }
             if (!show || dismissed) return null;
             return (
-                <div class="mb-4 bg-gradient-to-br from-secondary-50 to-surface border border-line rounded-3xl p-5">
+                <div class="mb-4 bg-gradient-to-br from-secondary-50 to-surface border border-line rounded-2xl p-5">
                     <div class="flex items-start gap-3">
                         <div class="text-2xl">🌙</div>
                         <div class="flex-1 min-w-0">
@@ -518,7 +518,7 @@
             return (
                 <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
-                    <div class="relative bg-surface rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-float border border-line">
+                    <div class="relative bg-surface rounded-2xl p-6 sm:p-7 max-w-md w-full shadow-float border border-line">
                         {phase === 'learn' && (
                             <>
                                 <div class="flex items-center gap-1.5 mb-5">
@@ -775,7 +775,7 @@
                         <div class="max-w-6xl mx-auto">
                             {!isAdmin && <GentleFollowUp />}
                             {!isAdmin && (
-                                <div class="mb-8 bg-surface border border-line rounded-3xl p-5 sm:p-7 shadow-sm">
+                                <div class="mb-8 bg-surface border border-line rounded-2xl p-5 sm:p-7 shadow-sm">
                                     {/* 1. เลือกหัวข้อสนทนา — ชิปกะทัดรัด อ่านคำอธิบายของอันที่เลือกด้านล่าง */}
                                     <div class="mb-5">
                                         <div class="flex items-center justify-between mb-3">
@@ -946,7 +946,7 @@
                     {moodRole && (
                         <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
                             <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setMoodRole(null)}></div>
-                            <div class="relative bg-surface rounded-3xl p-7 max-w-sm w-full shadow-float text-center border border-line">
+                            <div class="relative bg-surface rounded-2xl p-7 max-w-sm w-full shadow-float text-center border border-line">
                                 <div class="text-3xl mb-2">🌤️</div>
                                 <h3 class="text-lg font-bold text-ink-900 mb-1">ตอนนี้รู้สึกยังไงบ้าง?</h3>
                                 <p class="text-xs text-ink-400 mb-5">บันทึกส่วนตัวก่อนเริ่มคุย เห็นแค่คุณคนเดียว — ไว้ดูว่าการได้ระบายช่วยไหม</p>
