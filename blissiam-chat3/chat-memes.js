@@ -1,7 +1,10 @@
-;(function(){
 // ============================================================
 // Blissiam — Built-in Memes (ทำงานได้แม้ไม่มี Giphy API)
 // ============================================================
+// ห่อใน IIFE เพื่อไม่ให้ const/function ระดับบนสุดกลายเป็น global
+// (กันชื่อชนกับ const ใน chat.html — เมื่อ babel standalone inject
+//  โค้ดที่แปลงแล้วเป็น global script จะเกิด SyntaxError ทำให้จอขาว)
+(function () {
 
 const BUILTIN_MEMES = [
     { id: 'm01', label: 'หัวเราะ', url: 'https://media.giphy.com/media/13CoXDiaCcGy96/giphy.gif', tags: ['laugh', 'ฮา'] },

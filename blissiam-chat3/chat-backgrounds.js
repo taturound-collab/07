@@ -1,8 +1,11 @@
-;(function(){
 // ============================================================
 // Blissiam — Chat Background Presets (36+ แบบ)
 // ใช้ใน chat.html: เลือกสี / ไล่สี / ภาพพื้นหลัง
 // ============================================================
+// ห่อใน IIFE เพื่อไม่ให้ const/function ระดับบนสุดกลายเป็น global
+// (กันชื่อชนกับ const ใน chat.html ที่ทำให้ babel standalone
+//  เกิด SyntaxError "already declared" แล้วจอขาว)
+(function () {
 
 const CHAT_BACKGROUNDS = [
     // — สีพื้นเรียบ (12) —
