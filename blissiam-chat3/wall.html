@@ -45,6 +45,7 @@
     </style>
     <script src="theme.js"></script>
     <script src="icons.js"></script>
+    <script src="illustrations.js"></script>
     <script src="pwa.js"></script>
     <script src="panic.js"></script>
     <script src="safety.js"></script>
@@ -176,7 +177,10 @@
                         </div>
 
                         {visible.length === 0 ? (
-                            <div class="text-center text-ink-300 text-sm py-10">ยังไม่มีข้อความ · เป็นคนแรกที่ทิ้งกำลังใจไว้ที่นี่ 🌱</div>
+                            <div class="text-center py-8">
+                                <div class="w-52 max-w-[70%] mx-auto mb-3" dangerouslySetInnerHTML={{ __html: (window.NomGIllus ? NomGIllus('empty-wall') : '') }}></div>
+                                <div class="text-ink-500 text-sm">ยังไม่มีข้อความ · เป็นคนแรกที่ทิ้งกำลังใจไว้ที่นี่ 🌱</div>
+                            </div>
                         ) : (
                             <div class="grid sm:grid-cols-2 gap-3">
                                 {visible.map((p, i) => (

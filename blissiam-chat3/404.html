@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ไม่พบหน้านี้ | NomGI</title>
+    <link id="blissiam-font-link" href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-primary-100: #e3ece0; --color-primary-300: #9dc295; --color-primary-400: #739e6b;
+            --color-primary-500: #4D7355; --color-primary-600: #3d5d44;
+            --color-secondary-200: #e6bf8e; --color-secondary-300: #cc9655; --color-secondary-400: #A8662A;
+            --color-paper-50: #fdfcfa; --color-line: #e8e3d9; --color-surface: #ffffff;
+            --color-ink-900: #1a1a1a; --color-ink-500: #6b6b6b;
+        }
+        * { box-sizing: border-box; }
+        body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px;
+            font-family: 'Kanit', sans-serif; color: var(--color-ink-900);
+            background-color: var(--color-paper-50);
+            background-image: radial-gradient(circle at 15% 10%, var(--color-primary-100) 0%, transparent 45%), radial-gradient(circle at 85% 90%, #fbf3ea 0%, transparent 45%); }
+        .wrap { text-align: center; max-width: 380px; }
+        .art { width: 260px; max-width: 80%; margin: 0 auto 8px; }
+        h1 { font-size: 3.4rem; font-weight: 700; margin: 0; color: var(--color-primary-600); letter-spacing: -.02em; }
+        p.lead { font-size: 1.05rem; font-weight: 500; margin: 4px 0 6px; }
+        p.sub { font-size: .9rem; color: var(--color-ink-500); margin: 0 0 22px; line-height: 1.6; }
+        a.home { display: inline-block; background: linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600));
+            color: #fff; text-decoration: none; font-weight: 600; font-size: .95rem; padding: 12px 28px; border-radius: 9999px;
+            box-shadow: 0 8px 20px -6px var(--color-primary-500); transition: transform .2s ease; }
+        a.home:hover { transform: translateY(-2px); }
+    </style>
+    <script src="theme.js"></script>
+    <script src="illustrations.js"></script>
+</head>
+<body>
+    <div class="wrap">
+        <div class="art" id="art"></div>
+        <h1>404</h1>
+        <p class="lead">ไม่พบหน้านี้ 🍃</p>
+        <p class="sub">หน้าที่คุณตามหาอาจย้ายไป หรือหลงทางไปนิดหน่อย · กลับมาเริ่มใหม่ที่หน้าแรกได้เลยนะ</p>
+        <a class="home" href="index.html">กลับหน้าแรก</a>
+    </div>
+    <script>
+        document.getElementById('art').innerHTML = (window.NomGIllus ? NomGIllus('notfound') : '');
+    </script>
+</body>
+</html>

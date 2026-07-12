@@ -58,6 +58,7 @@
     </style>
     <script src="theme.js"></script>
     <script src="icons.js"></script>
+    <script src="illustrations.js"></script>
     <script src="pwa.js"></script>
     <script src="panic.js"></script>
     <script src="kudos-tree.js"></script>
@@ -177,7 +178,8 @@
                 return (
                     <div class="card-playful bg-surface p-6">
                         <div class="text-xs font-semibold uppercase tracking-wide text-primary-600 mb-1">เส้นทางใจของฉัน</div>
-                        <p class="text-sm text-ink-400 mt-2">ยังไม่มีบันทึกความรู้สึก — หลังคุยจบครั้งถัดไป ลองบอกความรู้สึกดูนะ แล้วกราฟจะค่อยๆ ปรากฏที่นี่ (เห็นแค่คุณคนเดียว)</p>
+                        <div class="w-40 max-w-[60%] mx-auto my-2" dangerouslySetInnerHTML={{ __html: (window.NomGIllus ? NomGIllus('empty-generic') : '') }}></div>
+                        <p class="text-sm text-ink-400 mt-1 text-center">ยังไม่มีบันทึกความรู้สึก — หลังคุยจบครั้งถัดไป ลองบอกความรู้สึกดูนะ แล้วกราฟจะค่อยๆ ปรากฏที่นี่ (เห็นแค่คุณคนเดียว)</p>
                     </div>
                 );
             }
