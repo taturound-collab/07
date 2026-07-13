@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เครดิต & แหล่งที่มา | NomGI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="flaticons.js"></script>
+    <style>
+        :root { --paper:#fdfcfa; --card:#ffffff; --ink:#1a1a1a; --ink2:#6b6b6b; --line:#e8e3d9; --green:#4D7355; --green-d:#314936; }
+        @media (prefers-color-scheme: dark) {
+            :root { --paper:#15151a; --card:#1e1e24; --ink:#f2f2f0; --ink2:#a8a8a4; --line:rgba(255,255,255,0.08); --green:#8fae86; --green-d:#b6ccae; }
+        }
+        * { box-sizing: border-box; }
+        body { margin:0; font-family:'Kanit',sans-serif; background:var(--paper); color:var(--ink); line-height:1.7; }
+        .wrap { max-width:640px; margin:0 auto; padding:40px 20px 80px; }
+        a { color:var(--green); }
+        .back { display:inline-flex; align-items:center; gap:6px; font-size:13px; color:var(--ink2); text-decoration:none; margin-bottom:24px; }
+        h1 { font-size:26px; font-weight:700; margin:0 0 6px; }
+        .sub { color:var(--ink2); font-size:14px; margin:0 0 28px; }
+        .card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:20px 22px; margin-bottom:16px; }
+        .card h2 { font-size:16px; font-weight:600; margin:0 0 8px; color:var(--green-d); }
+        .card p { font-size:14px; color:var(--ink2); margin:0 0 6px; }
+        ul { margin:8px 0 0; padding-left:18px; }
+        li { font-size:14px; color:var(--ink2); margin:3px 0; }
+        .muted { font-size:12px; color:var(--ink2); }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <a href="index.html" class="back">‹ กลับหน้าแรก</a>
+        <h1>เครดิต & แหล่งที่มา 🌿</h1>
+        <p class="sub">NomGI สร้างขึ้นด้วยเครื่องมือและทรัพยากรโอเพนซอร์สเหล่านี้ — ขอบคุณผู้สร้างทุกคน</p>
+
+        <div class="card" id="flaticon-card">
+            <h2>ไอคอน & สติกเกอร์ — Flaticon</h2>
+            <p>ไอคอนมีสีบางส่วนในเว็บนี้ออกแบบโดยศิลปินจาก <a href="https://www.flaticon.com/" target="_blank" rel="noopener">Flaticon</a></p>
+            <div id="flaticon-list"></div>
+        </div>
+
+        <div class="card">
+            <h2>ไอคอนเส้น — Lucide</h2>
+            <p>ไอคอนเส้น (ปุ่ม/เมนู/นาวิเกชัน) จาก <a href="https://lucide.dev/" target="_blank" rel="noopener">Lucide</a> — สัญญาอนุญาต ISC</p>
+        </div>
+
+        <div class="card">
+            <h2>ภาพประกอบ flat</h2>
+            <p>สไตล์ภาพประกอบได้แรงบันดาลใจจาก <a href="https://undraw.co/" target="_blank" rel="noopener">unDraw</a> (ออกแบบใหม่เป็น SVG เฉพาะของ NomGI)</p>
+        </div>
+
+        <div class="card">
+            <h2>ฟอนต์</h2>
+            <p>Kanit — โดย Cadson Demak ผ่าน <a href="https://fonts.google.com/specimen/Kanit" target="_blank" rel="noopener">Google Fonts</a> (SIL Open Font License)</p>
+        </div>
+
+        <p class="muted">หากพบว่าเครดิตตกหล่นหรือไม่ถูกต้อง แจ้งเราได้เพื่อแก้ไขทันที</p>
+    </div>
+
+    <script>
+        (function () {
+            var list = document.getElementById('flaticon-list');
+            var credits = (window.NomGISticker && window.NomGISticker.credits) ? window.NomGISticker.credits() : [];
+            if (!credits.length) {
+                list.innerHTML = '<p class="muted" style="margin-top:8px">Icons made by various authors from '
+                    + '<a href="https://www.flaticon.com/" target="_blank" rel="noopener">www.flaticon.com</a></p>';
+                return;
+            }
+            var ul = document.createElement('ul');
+            credits.forEach(function (c) {
+                var li = document.createElement('li');
+                var a = document.createElement('a');
+                a.href = c.url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = c.author;
+                li.appendChild(document.createTextNode('ไอคอนโดย '));
+                li.appendChild(a);
+                li.appendChild(document.createTextNode(' จาก Flaticon'));
+                ul.appendChild(li);
+            });
+            list.appendChild(ul);
+        })();
+    </script>
+</body>
+</html>
