@@ -57,6 +57,8 @@
     </style>
     <script src="theme.js"></script>
     <script src="icons.js"></script>
+    <script src="ui.js"></script>
+    <script src="nav.js"></script>
     <script src="flaticons.js"></script>
     <script src="illustrations.js"></script>
     <script src="pwa.js"></script>
@@ -676,7 +678,7 @@
                     if (error) throw error;
                     window.location.href = 'group.html?g=' + data;
                 } catch (err) {
-                    alert('เข้าวงกลมไม่สำเร็จ: ' + (err.message || err) + '\n\n(ถ้าเพิ่งเพิ่มฟีเจอร์นี้ ต้องรันไฟล์ supabase-group-rooms.sql ใน Supabase ก่อน)');
+                    NomGIToast('เข้าวงกลมไม่สำเร็จ: ' + (err.message || err), 'error');
                     setStarting(false);
                 }
             }
@@ -688,7 +690,7 @@
                     const { data, error } = await supabase.rpc('join_group', { p_topic: topic });
                     if (error) throw error;
                     window.location.href = 'group.html?g=' + data;
-                } catch (err) { alert('เข้าวงกลมไม่สำเร็จ: ' + (err.message || err)); setStarting(false); }
+                } catch (err) { NomGIToast('เข้าวงกลมไม่สำเร็จ: ' + (err.message || err), 'error'); setStarting(false); }
             }
 
             // เลือกความรู้สึกก่อนเข้าคิว (บันทึกส่วนตัว) แล้วเข้าคิว — ข้ามได้
@@ -704,7 +706,7 @@
                     }).eq('id', user.id);
                     window.location.href = `queue.html?role=${role}&identity=${identityMode}&topic=${selectedTopic}&support=${selectedSupport}`;
                 } catch (err) {
-                    alert('เกิดข้อผิดพลาด: ' + err.message);
+                    NomGIToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
                     setStarting(false);
                 }
             }

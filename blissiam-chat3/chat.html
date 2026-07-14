@@ -81,6 +81,8 @@
     </style>
     <script src="theme.js"></script>
     <script src="icons.js"></script>
+    <script src="ui.js"></script>
+    <script src="nav.js"></script>
     <script src="pwa.js"></script>
     <script src="panic.js"></script>
     <script src="chat-backgrounds.js"></script>
@@ -266,7 +268,20 @@
             }
 
             const messagesEndRef = useRef(null);
+            const scrollRef = useRef(null);
+            const [showScrollDown, setShowScrollDown] = useState(false);
             const roomId = new URLSearchParams(window.location.search).get('room');
+
+            // แสดงปุ่ม "เลื่อนลงล่างสุด" เมื่อผู้ใช้เลื่อนอ่านย้อนขึ้นไป
+            function onMessagesScroll() {
+                const el = scrollRef.current;
+                if (!el) return;
+                const gap = el.scrollHeight - el.scrollTop - el.clientHeight;
+                setShowScrollDown(gap > 220);
+            }
+            function scrollToBottom() {
+                messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }
 
             const chatBg = useMemo(() => getChatBackground(chatBgId), [chatBgId]);
             const bgStyle = useMemo(() => applyChatBackgroundStyle(chatBg), [chatBg]);
@@ -426,7 +441,7 @@
                             }
                         })
                         .subscribe();
-                } catch (err) { alert(err.message); }
+                } catch (err) { NomGIToast(err.message, 'error'); }
             }
 
             // ส่ง "ไออุ่น" ให้คู่สนทนา (โหมดเงียบ/อยู่เป็นเพื่อน)
@@ -441,6 +456,7 @@
             async function sendMessage(content, type = 'text') {
                 const body = type === 'text' ? content.trim() : content;
                 if (!body || !user) return;
+                try { navigator.vibrate && navigator.vibrate(8); } catch (e) {}   // haptic เบาๆ ตอนส่ง
                 if (type === 'text') setInput('');
                 if (type === 'meme') { setSendingMeme(true); setShowMediaMenu(false); }
 
@@ -459,7 +475,7 @@
                     }));
                 }
                 if (error) {
-                    alert('ส่งไม่สำเร็จ: ' + error.message + '\n\nถ้าเป็นข้อความมีม ให้รัน SQL เพิ่มคอลัมน์ message_type ใน Supabase');
+                    NomGIToast('ส่งไม่สำเร็จ: ' + error.message, 'error');
                     if (type === 'text') setInput(content);
                 }
                 // Auto-flag: ถ้าข้อความของเราเข้าข่ายสัญญาณเสี่ยง แจ้งเข้าคิว admin เงียบๆ (นอกจากการ์ดสายด่วนที่แสดงอยู่แล้ว)
@@ -481,7 +497,7 @@
                 const { error } = await supabase.rpc('give_kudos', { target_user_id: partnerId, room_id_param: roomId });
                 if (error) {
                     if (error.message.includes('ให้แต้มในห้องนี้แล้ว')) { setKudosGiven(true); return; }
-                    alert('ให้แต้มไม่สำเร็จ: ' + error.message); return;
+                    NomGIToast('ให้แต้มไม่สำเร็จ: ' + error.message, 'error'); return;
                 }
                 setKudosGiven(true);
                 setPartner(prev => prev ? { ...prev, kudos_count: (prev.kudos_count || 0) + 1 } : prev);
@@ -491,7 +507,7 @@
                 if (!confirm('ลบข้อความนี้?')) return;
                 setDeletingId(msgId);
                 const { error } = await supabase.from('messages').delete().eq('id', msgId).eq('sender_id', user.id);
-                if (error) alert('ลบไม่สำเร็จ: ' + error.message);
+                if (error) NomGIToast('ลบไม่สำเร็จ: ' + error.message, 'error');
                 else setMessages(prev => prev.filter(m => m.id !== msgId));
                 setDeletingId(null);
             }
@@ -523,9 +539,9 @@
                     reporter_id: user.id, reported_user_id: partnerId, room_id: roomId,
                     reason: reportReason, details: reportDetails.trim() || null
                 });
-                if (error) { alert('ส่งรายงานไม่สำเร็จ: ' + error.message); return; }
+                if (error) { NomGIToast('ส่งรายงานไม่สำเร็จ: ' + error.message, 'error'); return; }
                 setShowReportModal(false); setReportDetails('');
-                alert('ส่งรายงานแล้ว ทีมงานจะตรวจสอบโดยเร็วที่สุด');
+                NomGIToast('ส่งรายงานแล้ว ทีมงานจะตรวจสอบโดยเร็วที่สุด', 'success');
             }
 
             // ส่งต่ออย่างอบอุ่น — พาคู่สนทนาไปหาความช่วยเหลือที่เหมาะสม (ผู้รับฟังเป็นคนกด)
@@ -701,7 +717,7 @@
                     )}
 
                     {/* Messages */}
-                    <div class="flex-1 overflow-y-auto px-4 py-5 scrollbar-hide" onClick={() => { setShowMediaMenu(false); }}>
+                    <div ref={scrollRef} onScroll={onMessagesScroll} class="flex-1 overflow-y-auto px-4 py-5 scrollbar-hide" onClick={() => { setShowMediaMenu(false); }}>
                         {messages.length === 0 && (
                             <div class="flex flex-col items-center justify-center py-16 text-center">
                                 <div class="w-16 h-16 rounded-3xl glass shadow-chat flex items-center justify-center text-3xl mb-4">💬</div>
@@ -861,6 +877,14 @@
                                 </div>
                             </div>
                         </div>
+                    )}
+
+                    {/* ปุ่มเลื่อนลงล่างสุด (โผล่เมื่ออ่านย้อนขึ้นไป) */}
+                    {showScrollDown && (
+                        <button type="button" onClick={scrollToBottom} aria-label="เลื่อนลงข้อความล่าสุด"
+                            class="absolute right-4 bottom-24 z-30 w-10 h-10 rounded-full bg-surface border border-line shadow-float flex items-center justify-center text-ink-600 hover:text-primary-600 hover:border-primary-300 active:scale-90 transition warmth-pop">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
+                        </button>
                     )}
 
                     {/* Input bar */}

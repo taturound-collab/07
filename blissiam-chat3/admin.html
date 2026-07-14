@@ -71,6 +71,8 @@
     </style>
     <script src="theme.js"></script>
     <script src="icons.js"></script>
+    <script src="ui.js"></script>
+    <script src="nav.js"></script>
     <script src="pwa.js"></script>
 </head>
 <body class="h-screen text-ink-900 overflow-hidden">
@@ -408,7 +410,7 @@
 
                     loadData();
                 } catch (err) {
-                    alert('Error: ' + err.message);
+                    NomGIToast('Error: ' + err.message, 'error');
                 }
             }
 
@@ -431,7 +433,7 @@
                     }).eq('id', appeal.id);
                     await supabase.from('profiles').update({ is_banned: false }).eq('id', appeal.user_id);
                     loadData();
-                } catch (err) { alert('Error: ' + err.message); }
+                } catch (err) { NomGIToast('Error: ' + err.message, 'error'); }
             }
 
             async function dismissAppeal(appealId) {
@@ -441,7 +443,7 @@
                         status: 'dismissed', reviewed_at: new Date().toISOString(), reviewed_by: user.id
                     }).eq('id', appealId);
                     loadData();
-                } catch (err) { alert('Error: ' + err.message); }
+                } catch (err) { NomGIToast('Error: ' + err.message, 'error'); }
             }
 
             // Batch F: จัดการสัญญาณเสี่ยง
@@ -451,7 +453,7 @@
                         status: 'reviewed', reviewed_at: new Date().toISOString(), reviewed_by: user.id
                     }).eq('id', flagId);
                     loadData();
-                } catch (err) { alert('Error: ' + err.message); }
+                } catch (err) { NomGIToast('Error: ' + err.message, 'error'); }
             }
 
             // Batch F: จัดการกำแพงกำลังใจ
@@ -459,7 +461,7 @@
                 try {
                     await supabase.from('wall_posts').update({ status }).eq('id', postId);
                     loadData();
-                } catch (err) { alert('Error: ' + err.message); }
+                } catch (err) { NomGIToast('Error: ' + err.message, 'error'); }
             }
 
             async function closeRoom(roomId) {
@@ -480,7 +482,7 @@
                     setThemeSaved(true);
                     setTimeout(() => setThemeSaved(false), 3000);
                 } catch (err) {
-                    alert('บันทึกธีมไม่สำเร็จ: ' + err.message);
+                    NomGIToast('บันทึกธีมไม่สำเร็จ: ' + err.message, 'error');
                 } finally {
                     setSavingTheme(false);
                 }
